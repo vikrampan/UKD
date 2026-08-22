@@ -1,0 +1,2747 @@
+import React, { useState, useEffect, useMemo, useRef, createContext, useContext } from "react";
+
+/* ================= UKD DIGITAL ECOSYSTEM — FRONTEND PROTOTYPE =================
+   Public website + private organisational portal. All data is demo data. */
+
+const C = {
+  forest: "#2F5233", forestDark: "#22402A", forestDeep: "#182B1C",
+  gold: "#C98A2B", goldSoft: "#E8C588", slate: "#1F4B5F", slateSoft: "#3A6B82",
+  lime: "#9BC53D", ivory: "#F4F1E8", paper: "#FBFAF4", ink: "#1B261D",
+  mute: "#6B7568", line: "#E3DECE", lineDark: "#2E4433",
+  red: "#B4452F", amber: "#C98A2B",
+};
+const serif = "'Fraunces', Georgia, 'Times New Roman', serif";
+const sans = "'Public Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+const GlobalStyle = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@300;400;500;600;700&display=swap');
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; }
+    ::selection { background: ${C.gold}44; }
+    .ukd-fade { animation: ukdFade .45s ease both; }
+    @keyframes ukdFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .ukd-pop { animation: ukdPop .28s cubic-bezier(.2,.9,.3,1.2) both; }
+    @keyframes ukdPop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+    @keyframes ukdShimmer { 0% { background-position: -400px 0 } 100% { background-position: 400px 0 } }
+    .ukd-skel { background: linear-gradient(90deg,#eae6d8 25%,#f3efe2 50%,#eae6d8 75%); background-size: 400px 100%; animation: ukdShimmer 1.2s infinite linear; border-radius: 6px; }
+    .ukd-skel-dark { background: linear-gradient(90deg,#243b29 25%,#2c4832 50%,#243b29 75%); background-size: 400px 100%; animation: ukdShimmer 1.2s infinite linear; border-radius: 6px; }
+    .hoverlift { transition: transform .18s ease, box-shadow .18s ease; }
+    .hoverlift:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -14px rgba(24,43,28,.35); }
+    .rowhover { transition: background .12s ease; }
+    .rowhover:hover { background: #f2eedf; cursor: pointer; }
+    .rowhover-dark:hover { background: #22402a22; cursor: pointer; }
+    input:focus, textarea:focus, select:focus, button:focus-visible, a:focus-visible { outline: 2px solid ${C.gold}; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { .ukd-fade, .ukd-pop, .ukd-skel, .ukd-skel-dark { animation: none; } .hoverlift:hover { transform:none } }
+    @keyframes ukdBar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+    .baranim { transform-origin: bottom; animation: ukdBar .6s ease both; }
+    .navlink { position: relative; }
+    .navlink:after { content:""; position:absolute; left:0; right:100%; bottom:-4px; height:2px; background:${C.gold}; transition: right .2s ease; }
+    .navlink:hover:after, .navlink.active:after { right:0; }
+  `}</style>
+);
+
+/* ============================== MOCK DATA ============================== */
+const REGIONS = {
+  Garhwal: ["Dehradun", "Pauri Garhwal", "Tehri Garhwal", "Uttarkashi", "Chamoli", "Rudraprayag"],
+  Kumaon: ["Almora", "Nainital", "Pithoragarh", "Bageshwar", "Champawat"],
+  Tarai: ["Haridwar", "Udham Singh Nagar"],
+};
+const DISTRICTS = Object.values(REGIONS).flat();
+const regionOf = (d) => Object.keys(REGIONS).find((r) => REGIONS[r].includes(d));
+
+const FIRST = ["Arun","Meera","Devendra","Kamla","Harish","Sunita","Prakash","Deepa","Mohan","Radha","Suresh","Anita","Rajendra","Geeta","Naveen","Pushpa","Dinesh","Savita","Trilok","Hema","Bhuwan","Laxmi","Girish","Tara"];
+const LAST = ["Rawat","Bisht","Negi","Bhatt","Joshi","Pant","Kandpal","Bhandari","Chauhan","Adhikari","Mehra","Gusain","Kathait","Tamta","Dhoundiyal","Panwar"];
+const seededName = (i) => `${FIRST[i % FIRST.length]} ${LAST[(i * 7 + 3) % LAST.length]}`;
+
+const SEED_MEMBERS = Array.from({ length: 42 }, (_, i) => ({
+  id: `UKD-M-2026-${String(1000 + i * 13)}`,
+  name: seededName(i),
+  district: DISTRICTS[i % 13],
+  unit: `Local Unit ${String(1 + (i % 6)).padStart(2, "0")}`,
+  block: `Block ${"ABCD"[i % 4]}`,
+  role: ["Member","Member","Member","Committee Member","Unit Secretary","Member"][i % 6],
+  joined: `${["Jan","Feb","Mar","Apr","May","Jun","Jul"][i % 7]} 2026`,
+  status: i % 9 === 0 ? "Pending" : "Active",
+  lastActivity: `${(i % 12) + 1} d ago`,
+  phone: `+91 98XXX ${String(10000 + i * 91).slice(0, 5)}`,
+}));
+
+const SEED_KARYAKARTAS = Array.from({ length: 18 }, (_, i) => ({
+  id: `KK-${200 + i}`,
+  name: seededName(i + 9),
+  district: DISTRICTS[(i * 3) % 13],
+  unit: `Local Unit ${String(1 + (i % 6)).padStart(2, "0")}`,
+  role: ["Field Karyakarta","Booth Karyakarta","Training Lead","Field Karyakarta","Outreach Karyakarta"][i % 5],
+  skills: [["Outreach","Hindi comms"],["Logistics","Transport"],["Training","Documentation"],["Media liaison","Photography"],["Data entry","Reporting"]][i % 5],
+  availability: ["Weekends","Full-time","Evenings","Full-time"][i % 4],
+  tasksDone: 4 + (i * 5) % 23,
+  training: i % 3 === 0 ? "Completed" : i % 3 === 1 ? "In progress" : "Scheduled",
+  active: i % 7 !== 0,
+}));
+
+const SEED_UNITS = Array.from({ length: 14 }, (_, i) => {
+  const d = DISTRICTS[i % 13];
+  return {
+    id: `U-${100 + i}`, name: `${d.split(" ")[0]} Local Unit ${String((i % 4) + 1).padStart(2, "0")}`,
+    district: d, block: `Block ${"ABCD"[i % 4]}`,
+    leader: seededName(i + 3), committee: 5 + (i % 4), karyakartas: 6 + (i * 3) % 15,
+    members: 24 + (i * 17) % 90, lastActivity: `${(i % 9) + 1} d ago`,
+    openIssues: i % 5, pendingTasks: i % 4, lastReport: i % 6 === 0 ? "Missing" : "Wk 32",
+    health: 58 + (i * 7) % 40,
+    checks: { leadership: true, committee: i % 6 !== 2, activity: i % 5 !== 4, reporting: i % 6 !== 0 },
+  };
+});
+
+const SEED_TASKS = [
+  ["Booth committee verification drive","Pauri Garhwal","High"],["Weekly unit report collection","Almora","Medium"],
+  ["Membership form digitisation","Dehradun","Medium"],["Village outreach — road issue follow-up","Chamoli","High"],
+  ["District office document archive","Nainital","Low"],["Karyakarta training session prep","Tehri Garhwal","High"],
+  ["Event logistics — Haridwar meet","Haridwar","High"],["Issue verification — water supply","Almora","Medium"],
+  ["New unit formation survey","Bageshwar","Medium"],["Notice acknowledgement follow-up","Pithoragarh","Low"],
+  ["Photo documentation of public work","Rudraprayag","Low"],["Local grievance camp setup","Champawat","High"],
+  ["Member data cleanup — Block B","Udham Singh Nagar","Medium"],["Transparency ledger upload prep","Dehradun","Medium"],
+].map((t, i) => ({
+  id: `T-${400 + i}`, name: t[0], district: t[1], priority: t[2],
+  assignee: seededName(i + 5), unit: `Local Unit ${String((i % 6) + 1).padStart(2, "0")}`,
+  deadline: `${12 + (i % 15)} Aug 2026`,
+  status: ["Overdue","In Progress","Not Started","In Progress","Submitted","Under Review","Completed","In Progress","Not Started","Overdue","Completed","In Progress","Submitted","Not Started"][i],
+  desc: "Coordinate with the unit leadership, complete the ground work, attach evidence and submit for review.",
+  comments: 1 + (i % 4), evidence: i % 3 === 0 ? "2 photos" : i % 3 === 1 ? "1 document" : "—",
+}));
+
+const SEED_ISSUES = [
+  ["Road & Connectivity","Pauri Garhwal","Received","Kotdwar–Satpuli stretch badly damaged after monsoon"],
+  ["Water","Almora","In Progress","Irregular drinking water supply in ward 6 for three weeks"],
+  ["Transport","Dehradun","Resolved","No evening bus service on Rajpur route"],
+  ["Electricity","Tehri Garhwal","Assigned","Frequent outages affecting school examinations"],
+  ["Healthcare","Chamoli","In Progress","PHC has no attending doctor on weekends"],
+  ["Education","Bageshwar","Received","Primary school building needs urgent roof repair"],
+  ["Employment","Haridwar","Assigned","Request for skill-training camp for local youth"],
+  ["Disaster-related","Rudraprayag","In Progress","Landslide debris blocking village footpath"],
+  ["Environment","Nainital","Received","Unregulated waste dumping near lake inlet"],
+  ["Local Administration","Pithoragarh","Resolved","Delay in issuing residence certificates"],
+  ["Water","Champawat","Received","Hand-pump repair pending since June"],
+  ["Road & Connectivity","Uttarkashi","Assigned","Bridge approach road washed out near Bhatwari"],
+].map((x, i) => ({
+  id: `UKD-ISSUE-2026-${String(400 + i * 7).padStart(5, "0")}`,
+  category: x[0], district: x[1], status: x[2], title: x[3],
+  location: `${x[1]} • Block ${"ABC"[i % 3]}`, date: `${1 + (i % 11)} Aug 2026`,
+  citizen: seededName(i + 14), phone: "+91 97XXX XXXXX",
+  priority: ["High","Medium","Medium","High","High","Medium","Low","High","Medium","Low","Medium","High"][i],
+  assignedUnit: `${x[1].split(" ")[0]} Local Unit 0${(i % 3) + 1}`,
+  ageDays: 2 + (i * 3) % 26,
+  notes: i % 2 ? 1 : 2,
+}));
+
+const SEED_EVENTS = [
+  ["District Organisational Meeting","Dehradun","18 Aug 2026","Organisation"],
+  ["Karyakarta Training Camp","Almora","21 Aug 2026","Training"],
+  ["Public Issue Resolution Camp","Pauri Garhwal","24 Aug 2026","Public Work"],
+  ["Statehood Movement Remembrance","Dehradun","1 Sep 2026","Commemoration"],
+  ["Block Coordinators Review","Haridwar","5 Sep 2026","Organisation"],
+  ["Village Outreach Yatra — Phase II","Chamoli","9 Sep 2026","Outreach"],
+  ["Youth Dialogue on Mountain Employment","Nainital","14 Sep 2026","Public Work"],
+  ["Central Committee Session","Dehradun","20 Sep 2026","Organisation"],
+].map((e, i) => ({
+  id: `E-${70 + i}`, title: e[0], district: e[1], date: e[2], type: e[3],
+  time: ["10:00 AM","9:30 AM","11:00 AM","8:00 AM","10:30 AM","7:30 AM","3:00 PM","10:00 AM"][i],
+  venue: `${e[1]} — District Office Hall`, organiser: seededName(i + 2),
+  participants: 24 + (i * 31) % 220,
+  desc: "Official organisational programme. Agenda, attendance and follow-up tasks are tracked in the portal. Demo data.",
+}));
+
+const SEED_NEWS = [
+  ["Official Update","UKD launches its official digital home","A single verified source for the organisation's news, documents and public engagement across all 13 districts.","10 Aug 2026"],
+  ["Public Work","Issue resolution camps announced for hill blocks","Camps in Pauri, Almora and Chamoli will take citizen grievances directly and track them to closure.","8 Aug 2026"],
+  ["Organisation","District units complete weekly reporting cycle","A structured reporting line from local units to the centre is now in regular operation.","6 Aug 2026"],
+  ["Press","Statement on hill road connectivity","UKD placed a formal representation on monsoon-damaged routes and demanded time-bound restoration.","4 Aug 2026"],
+  ["Public Work","Water supply follow-up in Almora ward 6","The assigned unit met the local administration; restoration work has been scheduled.","2 Aug 2026"],
+  ["Organisation","New local units under formation in Bageshwar","Survey and committee formation is underway in three development blocks.","30 Jul 2026"],
+].map((n, i) => ({ id: `N-${i + 1}`, tag: n[0], title: n[1], excerpt: n[2], date: n[3],
+  body: "This is demonstration editorial content for the UKD digital prototype. The full article layout supports rich text, photographs, official quotes and linked documents. Real published material will replace this text when the organisation supplies it.\n\nEvery article is categorised, dated and searchable, and appears in the global search and the news archive automatically." }));
+
+const SEED_DOCS = [
+  ["Party Constitution (Demo Copy)","Party Documents","2026","Central"],
+  ["Resolution — Hill Employment Policy","Resolutions","2026","Central"],
+  ["Central Committee Meeting Minutes — July","Meeting Minutes","2026","Central"],
+  ["District Weekly Report — Pauri, Wk 31","District Reports","2026","Pauri Garhwal"],
+  ["Press Release — Road Connectivity","Press Releases","2026","Central"],
+  ["Notice — Membership Drive Guidelines","Official Notices","2026","Central"],
+  ["Statehood Movement Archive Note","Historical Documents","2025","Central"],
+  ["Public Representation — Water Supply","Public Representations","2026","Almora"],
+  ["Organisational Appointment Letter (Demo)","Appointments","2026","Nainital"],
+  ["Annual Disclosure Statement (Demo)","Disclosures","2025","Central"],
+].map((d, i) => ({ id: `D-${i + 1}`, title: d[0], category: d[1], year: d[2], district: d[3], size: `${120 + i * 34} KB`, date: `${2 + i * 2} Aug 2026` }));
+
+const SEED_NOTICES = [
+  { id: "NT-1", title: "Weekly reporting deadline — every Sunday 6 PM", type: "Instruction", audience: "District Presidents", priority: "High", date: "9 Aug 2026", read: [41, 47], ack: [38, 47], content: "All district teams must submit the weekly organisational report by Sunday evening. Units with missing reports will be flagged on the command centre." },
+  { id: "NT-2", title: "Statehood remembrance programme — 1 September", type: "Event Notice", audience: "All Units", priority: "High", date: "7 Aug 2026", read: [122, 140], ack: [98, 140], content: "All units are requested to organise local remembrance programmes and record attendance in the portal." },
+  { id: "NT-3", title: "Membership form digitisation circular", type: "Circular", audience: "Block Coordinators", priority: "Medium", date: "4 Aug 2026", read: [51, 56], ack: [44, 56], content: "Paper membership records collected before July must be digitised through the member module by 25 August." },
+  { id: "NT-4", title: "Issue camp conduct guidelines", type: "Official Notice", audience: "District Admins", priority: "Medium", date: "1 Aug 2026", read: [13, 13], ack: [13, 13], content: "Guidelines for conducting public issue resolution camps, including registration, verification and closure reporting." },
+];
+
+const SEED_TXNS = Array.from({ length: 12 }, (_, i) => ({
+  id: `TX-${900 + i}`, date: `${1 + i * 2} Aug 2026`,
+  type: ["Contribution","Contribution","District Allocation","Expense","Contribution","Expense"][i % 6],
+  amount: [2100, 5000, 15000, 3200, 1100, 4800, 2500, 7500, 12000, 900, 5100, 2200][i],
+  district: DISTRICTS[(i * 5) % 13],
+  status: i % 5 === 3 ? "Pending Approval" : "Recorded", receipt: `RCPT-${2600 + i}`,
+}));
+
+const SEED_REPORTS = DISTRICTS.map((d, i) => ({
+  id: `R-${i}`, district: d, week: "Wk 32", meetings: 1 + (i % 4), activities: 2 + (i % 5),
+  tasksDone: 3 + (i * 2) % 11, membersAdded: (i * 3) % 14, issuesIn: (i % 6), issuesResolved: (i % 4),
+  status: i % 5 === 2 ? "Missing" : i % 5 === 4 ? "Draft" : "Submitted",
+  challenges: "Transport and network connectivity in remote blocks.", support: "Printed material for outreach.",
+}));
+
+const SEED_NOTIFS = [
+  ["task","Task assigned — Booth committee verification drive","5m ago"],
+  ["issue","New public issue — Hand-pump repair, Champawat","32m ago"],
+  ["notice","New notice — Weekly reporting deadline","1h ago"],
+  ["report","Report missing — Tehri Garhwal, Wk 32","3h ago"],
+  ["task","Task overdue — Notice acknowledgement follow-up","5h ago"],
+  ["issue","Issue resolved — Evening bus service, Dehradun","1d ago"],
+  ["event","Event reminder — District Organisational Meeting, 18 Aug","1d ago"],
+  ["doc","Document published — Press Release on road connectivity","2d ago"],
+].map((n, i) => ({ id: i, kind: n[0], text: n[1], time: n[2], unread: i < 4 }));
+
+const SEED_AUDIT = [
+  ["District Admin","Updated member profile","Members","Today 11:42","Success"],
+  ["Central Admin","Published notice — reporting deadline","Notices","Today 10:05","Success"],
+  ["Block Coordinator","Completed task — form digitisation","Tasks","Today 09:18","Success"],
+  ["District Admin","Exported district report","Reports","Yesterday 18:22","Success"],
+  ["Central Leadership","Viewed finance dashboard","Finance","Yesterday 16:10","Success"],
+  ["Local Unit Coordinator","Failed login attempt","Security","Yesterday 08:47","Warning"],
+  ["Central Admin","Changed role permissions — District Admin","Settings","11 Aug 14:35","Success"],
+].map((a, i) => ({ id: i, user: a[0], action: a[1], module: a[2], time: a[3], status: a[4] }));
+
+const TIMELINE_HISTORY = [
+  ["The demand for a hill state","Decades of civic movements argued that the Himalayan districts needed a state of their own — its own priorities, its own voice.","Movement era"],
+  ["A party born from the movement","UKD emerged as a regional political voice dedicated to statehood and to the identity of the mountain people.","Founding"],
+  ["The statehood struggle intensifies","Mass mobilisation across Garhwal and Kumaon carried the demand from village squares to the national stage.","Struggle"],
+  ["Uttarakhand becomes a state","The long-sought state was created in November 2000 — a defining moment for the movement and the region.","2000"],
+  ["Serving the new state","UKD's focus turned to the promises of statehood: mountain employment, migration, land, water, and dignity.","Statehood years"],
+  ["A modern digital organisation","One digital home now connects the organisation, its Karyakartas and the public — this platform.","2026"],
+];
+
+const ISSUE_CATEGORIES = ["Road & Connectivity","Water","Electricity","Healthcare","Education","Employment","Transport","Local Administration","Environment","Disaster-related","Other"];
+const ROLES = [
+  { key: "central-admin", label: "Central Admin", scope: "Statewide control", district: null },
+  { key: "central-leadership", label: "Central Leadership", scope: "Statewide overview", district: null },
+  { key: "district-admin", label: "District Admin", scope: "Pauri Garhwal district", district: "Pauri Garhwal" },
+  { key: "block-coordinator", label: "Block Coordinator", scope: "Pauri Garhwal • Block A", district: "Pauri Garhwal" },
+  { key: "unit-coordinator", label: "Local Unit Coordinator", scope: "Pauri Local Unit 01", district: "Pauri Garhwal" },
+  { key: "karyakarta", label: "Karyakarta", scope: "Assigned work only", district: "Pauri Garhwal" },
+];
+
+/* ============================== PRIMITIVES ============================== */
+const ToastCtx = createContext(null);
+const useToast = () => useContext(ToastCtx);
+const StoreCtx = createContext(null);
+const useStore = () => useContext(StoreCtx);
+
+function ToastHost({ toasts }) {
+  return (
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 300, display: "flex", flexDirection: "column", gap: 10 }}>
+      {toasts.map((t) => (
+        <div key={t.id} className="ukd-pop" style={{ background: C.ink, color: C.ivory, padding: "12px 18px", borderRadius: 10, fontFamily: sans, fontSize: 14, boxShadow: "0 12px 30px -10px rgba(0,0,0,.45)", display: "flex", gap: 10, alignItems: "center", maxWidth: 360 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 99, background: t.kind === "error" ? C.red : C.lime, flexShrink: 0 }} />
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const Btn = ({ children, kind = "primary", size = "md", onClick, style = {}, disabled }) => {
+  const base = { fontFamily: sans, fontWeight: 600, border: "none", cursor: disabled ? "not-allowed" : "pointer", borderRadius: 8, transition: "all .15s ease", letterSpacing: ".01em", display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center", opacity: disabled ? 0.55 : 1 };
+  const sizes = { sm: { padding: "7px 14px", fontSize: 13 }, md: { padding: "11px 22px", fontSize: 14.5 }, lg: { padding: "15px 30px", fontSize: 16 } };
+  const kinds = {
+    primary: { background: C.forest, color: "#fff", boxShadow: "0 6px 16px -6px rgba(47,82,51,.5)" },
+    gold: { background: C.gold, color: "#fff", boxShadow: "0 6px 16px -6px rgba(201,138,43,.5)" },
+    ghost: { background: "transparent", color: C.forest, border: `1.5px solid ${C.forest}55` },
+    ghostLight: { background: "transparent", color: C.ivory, border: `1.5px solid ${C.ivory}66` },
+    subtle: { background: "#EDE9DA", color: C.ink },
+    danger: { background: C.red, color: "#fff" },
+    dark: { background: C.forestDeep, color: C.ivory },
+  };
+  return (
+    <button disabled={disabled} onClick={onClick} style={{ ...base, ...sizes[size], ...kinds[kind], ...style }}
+      onMouseEnter={(e) => !disabled && (e.currentTarget.style.filter = "brightness(1.08)")}
+      onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}>
+      {children}
+    </button>
+  );
+};
+
+const STATUS_COLORS = {
+  Received: { bg: "#E8EDF1", fg: C.slate }, Assigned: { bg: "#F3E9D6", fg: "#8A5D14" },
+  "In Progress": { bg: "#F3E9D6", fg: "#8A5D14" }, Resolved: { bg: "#E7F0DA", fg: "#4A6B1D" },
+  Closed: { bg: "#E6E4DC", fg: C.mute }, Completed: { bg: "#E7F0DA", fg: "#4A6B1D" },
+  Overdue: { bg: "#F5E3DE", fg: C.red }, "Not Started": { bg: "#E6E4DC", fg: C.mute },
+  Submitted: { bg: "#E8EDF1", fg: C.slate }, "Under Review": { bg: "#EDE6F2", fg: "#5E4478" },
+  Active: { bg: "#E7F0DA", fg: "#4A6B1D" }, Pending: { bg: "#F3E9D6", fg: "#8A5D14" },
+  Missing: { bg: "#F5E3DE", fg: C.red }, Draft: { bg: "#E6E4DC", fg: C.mute },
+  High: { bg: "#F5E3DE", fg: C.red }, Medium: { bg: "#F3E9D6", fg: "#8A5D14" }, Low: { bg: "#E6E4DC", fg: C.mute },
+  Recorded: { bg: "#E7F0DA", fg: "#4A6B1D" }, "Pending Approval": { bg: "#F3E9D6", fg: "#8A5D14" },
+  Success: { bg: "#E7F0DA", fg: "#4A6B1D" }, Warning: { bg: "#F5E3DE", fg: C.red },
+};
+const Badge = ({ children, tone }) => {
+  const c = STATUS_COLORS[tone || children] || { bg: "#E8EDF1", fg: C.slate };
+  return <span style={{ background: c.bg, color: c.fg, fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap", textTransform: "uppercase" }}>{children}</span>;
+};
+
+const Eyebrow = ({ children, light }) => (
+  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, letterSpacing: ".22em", textTransform: "uppercase", color: light ? C.goldSoft : C.gold, marginBottom: 14 }}>{children}</div>
+);
+
+const Modal = ({ open, onClose, title, children, wide }) => {
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,30,22,.55)", backdropFilter: "blur(4px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+      <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ background: C.paper, borderRadius: 16, width: "100%", maxWidth: wide ? 760 : 520, maxHeight: "88vh", overflowY: "auto", boxShadow: "0 30px 80px -20px rgba(0,0,0,.5)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink }}>{title}</div>
+          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.mute, lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: 24 }}>{children}</div>
+      </div>
+    </div>
+  );
+};
+
+const Field = ({ label, required, children, hint, error }) => (
+  <label style={{ display: "block", fontFamily: sans, marginBottom: 16 }}>
+    <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>{label}{required && <span style={{ color: C.red }}> *</span>}</div>
+    {children}
+    {hint && !error && <div style={{ fontSize: 12, color: C.mute, marginTop: 5 }}>{hint}</div>}
+    {error && <div style={{ fontSize: 12, color: C.red, marginTop: 5, fontWeight: 600 }}>{error}</div>}
+  </label>
+);
+const inputStyle = (error) => ({ width: "100%", padding: "11px 14px", borderRadius: 8, border: `1.5px solid ${error ? C.red : C.line}`, background: "#fff", fontFamily: sans, fontSize: 14.5, color: C.ink });
+const TextInput = (p) => <input {...p} style={{ ...inputStyle(p.error), ...p.style }} />;
+const TextArea = (p) => <textarea {...p} style={{ ...inputStyle(p.error), minHeight: 110, resize: "vertical", ...p.style }} />;
+const Select = ({ options, placeholder, ...p }) => (
+  <select {...p} style={{ ...inputStyle(p.error), appearance: "auto", ...p.style }}>
+    {placeholder && <option value="">{placeholder}</option>}
+    {options.map((o) => <option key={o} value={o}>{o}</option>)}
+  </select>
+);
+
+const EmptyState = ({ icon = "◫", title, sub, cta, onCta }) => (
+  <div style={{ textAlign: "center", padding: "56px 20px", fontFamily: sans }}>
+    <div style={{ fontSize: 34, marginBottom: 12, opacity: 0.4 }}>{icon}</div>
+    <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, marginBottom: 6 }}>{title}</div>
+    {sub && <div style={{ fontSize: 14, color: C.mute, maxWidth: 380, margin: "0 auto 18px" }}>{sub}</div>}
+    {cta && <Btn size="sm" onClick={onCta}>{cta}</Btn>}
+  </div>
+);
+
+const Skeleton = ({ rows = 4, dark }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 6 }}>
+    {Array.from({ length: rows }).map((_, i) => <div key={i} className={dark ? "ukd-skel-dark" : "ukd-skel"} style={{ height: 42, width: `${100 - (i % 3) * 8}%` }} />)}
+  </div>
+);
+
+/* Layered Himalayan ridgeline — the signature element */
+const Ridges = ({ h = 200, tones = [C.slate, C.forest, C.forestDark], opacity = 1, style = {} }) => (
+  <svg viewBox="0 0 1440 200" preserveAspectRatio="none" style={{ display: "block", width: "100%", height: h, opacity, ...style }} aria-hidden="true">
+    <path d="M0,140 L120,90 L230,130 L360,60 L470,120 L610,40 L760,125 L880,70 L1010,130 L1150,55 L1290,115 L1440,80 L1440,200 L0,200 Z" fill={tones[0]} opacity=".5" />
+    <path d="M0,165 L150,110 L280,150 L430,85 L560,145 L720,75 L870,150 L1020,95 L1180,150 L1320,105 L1440,135 L1440,200 L0,200 Z" fill={tones[1]} opacity=".75" />
+    <path d="M0,185 L180,140 L330,175 L500,120 L660,172 L840,115 L1000,175 L1180,135 L1340,172 L1440,150 L1440,200 L0,200 Z" fill={tones[2]} />
+  </svg>
+);
+
+/* Tiny SVG charts */
+const Bars = ({ data, height = 150, color = C.forest, labelColor = C.mute }) => {
+  const max = Math.max(...data.map((d) => d.v), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height, fontFamily: sans }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.ink }}>{d.v}</div>
+          <div className="baranim" title={`${d.k}: ${d.v}`} style={{ width: "100%", maxWidth: 42, height: `${(d.v / max) * (height - 52)}px`, background: d.c || color, borderRadius: "5px 5px 0 0", animationDelay: `${i * 60}ms` }} />
+          <div style={{ fontSize: 10.5, color: labelColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{d.k}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+const Donut = ({ segments, size = 130, label, sub }) => {
+  const total = segments.reduce((a, s) => a + s.v, 0) || 1;
+  let acc = 0; const r = 44, cx = 60, cy = 60, circ = 2 * Math.PI * r;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+      <svg width={size} height={size} viewBox="0 0 120 120">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#E9E5D6" strokeWidth="14" />
+        {segments.map((s, i) => {
+          const frac = s.v / total; const dash = frac * circ; const off = circ * (1 - acc) + circ * 0.25; acc += frac;
+          return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.c} strokeWidth="14" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={off} strokeLinecap="butt" />;
+        })}
+        <text x="60" y="57" textAnchor="middle" fontFamily={sans} fontWeight="700" fontSize="19" fill={C.ink}>{label}</text>
+        <text x="60" y="74" textAnchor="middle" fontFamily={sans} fontSize="9.5" fill={C.mute}>{sub}</text>
+      </svg>
+      <div style={{ fontFamily: sans, fontSize: 12.5, display: "flex", flexDirection: "column", gap: 6 }}>
+        {segments.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: C.ink }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: s.c }} /> {s.k} <b style={{ marginLeft: "auto" }}>{s.v}</b>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+const Spark = ({ points, color = C.gold, w = 140, h = 40 }) => {
+  const max = Math.max(...points), min = Math.min(...points);
+  const path = points.map((p, i) => `${(i / (points.length - 1)) * w},${h - ((p - min) / (max - min || 1)) * (h - 6) - 3}`).join(" L ");
+  return <svg width={w} height={h}><path d={`M ${path}`} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" /></svg>;
+};
+
+const HealthRing = ({ pct, size = 54, stroke = 6, color }) => {
+  const r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+  const c = color || (pct >= 75 ? C.lime : pct >= 55 ? C.gold : C.red);
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E7E3D4" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth={stroke} strokeDasharray={`${(pct / 100) * circ} ${circ}`} strokeLinecap="round" />
+      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" transform={`rotate(90 ${size / 2} ${size / 2})`} fontFamily={sans} fontWeight="700" fontSize={size / 4.4} fill={C.ink}>{pct}%</text>
+    </svg>
+  );
+};
+
+const Avatar = ({ name, size = 40, dark }) => {
+  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("");
+  const hues = [C.forest, C.slate, C.gold, "#7A5C3A", "#4E5F7A"];
+  const bg = hues[(name.charCodeAt(0) + name.length) % hues.length];
+  return <div aria-hidden="true" style={{ width: size, height: size, borderRadius: "50%", background: bg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, fontSize: size / 2.6, flexShrink: 0, border: dark ? `2px solid ${C.ivory}33` : "none" }}>{initials}</div>;
+};
+
+const useIsMobile = (bp = 860) => {
+  const [m, setM] = useState(typeof window !== "undefined" ? window.innerWidth < bp : false);
+  useEffect(() => { const f = () => setM(window.innerWidth < bp); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, [bp]);
+  return m;
+};
+
+/* Generic searchable / filterable table with mobile card fallback */
+function DataTable({ columns, rows, onRow, searchKeys = [], filters = [], empty, dense }) {
+  const [q, setQ] = useState("");
+  const [fvals, setFvals] = useState({});
+  const mobile = useIsMobile(760);
+  const filtered = useMemo(() => rows.filter((r) => {
+    if (q && !searchKeys.some((k) => String(r[k] || "").toLowerCase().includes(q.toLowerCase()))) return false;
+    for (const f of filters) if (fvals[f.key] && String(r[f.key]) !== fvals[f.key]) return false;
+    return true;
+  }), [rows, q, fvals]);
+  return (
+    <div style={{ fontFamily: sans }}>
+      {(searchKeys.length > 0 || filters.length > 0) && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+          {searchKeys.length > 0 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" aria-label="Search table" style={{ ...inputStyle(), maxWidth: 260, padding: "9px 13px" }} />}
+          {filters.map((f) => (
+            <select key={f.key} value={fvals[f.key] || ""} onChange={(e) => setFvals({ ...fvals, [f.key]: e.target.value })} aria-label={`Filter by ${f.label}`} style={{ ...inputStyle(), width: "auto", padding: "9px 13px" }}>
+              <option value="">{f.label}: All</option>
+              {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          ))}
+          <div style={{ marginLeft: "auto", alignSelf: "center", fontSize: 12.5, color: C.mute }}>{filtered.length} of {rows.length}</div>
+        </div>
+      )}
+      {filtered.length === 0 ? (empty || <EmptyState title="Nothing found" sub="Try clearing the search or filters." />) : mobile ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map((r, i) => (
+            <div key={i} className="hoverlift" onClick={() => onRow && onRow(r)} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 14, cursor: onRow ? "pointer" : "default" }}>
+              {columns.map((c) => (
+                <div key={c.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0", fontSize: 13.5 }}>
+                  <span style={{ color: C.mute, fontSize: 12 }}>{c.label}</span>
+                  <span style={{ textAlign: "right", color: C.ink, fontWeight: c.strong ? 700 : 500 }}>{c.render ? c.render(r) : r[c.key]}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: dense ? 13 : 14 }}>
+            <thead>
+              <tr>{columns.map((c) => <th key={c.key} style={{ textAlign: "left", padding: dense ? "10px 14px" : "13px 16px", fontSize: 11.5, letterSpacing: ".08em", textTransform: "uppercase", color: C.mute, borderBottom: `1px solid ${C.line}`, whiteSpace: "nowrap" }}>{c.label}</th>)}</tr>
+            </thead>
+            <tbody>
+              {filtered.map((r, i) => (
+                <tr key={i} className={onRow ? "rowhover" : ""} onClick={() => onRow && onRow(r)}>
+                  {columns.map((c) => <td key={c.key} style={{ padding: dense ? "9px 14px" : "12px 16px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.line}88` : "none", color: C.ink, fontWeight: c.strong ? 600 : 400, whiteSpace: "nowrap" }}>{c.render ? c.render(r) : r[c.key]}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================== PUBLIC WEBSITE ============================== */
+const SITE_NAV = [
+  ["home", "Home"], ["about", "About UKD"], ["organisation", "Organisation"], ["history", "History & Legacy"],
+  ["news", "News"], ["people", "People's Portal"], ["events", "Events"], ["gallery", "Gallery"], ["documents", "Documents"],
+];
+
+function SiteHeader({ route, nav, openSearch }) {
+  const mobile = useIsMobile(1080);
+  const [drawer, setDrawer] = useState(false);
+  const go = (r) => { nav(r); setDrawer(false); };
+  return (
+    <>
+      <div style={{ background: C.forestDeep, color: C.ivory, fontFamily: sans, fontSize: 12, padding: "7px 20px", display: "flex", justifyContent: "space-between", letterSpacing: ".05em" }}>
+        <span>Official Digital Home of Uttarakhand Kranti Dal <span style={{ opacity: .55 }}>· Prototype — demo data</span></span>
+        <span style={{ opacity: .75 }}>Uttarakhand • India</span>
+      </div>
+      <header style={{ position: "sticky", top: 0, zIndex: 100, background: `${C.ivory}F2`, backdropFilter: "blur(10px)", borderBottom: `1px solid ${C.line}` }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", gap: 26 }}>
+          <button onClick={() => go("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, padding: 0 }}>
+            <Logo size={40} />
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontFamily: serif, fontWeight: 600, fontSize: 18, color: C.ink, lineHeight: 1.05 }}>Uttarakhand Kranti Dal</div>
+              <div style={{ fontFamily: sans, fontSize: 10.5, letterSpacing: ".24em", color: C.gold, fontWeight: 700 }}>UTTARAKHAND'S VOICE</div>
+            </div>
+          </button>
+          {!mobile && (
+            <nav style={{ display: "flex", gap: 20, marginLeft: 8, fontFamily: sans, fontSize: 13.5, fontWeight: 600 }}>
+              {SITE_NAV.slice(1).map(([r, l]) => (
+                <button key={r} onClick={() => go(r)} className={`navlink ${route.startsWith(r) ? "active" : ""}`} style={{ background: "none", border: "none", cursor: "pointer", color: route.startsWith(r) ? C.forest : "#3c4a3f", padding: 0, fontWeight: 600, fontFamily: sans, fontSize: 13.5 }}>{l}</button>
+              ))}
+            </nav>
+          )}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+            <button onClick={openSearch} aria-label="Search" style={{ background: "none", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", color: C.mute, fontFamily: sans, fontSize: 13 }}>⌕ Search</button>
+            {!mobile && <Btn size="sm" kind="ghost" onClick={() => go("people/report")}>Raise an Issue</Btn>}
+            {!mobile && <Btn size="sm" kind="gold" onClick={() => go("join")}>Join UKD</Btn>}
+            {mobile && <button aria-label="Menu" onClick={() => setDrawer(true)} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: C.ink }}>☰</button>}
+          </div>
+        </div>
+      </header>
+      {drawer && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 150 }} onClick={() => setDrawer(false)}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(20,30,22,.5)" }} />
+          <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 300, background: C.ivory, padding: 24, display: "flex", flexDirection: "column", gap: 4, overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+              <Logo size={36} />
+              <button onClick={() => setDrawer(false)} aria-label="Close menu" style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer" }}>×</button>
+            </div>
+            {SITE_NAV.map(([r, l]) => (
+              <button key={r} onClick={() => go(r)} style={{ background: route === r ? "#EDE8D8" : "none", border: "none", textAlign: "left", padding: "12px 14px", borderRadius: 8, fontFamily: sans, fontSize: 15, fontWeight: 600, color: C.ink, cursor: "pointer" }}>{l}</button>
+            ))}
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+              <Btn kind="gold" onClick={() => go("join")}>Join UKD</Btn>
+              <Btn kind="ghost" onClick={() => go("people/report")}>Raise an Issue</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+const Logo = ({ size = 40, light }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" aria-label="UKD logo">
+    <rect width="48" height="48" rx="11" fill={light ? C.ivory : C.forest} />
+    <path d="M8 34 L18 18 L24 27 L31 14 L40 34 Z" fill={light ? C.forest : C.ivory} />
+    <circle cx="33.5" cy="12.5" r="3.4" fill={C.gold} />
+  </svg>
+);
+
+function SiteFooter({ nav }) {
+  const cols = [
+    ["Explore", [["about","About UKD"],["organisation","Organisation"],["history","History & Legacy"],["news","News"]]],
+    ["People", [["people","People's Portal"],["events","Events"],["join","Join UKD"],["support","Support UKD"]]],
+    ["Official", [["documents","Documents"],["transparency","Transparency"],["contact","Contact"],["contact","Privacy"]]],
+  ];
+  return (
+    <footer style={{ background: C.forestDeep, color: C.ivory, marginTop: 0 }}>
+      <Ridges h={90} tones={["#26402B", "#1F3524", C.forestDeep]} style={{ background: C.ivory }} />
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "44px 20px 30px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 34 }}>
+        <div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+            <Logo size={44} light />
+            <div>
+              <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 600 }}>Uttarakhand Kranti Dal</div>
+              <div style={{ fontFamily: sans, fontSize: 10.5, letterSpacing: ".2em", color: C.goldSoft, fontWeight: 700 }}>OFFICIAL WEBSITE</div>
+            </div>
+          </div>
+          <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.7, color: "#C9D2C4", maxWidth: 300 }}>Uttarakhand's voice. Connected to its people. One organisation, one network, one digital home.</p>
+        </div>
+        {cols.map(([h, links]) => (
+          <div key={h}>
+            <div style={{ fontFamily: sans, fontSize: 12, letterSpacing: ".18em", fontWeight: 700, color: C.goldSoft, marginBottom: 14 }}>{h.toUpperCase()}</div>
+            {links.map(([r, l], i) => (
+              <button key={i} onClick={() => nav(r)} style={{ display: "block", background: "none", border: "none", color: "#DCE3D6", fontFamily: sans, fontSize: 14, padding: "5px 0", cursor: "pointer", textAlign: "left" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = C.goldSoft)} onMouseLeave={(e) => (e.currentTarget.style.color = "#DCE3D6")}>{l}</button>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop: `1px solid ${C.ivory}1c`, padding: "16px 20px", fontFamily: sans, fontSize: 12.5, color: "#9DAA97", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, maxWidth: 1280, margin: "0 auto" }}>
+        <span>© 2026 Uttarakhand Kranti Dal · Official Website</span>
+        <span>Frontend prototype · All content is demo data</span>
+      </div>
+    </footer>
+  );
+}
+
+function SearchOverlay({ open, onClose, nav }) {
+  const store = useStore();
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+  useEffect(() => { if (open) { setQ(""); setTimeout(() => ref.current && ref.current.focus(), 50); } }, [open]);
+  if (!open) return null;
+  const ql = q.toLowerCase();
+  const hits = q.length < 2 ? [] : [
+    ...SEED_NEWS.filter((n) => n.title.toLowerCase().includes(ql)).map((n) => ({ t: "News", label: n.title, r: `news/${n.id}` })),
+    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).map((d) => ({ t: "Document", label: d.title, r: "documents" })),
+    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).map((e) => ({ t: "Event", label: e.title, r: `events/${e.id}` })),
+    ...DISTRICTS.filter((d) => d.toLowerCase().includes(ql)).map((d) => ({ t: "Organisation", label: `${d} district`, r: `organisation/district/${d}` })),
+    ...TIMELINE_HISTORY.filter((h) => h[0].toLowerCase().includes(ql)).map((h) => ({ t: "History", label: h[0], r: "history" })),
+  ].slice(0, 9);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(20,30,22,.6)", backdropFilter: "blur(6px)", display: "flex", justifyContent: "center", paddingTop: "12vh" }}>
+      <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ width: "min(640px, 92vw)", alignSelf: "flex-start", background: C.paper, borderRadius: 16, overflow: "hidden", boxShadow: "0 30px 90px -20px rgba(0,0,0,.6)" }}>
+        <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search news, documents, events, districts, history…" style={{ width: "100%", border: "none", padding: "20px 24px", fontFamily: sans, fontSize: 17, background: "transparent", color: C.ink }} />
+        <div style={{ borderTop: `1px solid ${C.line}`, maxHeight: 380, overflowY: "auto" }}>
+          {q.length >= 2 && hits.length === 0 && <div style={{ padding: 28, fontFamily: sans, color: C.mute, fontSize: 14 }}>No results for “{q}”. Try a district name, an event or a document title.</div>}
+          {hits.map((h, i) => (
+            <button key={i} onClick={() => { onClose(); nav(h.r); }} className="rowhover" style={{ display: "flex", width: "100%", gap: 14, alignItems: "center", padding: "13px 24px", background: "none", border: "none", cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${C.line}66` }}>
+              <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".1em", color: C.gold, width: 92, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
+              <span style={{ fontFamily: sans, fontSize: 14.5, color: C.ink }}>{h.label}</span>
+            </button>
+          ))}
+          {q.length < 2 && <div style={{ padding: "18px 24px", fontFamily: sans, fontSize: 12.5, color: C.mute }}>Type at least two characters. Search covers news, documents, events, the organisation and the historical archive.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const Section = ({ children, bg, style = {} }) => (
+  <section style={{ background: bg || "transparent", ...style }}>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 20px", ...style.inner }}>{children}</div>
+  </section>
+);
+const H2 = ({ children, light, style = {} }) => (
+  <h2 style={{ fontFamily: serif, fontWeight: 500, fontSize: "clamp(28px, 4vw, 44px)", lineHeight: 1.12, color: light ? C.ivory : C.ink, margin: "0 0 16px", letterSpacing: "-0.01em", ...style }}>{children}</h2>
+);
+const Lead = ({ children, light, style = {} }) => (
+  <p style={{ fontFamily: sans, fontSize: 16.5, lineHeight: 1.7, color: light ? "#C9D2C4" : "#4A554C", maxWidth: 640, margin: "0 0 24px", ...style }}>{children}</p>
+);
+
+function Hero({ nav }) {
+  return (
+    <div style={{ background: `linear-gradient(180deg, ${C.forestDeep} 0%, ${C.forestDark} 62%, ${C.forest} 100%)`, position: "relative", overflow: "hidden" }}>
+      <div aria-hidden="true" style={{ position: "absolute", top: -120, right: -120, width: 420, height: 420, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}30, transparent 65%)` }} />
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(70px, 10vw, 130px) 20px 30px", position: "relative" }}>
+        <div className="ukd-fade" style={{ maxWidth: 760 }}>
+          <Eyebrow light>Uttarakhand Kranti Dal · Official Digital Home</Eyebrow>
+          <h1 style={{ fontFamily: serif, fontWeight: 500, fontSize: "clamp(40px, 6.4vw, 76px)", lineHeight: 1.06, color: C.ivory, margin: "0 0 22px", letterSpacing: "-0.015em" }}>
+            Uttarakhand's voice.<br />
+            <span style={{ color: C.goldSoft, fontStyle: "italic" }}>Connected to its people.</span>
+          </h1>
+          <p style={{ fontFamily: sans, fontSize: "clamp(15px, 1.6vw, 18px)", lineHeight: 1.7, color: "#CBD5C6", maxWidth: 560, marginBottom: 34 }}>
+            A modern digital home for UKD's vision, leadership, history, public work and connection with the people of Uttarakhand.
+          </p>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>Raise an Issue →</Btn>
+            <Btn kind="ghostLight" size="lg" onClick={() => nav("about")}>Explore UKD</Btn>
+          </div>
+        </div>
+      </div>
+      <Ridges h={170} tones={["#3A6B82", "#33593A", C.ivory]} style={{ marginTop: 30 }} />
+    </div>
+  );
+}
+
+function StatStrip() {
+  const stats = [["13", "District presence"], ["24×7", "Digital access"], ["1", "Official digital home"], ["∞", "Stories & legacy"]];
+  return (
+    <div style={{ maxWidth: 1280, margin: "-40px auto 0", padding: "0 20px", position: "relative", zIndex: 5 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        {stats.map(([n, l], i) => (
+          <div key={i} className="hoverlift ukd-fade" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "26px 24px", boxShadow: "0 12px 32px -18px rgba(24,43,28,.25)", animationDelay: `${i * 90}ms` }}>
+            <div style={{ fontFamily: serif, fontSize: 42, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{n}</div>
+            <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, letterSpacing: ".06em", color: C.mute, marginTop: 8, textTransform: "uppercase" }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontFamily: sans, fontSize: 11.5, color: C.mute, marginTop: 8, textAlign: "right" }}>Interface concepts — not official organisational statistics.</div>
+    </div>
+  );
+}
+
+function OrgPreview({ nav }) {
+  const chain = ["UKD", "Central Leadership", "Mandal", "District", "Block", "Local Unit"];
+  return (
+    <Section>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 50, alignItems: "center" }}>
+        <div>
+          <Eyebrow>Leadership & Organisation</Eyebrow>
+          <H2>Structured from the centre to every village.</H2>
+          <Lead>UKD is organised as one connected network — from central leadership through Mandals, districts and blocks, down to local units on the ground.</Lead>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 26 }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 99, padding: "8px 16px 8px 8px" }}>
+                <Avatar name={seededName(i * 4)} size={34} />
+                <div style={{ fontFamily: sans }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink }}>{seededName(i * 4)}</div>
+                  <div style={{ fontSize: 11, color: C.mute }}>Demo office bearer</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Btn onClick={() => nav("organisation")}>Explore the organisation</Btn>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+          {chain.map((c, i) => (
+            <React.Fragment key={c}>
+              <div className="hoverlift" style={{ background: i === 0 ? C.forest : "#fff", color: i === 0 ? C.ivory : C.ink, border: `1px solid ${i === 0 ? C.forest : C.line}`, borderRadius: 10, padding: "12px 34px", fontFamily: i === 0 ? serif : sans, fontWeight: 600, fontSize: i === 0 ? 20 : 14.5, minWidth: 220, textAlign: "center" }}>{c}</div>
+              {i < chain.length - 1 && <div style={{ width: 2, height: 22, background: C.gold }} />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function RegionMap({ nav, compact }) {
+  const [open, setOpen] = useState("Garhwal");
+  const store = useStore();
+  const tones = { Garhwal: C.forest, Kumaon: C.slate, Tarai: "#7A5C3A" };
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 40, alignItems: "start" }}>
+      <div>
+        <svg viewBox="0 0 400 300" style={{ width: "100%", maxWidth: 480 }} role="img" aria-label="Stylised map of Uttarakhand regions">
+          {[
+            ["Garhwal", "M30,180 L70,80 L150,40 L210,90 L190,170 L120,220 Z"],
+            ["Kumaon", "M210,90 L300,50 L370,110 L330,200 L240,210 L190,170 Z"],
+            ["Tarai", "M120,220 L190,170 L240,210 L330,200 L310,262 L100,262 Z"],
+          ].map(([r, d]) => (
+            <path key={r} d={d} fill={tones[r]} opacity={open === r ? 1 : 0.45} stroke={C.ivory} strokeWidth="4" style={{ cursor: "pointer", transition: "opacity .2s" }} onClick={() => setOpen(r)} />
+          ))}
+          <text x="105" y="140" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="15" pointerEvents="none">GARHWAL</text>
+          <text x="255" y="140" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="15" pointerEvents="none">KUMAON</text>
+          <text x="195" y="245" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="14" pointerEvents="none">TARAI</text>
+        </svg>
+        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+          {Object.keys(REGIONS).map((r) => (
+            <button key={r} onClick={() => setOpen(r)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 99, border: `1.5px solid ${tones[r]}`, background: open === r ? tones[r] : "transparent", color: open === r ? "#fff" : tones[r], cursor: "pointer" }}>{r}</button>
+          ))}
+        </div>
+      </div>
+      <div className="ukd-fade" key={open}>
+        <div style={{ fontFamily: serif, fontSize: 27, fontWeight: 500, color: C.ink, marginBottom: 4 }}>{open}</div>
+        <div style={{ fontFamily: sans, fontSize: 13.5, color: C.mute, marginBottom: 18 }}>{REGIONS[open].length} districts · organisational presence · public activity (demo data)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
+          {REGIONS[open].map((d) => {
+            const issues = store.issues.filter((i) => i.district === d).length;
+            const units = SEED_UNITS.filter((u) => u.district === d).length;
+            return (
+              <button key={d} className="hoverlift" onClick={() => nav(`organisation/district/${d}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, cursor: "pointer" }}>
+                <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{d}</div>
+                <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 6, lineHeight: 1.6 }}>{units || 1} active unit{units === 1 ? "" : "s"} · {issues} public issue{issues === 1 ? "" : "s"}<br />Latest update: local outreach drive</div>
+                <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, marginTop: 8 }}>View district →</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewsCard({ n, nav, big }) {
+  return (
+    <article className="hoverlift" onClick={() => nav(`news/${n.id}`)} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: big ? 150 : 110, background: `linear-gradient(135deg, ${C.forest}, ${C.slate})`, position: "relative" }}>
+        <Ridges h={big ? 60 : 44} tones={[`${C.ivory}30`, `${C.ivory}18`, `${C.ivory}0c`]} style={{ position: "absolute", bottom: 0 }} />
+        <span style={{ position: "absolute", top: 14, left: 14, background: C.gold, color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".1em", padding: "4px 10px", borderRadius: 99 }}>{n.tag.toUpperCase()}</span>
+      </div>
+      <div style={{ padding: 20, display: "flex", flexDirection: "column", flex: 1 }}>
+        <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginBottom: 8 }}>{n.date}</div>
+        <div style={{ fontFamily: serif, fontSize: big ? 22 : 18.5, fontWeight: 600, color: C.ink, lineHeight: 1.28, marginBottom: 10 }}>{n.title}</div>
+        <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C", margin: 0, flex: 1 }}>{n.excerpt}</p>
+        <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 14 }}>Read more →</div>
+      </div>
+    </article>
+  );
+}
+
+function HomePage({ nav }) {
+  const store = useStore();
+  return (
+    <>
+      <Hero nav={nav} />
+      <StatStrip />
+      <Section>
+        <Eyebrow>About UKD</Eyebrow>
+        <H2>A movement with a story worth knowing.</H2>
+        <Lead>Born from the struggle for statehood, rooted in the mountains, and organised for the work still ahead.</Lead>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 16 }}>
+          {[["Our Vision", "A dignified, self-reliant mountain state where policy is written from the hills, not for them.", "about"],
+            ["Our Leadership", "An organised leadership line from the centre to every local unit.", "organisation"],
+            ["Our Journey", "From the statehood movement to a modern digital organisation.", "history"],
+            ["Our Work", "Public issues, ground organisation and accountable follow-through.", "people"]].map(([t, d, r], i) => (
+            <button key={t} className="hoverlift" onClick={() => nav(r)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderTop: `3px solid ${[C.forest, C.gold, C.slate, C.lime][i]}`, borderRadius: 12, padding: 22, cursor: "pointer" }}>
+              <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{t}</div>
+              <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C", margin: 0 }}>{d}</p>
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop: 26 }}><Btn kind="ghost" onClick={() => nav("about")}>Discover UKD</Btn></div>
+      </Section>
+      <div style={{ background: "#EFEBDD" }}><OrgPreview nav={nav} /></div>
+      <Section>
+        <Eyebrow>UKD Across Uttarakhand</Eyebrow>
+        <H2>Present across all thirteen districts.</H2>
+        <Lead>Explore the organisation region by region — Garhwal, Kumaon and the Tarai belt.</Lead>
+        <RegionMap nav={nav} />
+      </Section>
+      <div style={{ background: C.forestDark, position: "relative", overflow: "hidden" }}>
+        <Section style={{ inner: { paddingTop: 70, paddingBottom: 70 } }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 44, alignItems: "center", position: "relative", zIndex: 2 }}>
+            <div>
+              <Eyebrow light>People's Portal</Eyebrow>
+              <H2 light>Your issue deserves a response.</H2>
+              <Lead light>Any citizen of Uttarakhand can submit a public issue — a road, a water line, a school, a clinic — and track it to resolution through the organisation's network.</Lead>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Btn kind="gold" onClick={() => nav("people/report")}>Submit a Public Issue</Btn>
+                <Btn kind="ghostLight" onClick={() => nav("people/track")}>Track an Issue</Btn>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {store.issues.slice(0, 3).map((iss) => (
+                <div key={iss.id} className="hoverlift" style={{ background: `${C.ivory}0F`, border: `1px solid ${C.ivory}26`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ivory }}>{iss.category}</div>
+                    <div style={{ fontFamily: sans, fontSize: 12.5, color: "#B9C4B3", marginTop: 3 }}>{iss.district} · {iss.id}</div>
+                  </div>
+                  <Badge tone={iss.status}>{iss.status}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+      </div>
+      <Section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14, marginBottom: 30 }}>
+          <div><Eyebrow>Latest News</Eyebrow><H2 style={{ marginBottom: 0 }}>From the organisation.</H2></div>
+          <Btn kind="ghost" size="sm" onClick={() => nav("news")}>All news →</Btn>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 18 }}>
+          {SEED_NEWS.slice(0, 3).map((n) => <NewsCard key={n.id} n={n} nav={nav} />)}
+        </div>
+      </Section>
+      <div style={{ background: "#EFEBDD" }}>
+        <Section>
+          <Eyebrow>History & Legacy</Eyebrow>
+          <H2>Remember where we came from.</H2>
+          <Lead>The statehood movement, the birth of a party, and the road to a modern Uttarakhand.</Lead>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 0, borderLeft: `2px solid ${C.gold}`, paddingLeft: 0 }}>
+            {TIMELINE_HISTORY.slice(0, 3).map((t, i) => (
+              <div key={i} style={{ padding: "0 26px 8px", borderLeft: i > 0 ? `1px dashed ${C.line}` : "none" }}>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".14em", color: C.gold, marginBottom: 8 }}>{t[2].toUpperCase()}</div>
+                <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 600, color: C.ink, marginBottom: 8, lineHeight: 1.3 }}>{t[0]}</div>
+                <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C" }}>{t[1]}</p>
+              </div>
+            ))}
+          </div>
+          <Btn kind="ghost" onClick={() => nav("history")} style={{ marginTop: 10 }}>Walk the full timeline</Btn>
+        </Section>
+      </div>
+      <Section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14, marginBottom: 30 }}>
+          <div><Eyebrow>Events</Eyebrow><H2 style={{ marginBottom: 0 }}>On the ground, on the calendar.</H2></div>
+          <Btn kind="ghost" size="sm" onClick={() => nav("events")}>All events →</Btn>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
+          {SEED_EVENTS.slice(0, 4).map((e) => (
+            <button key={e.id} className="hoverlift" onClick={() => nav(`events/${e.id}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 20, cursor: "pointer" }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <div style={{ background: C.forest, color: C.ivory, borderRadius: 10, padding: "8px 12px", textAlign: "center", fontFamily: sans, flexShrink: 0 }}>
+                  <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}>{e.date.split(" ")[0]}</div>
+                  <div style={{ fontSize: 10.5, letterSpacing: ".08em" }}>{e.date.split(" ")[1].toUpperCase()}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink, lineHeight: 1.35 }}>{e.title}</div>
+                  <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 6 }}>{e.district} · {e.type}</div>
+                  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.gold, marginTop: 8 }}>View details →</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </Section>
+      <Section style={{ inner: { paddingTop: 20 } }}>
+        <Eyebrow>Gallery</Eyebrow>
+        <H2>The organisation in pictures.</H2>
+        <GalleryGrid preview nav={nav} />
+      </Section>
+      <div style={{ background: `linear-gradient(135deg, ${C.forest}, ${C.slate})`, position: "relative" }}>
+        <Section style={{ inner: { paddingTop: 70, paddingBottom: 70, textAlign: "center" } }}>
+          <H2 light style={{ maxWidth: 640, margin: "0 auto 14px" }}>Become part of the organisation.</H2>
+          <Lead light style={{ margin: "0 auto 30px", textAlign: "center" }}>Join UKD as a member, or support the movement's public work. Every district, every block, every village counts.</Lead>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+            <Btn kind="gold" size="lg" onClick={() => nav("join")}>Join UKD</Btn>
+            <Btn kind="ghostLight" size="lg" onClick={() => nav("support")}>Support the movement</Btn>
+          </div>
+        </Section>
+      </div>
+      <Section>
+        <Eyebrow>Transparency</Eyebrow>
+        <H2>Open by design.</H2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 10 }}>
+          {["Public Disclosures", "Official Documents", "Reports", "Public Statements", "Organisational Updates"].map((t) => (
+            <button key={t} className="hoverlift" onClick={() => nav("transparency")} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "22px 18px", cursor: "pointer", textAlign: "left" }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: `${C.slate}18`, color: C.slate, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, marginBottom: 12 }}>◫</div>
+              <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink }}>{t}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop: 24 }}><Btn onClick={() => nav("transparency")}>View Transparency Centre</Btn></div>
+      </Section>
+    </>
+  );
+}
+
+function GalleryGrid({ preview, nav }) {
+  const cats = ["Events", "Leadership", "Public Interaction", "Organisation", "Uttarakhand"];
+  const [cat, setCat] = useState("All");
+  const tiles = Array.from({ length: preview ? 6 : 12 }, (_, i) => ({
+    id: i, cat: cats[i % 5],
+    g: [`linear-gradient(135deg, ${C.forest}, ${C.lime}66)`, `linear-gradient(135deg, ${C.slate}, ${C.forest})`, `linear-gradient(135deg, ${C.gold}, ${C.forest})`, `linear-gradient(160deg, ${C.forestDeep}, ${C.slate})`, `linear-gradient(135deg, ${C.slateSoft}, ${C.gold}88)`][i % 5],
+  }));
+  const shown = tiles.filter((t) => cat === "All" || t.cat === cat);
+  return (
+    <div>
+      {!preview && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "20px 0" }}>
+          {["All", ...cats].map((c) => (
+            <button key={c} onClick={() => setCat(c)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: cat === c ? C.forest : "transparent", color: cat === c ? "#fff" : C.forest, cursor: "pointer" }}>{c}</button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
+        {shown.map((t, i) => (
+          <div key={t.id} className="hoverlift" style={{ height: i % 4 === 0 ? 240 : 190, borderRadius: 14, background: t.g, position: "relative", overflow: "hidden" }}>
+            <Ridges h={70} tones={[`${C.ivory}2a`, `${C.ivory}18`, `${C.ivory}0e`]} style={{ position: "absolute", bottom: 0 }} />
+            <span style={{ position: "absolute", top: 12, left: 12, background: "#00000038", color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", padding: "4px 10px", borderRadius: 99 }}>{t.cat.toUpperCase()}</span>
+            <span style={{ position: "absolute", bottom: 10, left: 12, color: `${C.ivory}CC`, fontFamily: sans, fontSize: 11 }}>Placeholder visual · demo</span>
+          </div>
+        ))}
+      </div>
+      {preview && <div style={{ marginTop: 22 }}><Btn kind="ghost" onClick={() => nav("gallery")}>Open full gallery</Btn></div>}
+    </div>
+  );
+}
+
+function PageHead({ eyebrow, title, sub, crumbs, nav }) {
+  return (
+    <div style={{ background: C.forestDark, position: "relative", overflow: "hidden" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 20px 8px", position: "relative", zIndex: 2 }}>
+        {crumbs && (
+          <div style={{ fontFamily: sans, fontSize: 12.5, color: "#A8B5A2", marginBottom: 16 }}>
+            {crumbs.map((c, i) => (
+              <span key={i}>
+                {c[1] ? <button onClick={() => nav(c[1])} style={{ background: "none", border: "none", color: C.goldSoft, cursor: "pointer", fontFamily: sans, fontSize: 12.5, padding: 0 }}>{c[0]}</button> : <span>{c[0]}</span>}
+                {i < crumbs.length - 1 && <span style={{ margin: "0 8px", opacity: .5 }}>/</span>}
+              </span>
+            ))}
+          </div>
+        )}
+        <Eyebrow light>{eyebrow}</Eyebrow>
+        <h1 style={{ fontFamily: serif, fontWeight: 500, fontSize: "clamp(32px, 4.6vw, 52px)", color: C.ivory, margin: "0 0 14px", lineHeight: 1.1, letterSpacing: "-.01em" }}>{title}</h1>
+        {sub && <p style={{ fontFamily: sans, fontSize: 16, lineHeight: 1.7, color: "#C4CFBF", maxWidth: 620, margin: 0 }}>{sub}</p>}
+      </div>
+      <Ridges h={110} tones={["#3A6B8266", "#33593A", C.ivory]} style={{ marginTop: 26 }} />
+    </div>
+  );
+}
+
+function AboutPage({ nav }) {
+  return (
+    <>
+      <PageHead eyebrow="About UKD" title="Who we are, and why we exist." sub="Uttarakhand Kranti Dal is the regional political voice born from the statehood movement — a party of the mountains, for the mountains." crumbs={[["Home", "home"], ["About"]]} nav={nav} />
+      <Section>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 50 }}>
+          <div>
+            <H2>What UKD stands for.</H2>
+            <Lead>The dignity of mountain life. Employment that doesn't require leaving home. Land, water and forests governed for the people who live among them. An administration that answers to the village, not the other way around.</Lead>
+            <Lead>This platform is UKD's single verified source of information — its history, its organisation, its public work, and its open channel to every citizen of Uttarakhand.</Lead>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Btn onClick={() => nav("history")}>Our journey</Btn>
+              <Btn kind="ghost" onClick={() => nav("join")}>Join the organisation</Btn>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 14 }}>
+            {[["Identity", "A party rooted in the culture, language and struggle of the hill people."],
+              ["Accountability", "Public issues tracked openly from receipt to resolution."],
+              ["Organisation", "A disciplined structure from central leadership to local units."],
+              ["Openness", "Documents, statements and disclosures published in one place."]].map(([t, d], i) => (
+              <div key={t} style={{ background: "#fff", border: `1px solid ${C.line}`, borderLeft: `4px solid ${[C.forest, C.gold, C.slate, C.lime][i]}`, borderRadius: 12, padding: "18px 22px" }}>
+                <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 600, color: C.ink, marginBottom: 6 }}>{t}</div>
+                <div style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C" }}>{d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function OrganisationPage({ nav, sub }) {
+  // sub: undefined | ["district", name] | ["region", name]
+  const store = useStore();
+  if (sub && sub[0] === "district") {
+    const d = sub[1];
+    const units = SEED_UNITS.filter((u) => u.district === d);
+    const issues = store.issues.filter((i) => i.district === d);
+    const evts = SEED_EVENTS.filter((e) => e.district === d);
+    return (
+      <>
+        <PageHead eyebrow={`${regionOf(d)} Region`} title={`${d} District`} sub="District organisation, active units, local activity and public issues. Demo data." crumbs={[["Home", "home"], ["Organisation", "organisation"], [d]]} nav={nav} />
+        <Section>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 44 }}>
+            {[["Active units", units.length || 1], ["Public issues", issues.length], ["Upcoming events", evts.length], ["District team", "Demo"]].map(([l, v]) => (
+              <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontFamily: serif, fontSize: 32, color: C.forest }}>{v}</div>
+                <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", color: C.mute, textTransform: "uppercase", marginTop: 4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <H2 style={{ fontSize: 28 }}>Local units</H2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14, marginBottom: 44 }}>
+            {(units.length ? units : SEED_UNITS.slice(0, 2)).map((u) => (
+              <div key={u.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
+                <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{u.name}</div>
+                <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, margin: "6px 0 10px" }}>Leader: {u.leader} (demo) · {u.members} members</div>
+                <Badge tone="Active">Active</Badge>
+              </div>
+            ))}
+          </div>
+          <H2 style={{ fontSize: 28 }}>Public issues in {d}</H2>
+          {issues.length === 0 ? <EmptyState title="No public issues found" sub="Issues submitted through the People's Portal for this district will appear here." cta="Submit an issue" onCta={() => nav("people/report")} /> : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {issues.map((i) => (
+                <div key={i.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px 18px", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink }}>{i.title}</div>
+                    <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 3 }}>{i.category} · {i.id} · {i.date}</div>
+                  </div>
+                  <Badge tone={i.status}>{i.status}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </>
+    );
+  }
+  return (
+    <>
+      <PageHead eyebrow="Organisation" title="One network, from centre to village." sub="Explore UKD's structure across Garhwal, Kumaon and the Tarai — down to every district." crumbs={[["Home", "home"], ["Organisation"]]} nav={nav} />
+      <Section><OrgPreviewInner /><div style={{ height: 40 }} /><RegionMap nav={nav} /></Section>
+    </>
+  );
+}
+const OrgPreviewInner = () => (
+  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+    {["Central Leadership", "Mandal", "District", "Block", "Local Unit"].map((c, i, a) => (
+      <React.Fragment key={c}>
+        <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 99, padding: "10px 22px", fontFamily: sans, fontWeight: 700, fontSize: 13.5, color: C.ink }}>{c}</div>
+        {i < a.length - 1 && <div style={{ alignSelf: "center", color: C.gold, fontWeight: 700 }}>→</div>}
+      </React.Fragment>
+    ))}
+  </div>
+);
+
+function HistoryPage({ nav }) {
+  return (
+    <>
+      <PageHead eyebrow="History & Legacy" title="Remember where we came from." sub="From the streets of the statehood movement to the state of Uttarakhand — and the work that continues." crumbs={[["Home", "home"], ["History"]]} nav={nav} />
+      <Section>
+        <div style={{ position: "relative", maxWidth: 820, margin: "0 auto" }}>
+          <div style={{ position: "absolute", left: 19, top: 0, bottom: 0, width: 2, background: `linear-gradient(${C.gold}, ${C.forest})` }} />
+          {TIMELINE_HISTORY.map((t, i) => (
+            <div key={i} className="ukd-fade" style={{ display: "flex", gap: 26, marginBottom: 44, animationDelay: `${i * 70}ms` }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: i === TIMELINE_HISTORY.length - 1 ? C.gold : C.forest, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, fontSize: 13, flexShrink: 0, zIndex: 2, border: `4px solid ${C.ivory}` }}>{i + 1}</div>
+              <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "22px 26px", flex: 1 }}>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".16em", color: C.gold, marginBottom: 8 }}>{t[2].toUpperCase()}</div>
+                <div style={{ fontFamily: serif, fontSize: 23, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{t[0]}</div>
+                <p style={{ fontFamily: sans, fontSize: 14.5, lineHeight: 1.7, color: "#4A554C", margin: 0 }}>{t[1]}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, textAlign: "center" }}>Timeline uses placeholder narrative content pending official historical material.</div>
+      </Section>
+    </>
+  );
+}
+
+function NewsPage({ nav, id }) {
+  const [tag, setTag] = useState("All");
+  if (id) {
+    const n = SEED_NEWS.find((x) => x.id === id) || SEED_NEWS[0];
+    return (
+      <>
+        <PageHead eyebrow={n.tag} title={n.title} sub={`${n.date} · Official communication`} crumbs={[["Home", "home"], ["News", "news"], ["Article"]]} nav={nav} />
+        <Section style={{ inner: { maxWidth: 780, paddingTop: 56 } }}>
+          <p style={{ fontFamily: serif, fontSize: 21, lineHeight: 1.6, color: C.ink }}>{n.excerpt}</p>
+          {n.body.split("\n\n").map((p, i) => <p key={i} style={{ fontFamily: sans, fontSize: 16, lineHeight: 1.8, color: "#3C463E" }}>{p}</p>)}
+          <div style={{ marginTop: 34, display: "flex", gap: 12 }}><Btn kind="ghost" onClick={() => nav("news")}>← All news</Btn></div>
+        </Section>
+      </>
+    );
+  }
+  const tags = ["All", "Official Update", "Public Work", "Press", "Organisation"];
+  const shown = SEED_NEWS.filter((n) => tag === "All" || n.tag === tag);
+  return (
+    <>
+      <PageHead eyebrow="News" title="Official updates & press." sub="Every verified statement, update and press note from the organisation, in one archive." crumbs={[["Home", "home"], ["News"]]} nav={nav} />
+      <Section>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 26 }}>
+          {tags.map((t) => <button key={t} onClick={() => setTag(t)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: tag === t ? C.forest : "transparent", color: tag === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
+        </div>
+        {shown.length === 0 ? <EmptyState title="No articles in this category" sub="Try another category." /> : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 18 }}>
+            {shown.map((n) => <NewsCard key={n.id} n={n} nav={nav} big />)}
+          </div>
+        )}
+      </Section>
+    </>
+  );
+}
+
+function EventsPage({ nav, id }) {
+  if (id) {
+    const e = SEED_EVENTS.find((x) => x.id === id) || SEED_EVENTS[0];
+    return (
+      <>
+        <PageHead eyebrow={e.type} title={e.title} sub={`${e.date} · ${e.time} · ${e.venue}`} crumbs={[["Home", "home"], ["Events", "events"], ["Detail"]]} nav={nav} />
+        <Section style={{ inner: { maxWidth: 820, paddingTop: 56 } }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 30 }}>
+            {[["Date", e.date], ["Time", e.time], ["District", e.district], ["Organiser (demo)", e.organiser]].map(([l, v]) => (
+              <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", color: C.mute, textTransform: "uppercase" }}>{l}</div>
+                <div style={{ fontFamily: sans, fontSize: 15, fontWeight: 700, color: C.ink, marginTop: 6 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <Lead>{e.desc}</Lead>
+          <Btn kind="ghost" onClick={() => nav("events")}>← All events</Btn>
+        </Section>
+      </>
+    );
+  }
+  return (
+    <>
+      <PageHead eyebrow="Events" title="The organisation's calendar." sub="Meetings, camps, training and public programmes across Uttarakhand." crumbs={[["Home", "home"], ["Events"]]} nav={nav} />
+      <Section>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+          {SEED_EVENTS.map((e) => (
+            <button key={e.id} className="hoverlift" onClick={() => nav(`events/${e.id}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22, cursor: "pointer" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: ".1em", color: C.gold }}>{e.type.toUpperCase()}</span>
+                <span style={{ fontFamily: sans, fontSize: 12.5, color: C.mute }}>{e.date}</span>
+              </div>
+              <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, lineHeight: 1.3, marginBottom: 8 }}>{e.title}</div>
+              <div style={{ fontFamily: sans, fontSize: 13, color: C.mute }}>{e.venue}</div>
+              <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 12 }}>View details →</div>
+            </button>
+          ))}
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function GalleryPage({ nav }) {
+  return (
+    <>
+      <PageHead eyebrow="Gallery" title="The organisation in pictures." sub="Events, leadership, public interaction and the landscapes of Uttarakhand. Placeholder visuals until official photography is supplied." crumbs={[["Home", "home"], ["Gallery"]]} nav={nav} />
+      <Section><GalleryGrid nav={nav} /></Section>
+    </>
+  );
+}
+
+function PeopleLanding({ nav }) {
+  const store = useStore();
+  return (
+    <>
+      <PageHead eyebrow="People's Portal" title="Your issue deserves a response." sub="Submit a public issue from anywhere in Uttarakhand and track it until it is resolved. This is the organisation's open door." crumbs={[["Home", "home"], ["People's Portal"]]} nav={nav} />
+      <Section>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 50 }}>
+          <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>Submit an Issue</Btn>
+          <Btn kind="ghost" size="lg" onClick={() => nav("people/track")}>Track an Issue</Btn>
+        </div>
+        <H2 style={{ fontSize: 28 }}>How it works</H2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 54 }}>
+          {[["Submit", "Describe the issue, the location and attach photos if you have them."],
+            ["Receive an ID", "You get a tracking ID instantly — keep it safe."],
+            ["We assign it", "The issue is routed to the responsible district unit."],
+            ["Track to closure", "Follow the status timeline until the issue is resolved."]].map(([t, d], i) => (
+            <div key={t} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 99, background: C.forest, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, marginBottom: 14 }}>{i + 1}</div>
+              <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 6 }}>{t}</div>
+              <div style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C" }}>{d}</div>
+            </div>
+          ))}
+        </div>
+        <H2 style={{ fontSize: 28 }}>Recently raised by citizens</H2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+          {store.issues.slice(0, 6).map((i) => (
+            <div key={i.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.slate }}>{i.category}</span>
+                <Badge tone={i.status}>{i.status}</Badge>
+              </div>
+              <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 600, color: C.ink, lineHeight: 1.4 }}>{i.title}</div>
+              <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 8 }}>{i.district} · {i.date}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function ReportIssuePage({ nav }) {
+  const store = useStore(); const toast = useToast();
+  const [f, setF] = useState({ name: "", mobile: "", email: "", district: "", block: "", location: "", category: "", desc: "" });
+  const [errs, setErrs] = useState({});
+  const [done, setDone] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const submit = () => {
+    const e = {};
+    if (!f.name.trim()) e.name = "Please enter your name.";
+    if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
+    if (!f.district) e.district = "Select your district.";
+    if (!f.category) e.category = "Select an issue category.";
+    if (f.desc.trim().length < 20) e.desc = "Describe the issue in at least 20 characters.";
+    setErrs(e);
+    if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
+    setBusy(true);
+    setTimeout(() => {
+      const id = `UKD-ISSUE-2026-${String(Math.floor(480 + Math.random() * 400)).padStart(5, "0")}`;
+      store.setIssues([{ id, category: f.category, district: f.district, status: "Received", title: f.desc.slice(0, 70), location: `${f.district}${f.block ? " • " + f.block : ""}`, date: "12 Aug 2026", citizen: f.name, phone: f.mobile, priority: "Medium", assignedUnit: "Pending assignment", ageDays: 0, notes: 0 }, ...store.issues]);
+      setDone(id); setBusy(false); toast("Issue submitted successfully.");
+    }, 900);
+  };
+  if (done) return (
+    <Section style={{ inner: { maxWidth: 640, textAlign: "center", paddingTop: 90 } }}>
+      <div className="ukd-pop" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 18, padding: 40 }}>
+        <div style={{ width: 62, height: 62, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
+        <H2 style={{ fontSize: 30 }}>Issue received.</H2>
+        <Lead style={{ margin: "0 auto 22px", textAlign: "center" }}>Your issue has been registered with the People's Portal and will be assigned to the responsible district unit.</Lead>
+        <div style={{ background: C.ivory, border: `1.5px dashed ${C.gold}`, borderRadius: 12, padding: 18, fontFamily: sans, marginBottom: 22 }}>
+          <div style={{ fontSize: 12, color: C.mute, letterSpacing: ".08em", fontWeight: 700 }}>YOUR TRACKING ID</div>
+          <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.forest, margin: "6px 0" }}>{done}</div>
+          <div style={{ fontSize: 12.5, color: C.mute }}>Status: Received · Submitted 12 Aug 2026</div>
+        </div>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <Btn onClick={() => nav("people/track")}>Track this issue</Btn>
+          <Btn kind="ghost" onClick={() => nav("home")}>Back to home</Btn>
+        </div>
+      </div>
+    </Section>
+  );
+  return (
+    <>
+      <PageHead eyebrow="People's Portal" title="Submit a public issue." sub="Fields marked * are required. Your submission generates a demo tracking ID instantly." crumbs={[["Home", "home"], ["People's Portal", "people"], ["Submit"]]} nav={nav} />
+      <Section style={{ inner: { maxWidth: 720, paddingTop: 50 } }}>
+        <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: "30px 30px 20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", columnGap: 18 }}>
+            <Field label="Full name" required error={errs.name}><TextInput value={f.name} onChange={set("name")} error={errs.name} placeholder="Your name" /></Field>
+            <Field label="Mobile" required error={errs.mobile} hint="10 digits, used only for issue tracking."><TextInput value={f.mobile} onChange={set("mobile")} error={errs.mobile} placeholder="98XXXXXXXX" inputMode="numeric" /></Field>
+            <Field label="Email"><TextInput value={f.email} onChange={set("email")} placeholder="Optional" /></Field>
+            <Field label="District" required error={errs.district}><Select value={f.district} onChange={set("district")} error={errs.district} options={DISTRICTS} placeholder="Select district" /></Field>
+            <Field label="Block"><TextInput value={f.block} onChange={set("block")} placeholder="Optional" /></Field>
+            <Field label="Location / village"><TextInput value={f.location} onChange={set("location")} placeholder="Where is the issue?" /></Field>
+          </div>
+          <Field label="Issue category" required error={errs.category}><Select value={f.category} onChange={set("category")} error={errs.category} options={ISSUE_CATEGORIES} placeholder="Select category" /></Field>
+          <Field label="Description" required error={errs.desc}><TextArea value={f.desc} onChange={set("desc")} error={errs.desc} placeholder="Describe the issue clearly — what, where, since when." /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+            {["Photo upload", "Document upload"].map((l) => (
+              <button key={l} onClick={() => toast("Demo prototype — uploads are simulated.")} style={{ border: `1.5px dashed ${C.line}`, background: C.paper, borderRadius: 10, padding: "18px 12px", fontFamily: sans, fontSize: 13, color: C.mute, cursor: "pointer" }}>⇪ {l} (demo)</button>
+            ))}
+          </div>
+          <Btn size="lg" onClick={submit} disabled={busy} style={{ width: "100%" }}>{busy ? "Submitting…" : "Submit issue"}</Btn>
+        </div>
+      </Section>
+    </>
+  );
+}
+
+const ISSUE_STAGES = ["Received", "Assigned", "In Progress", "Resolved", "Closed"];
+function TrackIssuePage({ nav }) {
+  const store = useStore(); const toast = useToast();
+  const [id, setId] = useState(""); const [ref, setRef] = useState("");
+  const [found, setFound] = useState(null); const [busy, setBusy] = useState(false); const [notFound, setNotFound] = useState(false);
+  const track = () => {
+    if (!id.trim()) { toast("Enter an issue ID to track.", "error"); return; }
+    setBusy(true); setNotFound(false); setFound(null);
+    setTimeout(() => {
+      const hit = store.issues.find((i) => i.id.toLowerCase() === id.trim().toLowerCase());
+      if (hit) setFound(hit); else setNotFound(true);
+      setBusy(false);
+    }, 700);
+  };
+  const stageIdx = found ? Math.max(0, ISSUE_STAGES.indexOf(found.status === "Closed" ? "Closed" : found.status)) : 0;
+  return (
+    <>
+      <PageHead eyebrow="People's Portal" title="Track an issue." sub="Enter your tracking ID to see the live status timeline." crumbs={[["Home", "home"], ["People's Portal", "people"], ["Track"]]} nav={nav} />
+      <Section style={{ inner: { maxWidth: 680, paddingTop: 50 } }}>
+        <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 28 }}>
+          <Field label="Issue ID" required hint={`Try one from the homepage, e.g. ${store.issues[0].id}`}><TextInput value={id} onChange={(e) => setId(e.target.value)} placeholder="UKD-ISSUE-2026-00482" /></Field>
+          <Field label="Mobile / reference"><TextInput value={ref} onChange={(e) => setRef(e.target.value)} placeholder="Optional in this demo" /></Field>
+          <Btn onClick={track} disabled={busy} style={{ width: "100%" }}>{busy ? "Checking…" : "Track issue"}</Btn>
+        </div>
+        {busy && <div style={{ marginTop: 24 }}><Skeleton rows={3} /></div>}
+        {notFound && <div style={{ marginTop: 24 }}><EmptyState icon="⌕" title="No issue found with that ID" sub="Check the ID and try again, or submit a new issue." cta="Submit an issue" onCta={() => nav("people/report")} /></div>}
+        {found && (
+          <div className="ukd-fade" style={{ marginTop: 24, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 6 }}>
+              <div>
+                <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink }}>{found.category}</div>
+                <div style={{ fontFamily: sans, fontSize: 13, color: C.mute, marginTop: 4 }}>{found.id} · {found.district} · Submitted {found.date}</div>
+              </div>
+              <Badge tone={found.status}>{found.status}</Badge>
+            </div>
+            <p style={{ fontFamily: sans, fontSize: 14, color: "#4A554C", lineHeight: 1.6 }}>{found.title}</p>
+            <div style={{ marginTop: 22 }}>
+              {ISSUE_STAGES.map((s, i) => {
+                const on = i <= stageIdx;
+                return (
+                  <div key={s} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <div style={{ width: 26, height: 26, borderRadius: "50%", background: on ? C.forest : "#E7E3D4", color: on ? "#fff" : C.mute, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontFamily: sans, fontWeight: 700 }}>{on ? "✓" : i + 1}</div>
+                      {i < ISSUE_STAGES.length - 1 && <div style={{ width: 2, height: 30, background: i < stageIdx ? C.forest : "#E7E3D4" }} />}
+                    </div>
+                    <div style={{ fontFamily: sans, paddingTop: 3 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: on ? C.ink : C.mute }}>{s}</div>
+                      {i === stageIdx && <div style={{ fontSize: 12.5, color: C.gold, fontWeight: 700 }}>Current stage</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Section>
+    </>
+  );
+}
+
+function JoinPage({ nav }) {
+  const store = useStore(); const toast = useToast();
+  const [step, setStep] = useState(0);
+  const [f, setF] = useState({ name: "", mobile: "", email: "", district: "", block: "", unit: "", address: "", note: "" });
+  const [errs, setErrs] = useState({});
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const memberId = useRef(`UKD-M-2026-${Math.floor(2000 + Math.random() * 7000)}`);
+  const next = () => {
+    if (step === 0) {
+      const e = {};
+      if (!f.name.trim()) e.name = "Enter your full name.";
+      if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
+      if (f.email && !/.+@.+\..+/.test(f.email)) e.email = "Enter a valid email or leave blank.";
+      if (!f.district) e.district = "Select your district.";
+      setErrs(e);
+      if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
+    }
+    if (step === 2) {
+      store.setMembers([{ id: memberId.current, name: f.name, district: f.district, unit: f.unit || "To be assigned", block: f.block || "—", role: "Member", joined: "Aug 2026", status: "Pending", lastActivity: "Just now", phone: `+91 ${f.mobile.slice(0, 5)}XXXXX` }, ...store.members]);
+      toast("Membership request submitted.");
+    }
+    setStep(step + 1);
+  };
+  const steps = ["Basic information", "Profile", "Review", "Success"];
+  return (
+    <>
+      <PageHead eyebrow="Join UKD" title="Become part of the organisation." sub="A four-step membership request. This prototype issues a demo digital membership card instantly." crumbs={[["Home", "home"], ["Join UKD"]]} nav={nav} />
+      <Section style={{ inner: { maxWidth: 760, paddingTop: 50 } }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 30 }}>
+          {steps.map((s, i) => (
+            <div key={s} style={{ flex: 1, fontFamily: sans }}>
+              <div style={{ height: 5, borderRadius: 99, background: i <= step ? C.gold : "#E4E0D0", marginBottom: 8, transition: "background .3s" }} />
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: i <= step ? C.ink : C.mute, letterSpacing: ".03em" }}>{i + 1}. {s}</div>
+            </div>
+          ))}
+        </div>
+        <div className="ukd-fade" key={step} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 30 }}>
+          {step === 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", columnGap: 18 }}>
+              <Field label="Full name" required error={errs.name}><TextInput value={f.name} onChange={set("name")} error={errs.name} /></Field>
+              <Field label="Mobile" required error={errs.mobile}><TextInput value={f.mobile} onChange={set("mobile")} error={errs.mobile} inputMode="numeric" /></Field>
+              <Field label="Email" error={errs.email}><TextInput value={f.email} onChange={set("email")} error={errs.email} /></Field>
+              <Field label="District" required error={errs.district}><Select value={f.district} onChange={set("district")} error={errs.district} options={DISTRICTS} placeholder="Select district" /></Field>
+              <Field label="Block"><TextInput value={f.block} onChange={set("block")} placeholder="Optional" /></Field>
+              <Field label="Local unit"><TextInput value={f.unit} onChange={set("unit")} placeholder="If known" /></Field>
+            </div>
+          )}
+          {step === 1 && (
+            <div>
+              <button onClick={() => toast("Demo prototype — photo upload is simulated.")} style={{ width: "100%", border: `1.5px dashed ${C.line}`, background: C.paper, borderRadius: 12, padding: 26, fontFamily: sans, fontSize: 13.5, color: C.mute, cursor: "pointer", marginBottom: 20 }}>⇪ Upload photo (demo)</button>
+              <Field label="Address"><TextArea value={f.address} onChange={set("address")} placeholder="Village / town, block, district" style={{ minHeight: 80 }} /></Field>
+              <Field label="Anything you'd like to add"><TextArea value={f.note} onChange={set("note")} placeholder="Optional — skills, availability, interests" style={{ minHeight: 80 }} /></Field>
+            </div>
+          )}
+          {step === 2 && (
+            <div style={{ fontFamily: sans }}>
+              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Review your details</div>
+              {[["Name", f.name], ["Mobile", f.mobile], ["Email", f.email || "—"], ["District", f.district], ["Block", f.block || "—"], ["Local unit", f.unit || "To be assigned"], ["Address", f.address || "—"]].map(([l, v]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "9px 0", borderBottom: `1px solid ${C.line}66`, fontSize: 14 }}>
+                  <span style={{ color: C.mute }}>{l}</span><span style={{ fontWeight: 600, color: C.ink, textAlign: "right" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {step === 3 && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>✓</div>
+              <H2 style={{ fontSize: 28 }}>Your membership request has been submitted.</H2>
+              <Lead style={{ margin: "0 auto 26px", textAlign: "center" }}>Your local unit will verify the request. Here is your demo digital membership card.</Lead>
+              <MembershipCard name={f.name} district={f.district} id={memberId.current} />
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 26, flexWrap: "wrap" }}>
+                <Btn onClick={() => toast("Demo card saved (simulated).")}>Download card (demo)</Btn>
+                <Btn kind="ghost" onClick={() => nav("home")}>Back to home</Btn>
+              </div>
+            </div>
+          )}
+          {step < 3 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+              <Btn kind="subtle" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>← Back</Btn>
+              <Btn onClick={next}>{step === 2 ? "Submit request" : "Continue →"}</Btn>
+            </div>
+          )}
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function MembershipCard({ name, district, id }) {
+  return (
+    <div style={{ maxWidth: 400, margin: "0 auto", borderRadius: 18, overflow: "hidden", boxShadow: "0 24px 50px -18px rgba(24,43,28,.5)", textAlign: "left", background: `linear-gradient(135deg, ${C.forestDeep}, ${C.forest})`, position: "relative" }}>
+      <Ridges h={70} tones={[`${C.gold}30`, `${C.ivory}14`, `${C.ivory}0a`]} style={{ position: "absolute", bottom: 0 }} />
+      <div style={{ padding: "22px 24px", position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <Logo size={34} light />
+            <div>
+              <div style={{ fontFamily: serif, color: C.ivory, fontSize: 15, fontWeight: 600 }}>Uttarakhand Kranti Dal</div>
+              <div style={{ fontFamily: sans, color: C.goldSoft, fontSize: 9, letterSpacing: ".22em", fontWeight: 700 }}>DEMO DIGITAL MEMBERSHIP ID</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ fontFamily: sans }}>
+            <div style={{ color: C.ivory, fontSize: 19, fontWeight: 700 }}>{name || "Member Name"}</div>
+            <div style={{ color: "#B9C6B2", fontSize: 12.5, marginTop: 3 }}>{district || "District"} · Joined Aug 2026</div>
+            <div style={{ color: C.goldSoft, fontSize: 13.5, fontWeight: 700, marginTop: 12, letterSpacing: ".06em" }}>{id}</div>
+          </div>
+          <svg width="62" height="62" viewBox="0 0 62 62" aria-label="Demo QR visual" style={{ background: C.ivory, borderRadius: 8, padding: 5 }}>
+            {Array.from({ length: 49 }).map((_, i) => {
+              const x = (i % 7) * 8 + 3, y = Math.floor(i / 7) * 8 + 3;
+              return ((i * 7 + 3) % 5 < 3) ? <rect key={i} x={x} y={y} width="6" height="6" fill={C.forestDeep} /> : null;
+            })}
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupportPage({ nav }) {
+  const toast = useToast();
+  const [amt, setAmt] = useState(500);
+  const [step, setStep] = useState(0);
+  const [f, setF] = useState({ name: "", mobile: "", district: "" });
+  const [errs, setErrs] = useState({});
+  const amounts = [100, 250, 500, 1000, 2500];
+  const next = () => {
+    if (step === 0) {
+      const e = {};
+      if (!f.name.trim()) e.name = "Enter your name.";
+      if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
+      setErrs(e);
+      if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
+    }
+    if (step === 1) toast("Demo contribution recorded — no real payment was made.");
+    setStep(step + 1);
+  };
+  return (
+    <>
+      <PageHead eyebrow="Support UKD" title="Support the movement." sub="A demonstration contribution flow. No real money is processed anywhere in this prototype." crumbs={[["Home", "home"], ["Support"]]} nav={nav} />
+      <Section style={{ inner: { maxWidth: 640, paddingTop: 50 } }}>
+        <div style={{ background: "#FDF6E7", border: `1px solid ${C.gold}66`, borderRadius: 10, padding: "12px 16px", fontFamily: sans, fontSize: 13, color: "#8A5D14", marginBottom: 20, fontWeight: 600 }}>
+          Demo only — this screen simulates a contribution and does not process payments.
+        </div>
+        <div className="ukd-fade" key={step} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 30 }}>
+          {step === 0 && (
+            <>
+              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Choose a contribution</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 22 }}>
+                {amounts.map((a) => (
+                  <button key={a} onClick={() => setAmt(a)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, padding: "12px 22px", borderRadius: 10, border: `2px solid ${amt === a ? C.gold : C.line}`, background: amt === a ? "#FDF6E7" : "#fff", color: amt === a ? "#8A5D14" : C.ink, cursor: "pointer" }}>₹{a}</button>
+                ))}
+              </div>
+              <Field label="Your name" required error={errs.name}><TextInput value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} /></Field>
+              <Field label="Mobile" required error={errs.mobile}><TextInput value={f.mobile} onChange={(e) => setF({ ...f, mobile: e.target.value })} error={errs.mobile} inputMode="numeric" /></Field>
+              <Field label="District"><Select value={f.district} onChange={(e) => setF({ ...f, district: e.target.value })} options={DISTRICTS} placeholder="Optional" /></Field>
+              <Btn size="lg" onClick={next} style={{ width: "100%" }}>Continue to demo payment</Btn>
+            </>
+          )}
+          {step === 1 && (
+            <>
+              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Demo payment step</div>
+              <div style={{ background: C.ivory, borderRadius: 12, padding: 20, fontFamily: sans, marginBottom: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14.5, marginBottom: 8 }}><span style={{ color: C.mute }}>Contribution</span><b>₹{amt}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14.5 }}><span style={{ color: C.mute }}>Contributor</span><b>{f.name}</b></div>
+              </div>
+              <div style={{ border: `1.5px dashed ${C.line}`, borderRadius: 12, padding: 24, textAlign: "center", fontFamily: sans, fontSize: 13.5, color: C.mute, marginBottom: 22 }}>
+                Payment gateway placeholder — no real transaction occurs.
+              </div>
+              <Btn size="lg" kind="gold" onClick={next} style={{ width: "100%" }}>Complete demo payment</Btn>
+            </>
+          )}
+          {step === 2 && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>✓</div>
+              <H2 style={{ fontSize: 27 }}>Thank you, {f.name.split(" ")[0]}.</H2>
+              <Lead style={{ margin: "0 auto 24px", textAlign: "center" }}>Your demo contribution of ₹{amt} was recorded in this prototype. In the real system, an official receipt would be issued and reflected in the Transparency Centre.</Lead>
+              <Btn kind="ghost" onClick={() => nav("transparency")}>Visit Transparency Centre</Btn>
+            </div>
+          )}
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function DocumentsPage({ nav, transparency }) {
+  const cats = transparency ? ["Disclosures", "Public Statements", "Reports", "Official Notices", "Public Representations"] : [...new Set(SEED_DOCS.map((d) => d.category))];
+  return (
+    <>
+      <PageHead eyebrow={transparency ? "Transparency Centre" : "Documents"} title={transparency ? "Open by design." : "The official archive."} sub={transparency ? "Disclosures, statements, reports and representations — published for the public record." : "Party documents, resolutions, minutes and press releases in one searchable archive."} crumbs={[["Home", "home"], [transparency ? "Transparency" : "Documents"]]} nav={nav} />
+      <Section>
+        <DataTable
+          columns={[
+            { key: "title", label: "Document", strong: true },
+            { key: "category", label: "Category", render: (r) => <Badge>{r.category}</Badge> },
+            { key: "district", label: "District" },
+            { key: "year", label: "Year" },
+            { key: "size", label: "Size" },
+            { key: "dl", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview ↓</span> },
+          ]}
+          rows={SEED_DOCS.filter((d) => !transparency || ["Disclosures", "Press Releases", "District Reports", "Official Notices", "Public Representations", "Resolutions"].includes(d.category))}
+          searchKeys={["title", "category"]}
+          filters={[{ key: "year", label: "Year", options: ["2026", "2025"] }, { key: "category", label: "Category", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "district", label: "District", options: [...new Set(SEED_DOCS.map((d) => d.district))] }]}
+          onRow={() => {}}
+          empty={<EmptyState title="No documents match" sub="Adjust the filters or search to see the archive." />}
+        />
+        <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 12 }}>All documents shown are demo placeholders.</div>
+      </Section>
+    </>
+  );
+}
+
+function ContactPage({ nav }) {
+  const toast = useToast();
+  const [f, setF] = useState({ name: "", email: "", msg: "" });
+  const [sent, setSent] = useState(false);
+  return (
+    <>
+      <PageHead eyebrow="Contact" title="Write to the organisation." sub="For official correspondence, media queries and public communication." crumbs={[["Home", "home"], ["Contact"]]} nav={nav} />
+      <Section style={{ inner: { maxWidth: 640, paddingTop: 50 } }}>
+        {sent ? (
+          <EmptyState icon="✓" title="Message sent" sub="Your message was recorded in this prototype. The organisation's office would respond through official channels." cta="Back to home" onCta={() => nav("home")} />
+        ) : (
+          <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 30 }}>
+            <Field label="Your name" required><TextInput value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+            <Field label="Email or mobile" required><TextInput value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
+            <Field label="Message" required><TextArea value={f.msg} onChange={(e) => setF({ ...f, msg: e.target.value })} /></Field>
+            <Btn onClick={() => { if (!f.name || !f.email || !f.msg) { toast("Please fill in all fields.", "error"); return; } setSent(true); toast("Message sent."); }} style={{ width: "100%" }}>Send message</Btn>
+            <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 12, textAlign: "center" }}>Official contact details will be published by the organisation. This form is a demo.</div>
+          </div>
+        )}
+      </Section>
+    </>
+  );
+}
+
+function PublicSite({ toPortal }) {
+  const [route, setRoute] = useState("home");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const nav = (r) => { setRoute(r); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const seg = route.split("/");
+  let page;
+  if (route === "home") page = <HomePage nav={nav} />;
+  else if (route === "about") page = <AboutPage nav={nav} />;
+  else if (seg[0] === "organisation") page = <OrganisationPage nav={nav} sub={seg[1] ? [seg[1], seg.slice(2).join("/")] : undefined} />;
+  else if (route === "history") page = <HistoryPage nav={nav} />;
+  else if (seg[0] === "news") page = <NewsPage nav={nav} id={seg[1]} />;
+  else if (seg[0] === "events") page = <EventsPage nav={nav} id={seg[1]} />;
+  else if (route === "gallery") page = <GalleryPage nav={nav} />;
+  else if (route === "people") page = <PeopleLanding nav={nav} />;
+  else if (route === "people/report") page = <ReportIssuePage nav={nav} />;
+  else if (route === "people/track") page = <TrackIssuePage nav={nav} />;
+  else if (route === "join") page = <JoinPage nav={nav} />;
+  else if (route === "support") page = <SupportPage nav={nav} />;
+  else if (route === "documents") page = <DocumentsPage nav={nav} />;
+  else if (route === "transparency") page = <DocumentsPage nav={nav} transparency />;
+  else if (route === "contact") page = <ContactPage nav={nav} />;
+  else page = (
+    <Section style={{ inner: { paddingTop: 120, textAlign: "center" } }}>
+      <div style={{ fontFamily: serif, fontSize: 90, color: C.line, fontWeight: 500 }}>404</div>
+      <H2 style={{ fontSize: 26 }}>This page doesn't exist.</H2>
+      <Btn onClick={() => nav("home")}>Back to home</Btn>
+    </Section>
+  );
+  return (
+    <div style={{ background: C.ivory, minHeight: "100vh" }}>
+      <SiteHeader route={route} nav={nav} openSearch={() => setSearchOpen(true)} />
+      <main key={route} className="ukd-fade">{page}</main>
+      <div style={{ background: C.ivory, textAlign: "center", padding: "0 20px 46px" }}>
+        <button onClick={toPortal} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.slate, background: "#fff", border: `1.5px solid ${C.slate}44`, borderRadius: 99, padding: "10px 22px", cursor: "pointer" }}>
+          🔒 UKD Digital Command Portal — internal sign in
+        </button>
+      </div>
+      <SiteFooter nav={nav} />
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} nav={nav} />
+    </div>
+  );
+}
+
+/* ============================== PRIVATE PORTAL ============================== */
+function PortalLogin({ onLogin, toSite }) {
+  const toast = useToast();
+  const [role, setRole] = useState(ROLES[0].key);
+  const [email, setEmail] = useState("demo@ukd.org");
+  const [pw, setPw] = useState("••••••••");
+  const [busy, setBusy] = useState(false);
+  const go = () => {
+    if (!email.trim() || !pw.trim()) { toast("Enter email and password.", "error"); return; }
+    setBusy(true);
+    setTimeout(() => { onLogin(ROLES.find((r) => r.key === role)); }, 800);
+  };
+  return (
+    <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${C.forestDeep}, ${C.forestDark} 55%, ${C.slate})`, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+      <Ridges h={220} tones={[`${C.slateSoft}55`, `${C.forest}`, `${C.forestDeep}`]} style={{ position: "absolute", bottom: 0, left: 0 }} />
+      <div className="ukd-pop" style={{ width: "100%", maxWidth: 440, background: C.paper, borderRadius: 20, padding: 34, position: "relative", zIndex: 2, boxShadow: "0 40px 100px -30px rgba(0,0,0,.6)" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
+          <Logo size={44} />
+          <div>
+            <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink }}>UKD Digital Command Portal</div>
+            <div style={{ fontFamily: sans, fontSize: 10.5, letterSpacing: ".2em", color: C.gold, fontWeight: 700 }}>INTERNAL · AUTHORISED ACCESS</div>
+          </div>
+        </div>
+        <p style={{ fontFamily: sans, fontSize: 13, color: C.mute, margin: "10px 0 22px" }}>From leadership to the ground — everything connected. Demo sign-in: choose a role to explore its view.</p>
+        <Field label="Email / Mobile" required><TextInput value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+        <Field label="Password" required><TextInput type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
+        <Field label="Sign in as (demo role)">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {ROLES.map((r) => (
+              <button key={r.key} onClick={() => setRole(r.key)} style={{ textAlign: "left", fontFamily: sans, border: `2px solid ${role === r.key ? C.forest : C.line}`, background: role === r.key ? "#EDF2E6" : "#fff", borderRadius: 10, padding: "9px 12px", cursor: "pointer" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: C.ink }}>{r.label}</div>
+                <div style={{ fontSize: 10.5, color: C.mute }}>{r.scope}</div>
+              </button>
+            ))}
+          </div>
+        </Field>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontFamily: sans, fontSize: 13, color: C.mute, marginBottom: 18 }}>
+          <input type="checkbox" defaultChecked /> Remember me on this device
+        </label>
+        <Btn size="lg" onClick={go} disabled={busy} style={{ width: "100%" }}>{busy ? "Signing in…" : "Sign In"}</Btn>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
+          <button onClick={() => toast("Demo prototype — password reset is simulated.")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12.5, color: C.slate, cursor: "pointer", fontWeight: 600 }}>Forgot password</button>
+          <button onClick={toSite} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12.5, color: C.slate, cursor: "pointer", fontWeight: 600 }}>← Public website</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PORTAL_NAV = [
+  ["dashboard", "Dashboard", "▦"],
+  ["organisation", "Organisation", "⛰"],
+  ["members", "Members", "☰"],
+  ["karyakartas", "Karyakartas", "✦"],
+  ["units", "Local Units", "▤"],
+  ["tasks", "Tasks", "✓"],
+  ["issues", "People's Issues", "◉"],
+  ["pevents", "Events", "▣"],
+  ["pdocs", "Documents", "◫"],
+  ["notices", "Notices", "◈"],
+  ["reports", "Reports", "≡"],
+  ["finance", "Finance", "₹"],
+  ["analytics", "Analytics", "∿"],
+  ["ai", "AI Assistant", "✳"],
+  ["settings", "Settings", "⚙"],
+];
+
+const PCard = ({ children, style = {}, onClick, pad = 20 }) => (
+  <div onClick={onClick} className={onClick ? "hoverlift" : ""} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: pad, cursor: onClick ? "pointer" : "default", ...style }}>{children}</div>
+);
+const PTitle = ({ children, right }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+    <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, letterSpacing: ".12em", color: C.mute, textTransform: "uppercase" }}>{children}</div>
+    {right}
+  </div>
+);
+const PageTitle = ({ title, sub, right }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap", marginBottom: 24 }}>
+    <div>
+      <h1 style={{ fontFamily: serif, fontSize: "clamp(24px, 3vw, 32px)", fontWeight: 600, color: C.ink, margin: 0, letterSpacing: "-.01em" }}>{title}</h1>
+      {sub && <div style={{ fontFamily: sans, fontSize: 13.5, color: C.mute, marginTop: 6 }}>{sub}</div>}
+    </div>
+    {right && <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{right}</div>}
+  </div>
+);
+
+function CommandCentre({ nav, user }) {
+  const store = useStore();
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 650); return () => clearTimeout(t); }, []);
+  const scoped = user.district ? { m: store.members.filter((x) => x.district === user.district), i: store.issues.filter((x) => x.district === user.district), t: store.tasks.filter((x) => x.district === user.district) } : { m: store.members, i: store.issues, t: store.tasks };
+  const openIssues = scoped.i.filter((x) => !["Resolved", "Closed"].includes(x.status)).length;
+  const pendingTasks = scoped.t.filter((x) => !["Completed"].includes(x.status)).length;
+  const overdue = store.tasks.filter((t) => t.status === "Overdue");
+  const missingReports = SEED_REPORTS.filter((r) => r.status === "Missing");
+  const oldIssues = store.issues.filter((i) => i.ageDays > 15 && !["Resolved", "Closed"].includes(i.status));
+  const attnUnits = SEED_UNITS.filter((u) => u.health < 65);
+  const kpis = [
+    ["Total Members", scoped.m.length, "members", [30, 33, 34, 38, 40, scoped.m.length]],
+    ["Active Karyakartas", SEED_KARYAKARTAS.filter((k) => k.active).length, "karyakartas", [10, 12, 13, 14, 15, 16]],
+    ["Organisational Units", SEED_UNITS.length, "units", [9, 10, 11, 12, 13, 14]],
+    ["Open Public Issues", openIssues, "issues", [6, 8, 7, 9, 10, openIssues]],
+    ["Pending Tasks", pendingTasks, "tasks", [8, 9, 11, 10, 12, pendingTasks]],
+    ["Upcoming Events", SEED_EVENTS.length, "pevents", [4, 5, 5, 6, 7, 8]],
+  ];
+  if (loading) return (<div><PageTitle title="Good morning, UKD." sub="Loading the state organisation overview…" /><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>{Array.from({ length: 6 }).map((_, i) => <div key={i} className="ukd-skel" style={{ height: 110 }} />)}</div><div style={{ marginTop: 20 }}><Skeleton rows={5} /></div></div>);
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Good morning, UKD." sub={user.district ? `${user.label} · ${user.scope}` : "State Organisation Overview · Wednesday, 12 August 2026"} right={<Btn size="sm" kind="ghost" onClick={() => nav("reports")}>Weekly reports</Btn>} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14, marginBottom: 22 }}>
+        {kpis.map(([l, v, r, spark], i) => (
+          <PCard key={l} onClick={() => nav(r)} pad={18}>
+            <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", color: C.mute, textTransform: "uppercase" }}>{l}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 8 }}>
+              <div style={{ fontFamily: serif, fontSize: 38, fontWeight: 500, color: [C.forest, C.forest, C.slate, C.red, C.gold, C.slate][i], lineHeight: 1 }}>{v}</div>
+              <Spark points={spark} w={70} h={30} color={[C.lime, C.lime, C.slateSoft, C.red, C.gold, C.slateSoft][i]} />
+            </div>
+            <div style={{ fontFamily: sans, fontSize: 11.5, color: C.gold, fontWeight: 700, marginTop: 8 }}>Open →</div>
+          </PCard>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: 14, marginBottom: 22 }}>
+        <PCard>
+          <PTitle>Organisational Health</PTitle>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <HealthRing pct={82} size={92} stroke={9} />
+            <div style={{ flex: 1, fontFamily: sans, display: "flex", flexDirection: "column", gap: 8 }}>
+              {[["Central", 94], ["Mandal", 86], ["District", 81], ["Block", 74], ["Local Unit", 69]].map(([l, v]) => (
+                <div key={l}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}><span style={{ color: C.mute }}>{l}</span><b style={{ color: C.ink }}>{v}%</b></div>
+                  <div style={{ height: 6, borderRadius: 99, background: "#EBE7D8" }}><div style={{ width: `${v}%`, height: "100%", borderRadius: 99, background: v >= 80 ? C.forest : v >= 70 ? C.gold : C.red }} /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </PCard>
+        <PCard>
+          <PTitle right={<Badge tone="High">Action</Badge>}>Attention Required</PTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[[`${attnUnits.length} units need attention`, "units?attn=1"], [`${overdue.length} overdue tasks`, "tasks?f=Overdue"], [`${missingReports.length} missing reports`, "reports"], [`${oldIssues.length} unresolved issues older than 15 days`, "issues?age=15"]].map(([l, r]) => (
+              <button key={l} onClick={() => nav(r)} className="rowhover" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#FBF7EC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 14px", fontFamily: sans, fontSize: 13.5, fontWeight: 600, color: C.ink, cursor: "pointer", textAlign: "left" }}>
+                <span><span style={{ color: C.red, marginRight: 8 }}>●</span>{l}</span><span style={{ color: C.gold }}>→</span>
+              </button>
+            ))}
+          </div>
+        </PCard>
+        <PCard>
+          <PTitle right={<button onClick={() => nav("notifications")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>All →</button>}>Recent Activity</PTitle>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {SEED_NOTIFS.slice(0, 5).map((n) => (
+              <div key={n.id} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.line}66`, fontFamily: sans, fontSize: 13 }}>
+                <span style={{ color: { task: C.gold, issue: C.slate, notice: C.forest, report: C.red, event: C.slateSoft, doc: C.mute }[n.kind] }}>●</span>
+                <span style={{ color: C.ink, flex: 1 }}>{n.text}</span>
+                <span style={{ color: C.mute, fontSize: 11.5, whiteSpace: "nowrap" }}>{n.time}</span>
+              </div>
+            ))}
+          </div>
+        </PCard>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: 14 }}>
+        <PCard>
+          <PTitle right={<button onClick={() => nav("analytics")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Analytics →</button>}>District Performance — Health</PTitle>
+          <Bars height={170} data={["Dehradun", "Pauri Garhwal", "Almora", "Nainital", "Chamoli", "Haridwar"].map((d, i) => ({ k: d.split(" ")[0], v: [88, 82, 77, 74, 69, 64][i], c: [C.forest, C.forest, C.gold, C.gold, C.gold, C.red][i] }))} />
+        </PCard>
+        <PCard>
+          <PTitle right={<button onClick={() => nav("issues")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Issues →</button>}>Issue Overview</PTitle>
+          <Donut label={String(store.issues.length)} sub="TOTAL" segments={[
+            { k: "Received", v: store.issues.filter((i) => i.status === "Received").length, c: C.slate },
+            { k: "Assigned", v: store.issues.filter((i) => i.status === "Assigned").length, c: C.slateSoft },
+            { k: "In Progress", v: store.issues.filter((i) => i.status === "In Progress").length, c: C.gold },
+            { k: "Resolved", v: store.issues.filter((i) => i.status === "Resolved").length, c: C.lime },
+          ]} />
+        </PCard>
+        <PCard>
+          <PTitle right={<button onClick={() => nav("tasks")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Tasks →</button>}>Task Overview</PTitle>
+          <Donut label={String(store.tasks.length)} sub="TOTAL" segments={[
+            { k: "In Progress", v: store.tasks.filter((t) => t.status === "In Progress").length, c: C.gold },
+            { k: "Not Started", v: store.tasks.filter((t) => t.status === "Not Started").length, c: "#B9B4A1" },
+            { k: "Review", v: store.tasks.filter((t) => ["Submitted", "Under Review"].includes(t.status)).length, c: C.slate },
+            { k: "Completed", v: store.tasks.filter((t) => t.status === "Completed").length, c: C.lime },
+            { k: "Overdue", v: store.tasks.filter((t) => t.status === "Overdue").length, c: C.red },
+          ]} />
+        </PCard>
+      </div>
+    </div>
+  );
+}
+
+function OrgModule({ nav }) {
+  const [open, setOpen] = useState({ Central: true, Garhwal: true });
+  const toggle = (k) => setOpen({ ...open, [k]: !open[k] });
+  const Row = ({ label, meta, depth, k, children, onOpen }) => (
+    <div style={{ marginLeft: depth * 22 }}>
+      <div className="rowhover" onClick={() => (children ? toggle(k) : onOpen && onOpen())} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 10, marginBottom: 8, fontFamily: sans }}>
+        {children ? <span style={{ color: C.gold, fontWeight: 700, width: 14, transition: "transform .2s", transform: open[k] ? "rotate(90deg)" : "none", display: "inline-block" }}>›</span> : <span style={{ width: 14, color: C.line }}>·</span>}
+        <span style={{ fontWeight: 700, fontSize: 14, color: C.ink }}>{label}</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: C.mute }}>{meta}</span>
+      </div>
+      {children && open[k] && <div className="ukd-fade">{children}</div>}
+    </div>
+  );
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Organisation" sub="The living structure — Central → Mandal → District → Block → Local Unit. Click a district to open its view." />
+      <PCard>
+        <Row label="UKD Central" meta="Central leadership · demo" depth={0} k="Central">
+          {Object.keys(REGIONS).map((reg) => (
+            <Row key={reg} label={`${reg} Mandal`} meta={`${REGIONS[reg].length} districts`} depth={1} k={reg}>
+              {REGIONS[reg].map((d) => (
+                <Row key={d} label={d} meta={`${SEED_UNITS.filter((u) => u.district === d).length || 1} units · leader: ${seededName(d.length)} (demo)`} depth={2} onOpen={() => nav(`units?d=${d}`)} />
+              ))}
+            </Row>
+          ))}
+        </Row>
+      </PCard>
+      <div style={{ marginTop: 22 }}>
+        <PTitle>Organisational Directory</PTitle>
+        <DataTable
+          columns={[
+            { key: "name", label: "Name", strong: true, render: (r) => <span style={{ display: "flex", gap: 10, alignItems: "center" }}><Avatar name={r.name} size={30} />{r.name}</span> },
+            { key: "role", label: "Designation" },
+            { key: "district", label: "District" },
+            { key: "unit", label: "Unit" },
+            { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
+          ]}
+          rows={SEED_MEMBERS.filter((m) => m.role !== "Member").concat(SEED_KARYAKARTAS.slice(0, 4).map((k) => ({ ...k, role: k.role, status: "Active" })))}
+          searchKeys={["name", "role", "district", "unit"]}
+          filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "role", label: "Designation", options: ["Committee Member", "Unit Secretary", "Field Karyakarta", "Booth Karyakarta", "Training Lead"] }]}
+          onRow={(r) => nav(r.id.startsWith("KK") ? `karyakartas/${r.id}` : `members/${r.id}`)}
+        />
+      </div>
+      <div style={{ marginTop: 22 }}>
+        <PTitle>Vacancy Overview</PTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 }}>
+          {[["District level", [["Filled", 11], ["Vacant", 1], ["Under appointment", 1]]], ["Block level", [["Filled", 34], ["Vacant", 6], ["Temporary", 3]]], ["Local unit level", [["Filled", 96], ["Vacant", 18], ["Under appointment", 9]]]].map(([lvl, rows]) => (
+            <PCard key={lvl} pad={18}>
+              <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14, color: C.ink, marginBottom: 12 }}>{lvl}</div>
+              {rows.map(([l, v]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", fontFamily: sans, fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${C.line}55` }}>
+                  <span style={{ color: C.mute }}>{l}</span>
+                  <b style={{ color: l === "Vacant" ? C.red : C.ink }}>{v}</b>
+                </div>
+              ))}
+            </PCard>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailShell({ back, backLabel, title, sub, badge, children, actions }) {
+  return (
+    <div className="ukd-fade">
+      <button onClick={back} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.slate, cursor: "pointer", padding: 0, marginBottom: 16 }}>← {backLabel}</button>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", alignItems: "flex-start", marginBottom: 22 }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          {title.avatar && <Avatar name={title.avatar} size={54} />}
+          <div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <h1 style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.ink, margin: 0 }}>{title.text}</h1>
+              {badge}
+            </div>
+            <div style={{ fontFamily: sans, fontSize: 13.5, color: C.mute, marginTop: 4 }}>{sub}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{actions}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+const KV = ({ items }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+    {items.map(([l, v]) => (
+      <PCard key={l} pad={14}>
+        <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: C.mute, textTransform: "uppercase" }}>{l}</div>
+        <div style={{ fontFamily: sans, fontSize: 14.5, fontWeight: 700, color: C.ink, marginTop: 5 }}>{v}</div>
+      </PCard>
+    ))}
+  </div>
+);
+
+function MembersModule({ nav, id, user }) {
+  const store = useStore(); const toast = useToast();
+  const [addOpen, setAddOpen] = useState(false);
+  const [nf, setNf] = useState({ name: "", district: user.district || "", role: "Member" });
+  const rows = user.district ? store.members.filter((m) => m.district === user.district) : store.members;
+  if (id) {
+    const m = store.members.find((x) => x.id === id);
+    if (!m) return <EmptyState title="Member not found" cta="Back to members" onCta={() => nav("members")} />;
+    return (
+      <DetailShell back={() => nav("members")} backLabel="Members" title={{ text: m.name, avatar: m.name }} sub={`${m.id} · ${m.district} · ${m.unit}`} badge={<Badge tone={m.status}>{m.status}</Badge>}
+        actions={<><Btn size="sm" kind="ghost" onClick={() => toast("Demo — edit is simulated.")}>Edit profile</Btn><Btn size="sm" onClick={() => { store.setMembers(store.members.map((x) => x.id === m.id ? { ...x, status: x.status === "Active" ? "Pending" : "Active" } : x)); toast(`Member marked ${m.status === "Active" ? "Pending" : "Active"}.`); }}>Toggle status</Btn></>}>
+        <KV items={[["Contact", m.phone], ["Role", m.role], ["Block", m.block], ["Joined", m.joined], ["Last activity", m.lastActivity], ["Region", regionOf(m.district)]]} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginTop: 16 }}>
+          <PCard><PTitle>Assigned tasks</PTitle>
+            {store.tasks.filter((t) => t.assignee === m.name).length === 0 ? <div style={{ fontFamily: sans, fontSize: 13, color: C.mute }}>No tasks assigned to this member.</div> :
+              store.tasks.filter((t) => t.assignee === m.name).map((t) => (
+                <button key={t.id} onClick={() => nav(`tasks/${t.id}`)} className="rowhover" style={{ display: "flex", width: "100%", justifyContent: "space-between", gap: 10, padding: "9px 10px", borderRadius: 8, background: "none", border: "none", fontFamily: sans, fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ color: C.ink, fontWeight: 600 }}>{t.name}</span><Badge tone={t.status}>{t.status}</Badge>
+                </button>))}
+          </PCard>
+          <PCard><PTitle>Recent activity</PTitle>
+            {["Attended block meeting — 9 Aug", "Membership verified by unit — 2 Aug", "Joined the organisation — " + m.joined].map((a, i) => (
+              <div key={i} style={{ fontFamily: sans, fontSize: 13, color: C.ink, padding: "8px 0", borderBottom: `1px solid ${C.line}55` }}><span style={{ color: C.gold, marginRight: 8 }}>●</span>{a}</div>))}
+          </PCard>
+        </div>
+      </DetailShell>
+    );
+  }
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Members" sub={`Member CRM · ${rows.length} records ${user.district ? `in ${user.district}` : "statewide"} · demo data`} right={<Btn size="sm" onClick={() => setAddOpen(true)}>+ Add member</Btn>} />
+      <DataTable
+        columns={[
+          { key: "name", label: "Name", strong: true, render: (r) => <span style={{ display: "flex", gap: 10, alignItems: "center" }}><Avatar name={r.name} size={28} />{r.name}</span> },
+          { key: "id", label: "Membership ID" },
+          { key: "district", label: "District" },
+          { key: "unit", label: "Unit" },
+          { key: "role", label: "Role" },
+          { key: "joined", label: "Joined" },
+          { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
+          { key: "lastActivity", label: "Last Activity" },
+        ]}
+        rows={rows} searchKeys={["name", "id", "unit"]} dense
+        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "status", label: "Status", options: ["Active", "Pending"] }, { key: "role", label: "Role", options: ["Member", "Committee Member", "Unit Secretary"] }]}
+        onRow={(r) => nav(`members/${r.id}`)}
+        empty={<EmptyState title="No members found" sub="Adjust the filters, or add the first member of this unit." cta="+ Add member" onCta={() => setAddOpen(true)} />}
+      />
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add member (demo)">
+        <Field label="Full name" required><TextInput value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} /></Field>
+        <Field label="District" required><Select value={nf.district} onChange={(e) => setNf({ ...nf, district: e.target.value })} options={DISTRICTS} placeholder="Select district" /></Field>
+        <Field label="Role"><Select value={nf.role} onChange={(e) => setNf({ ...nf, role: e.target.value })} options={["Member", "Committee Member", "Unit Secretary"]} /></Field>
+        <Btn style={{ width: "100%" }} onClick={() => {
+          if (!nf.name.trim() || !nf.district) { toast("Name and district are required.", "error"); return; }
+          store.setMembers([{ id: `UKD-M-2026-${Math.floor(3000 + Math.random() * 5000)}`, name: nf.name, district: nf.district, unit: "To be assigned", block: "—", role: nf.role, joined: "Aug 2026", status: "Pending", lastActivity: "Just now", phone: "+91 9XXXXXXXXX" }, ...store.members]);
+          setAddOpen(false); setNf({ name: "", district: user.district || "", role: "Member" }); toast("Member added to the list.");
+        }}>Add member</Btn>
+      </Modal>
+    </div>
+  );
+}
+
+function KaryakartaModule({ nav, id }) {
+  const toast = useToast();
+  if (id) {
+    const k = SEED_KARYAKARTAS.find((x) => x.id === id);
+    if (!k) return <EmptyState title="Karyakarta not found" cta="Back" onCta={() => nav("karyakartas")} />;
+    return (
+      <DetailShell back={() => nav("karyakartas")} backLabel="Karyakartas" title={{ text: k.name, avatar: k.name }} sub={`${k.id} · ${k.role} · ${k.district}`} badge={<Badge tone={k.active ? "Active" : "Pending"}>{k.active ? "Active" : "Inactive"}</Badge>}
+        actions={<Btn size="sm" onClick={() => toast("Demo — task assignment is simulated.")}>Assign task</Btn>}>
+        <KV items={[["Unit", k.unit], ["Availability", k.availability], ["Skills", k.skills.join(", ")], ["Tasks completed", k.tasksDone], ["Training", k.training], ["Region", regionOf(k.district)]]} />
+        <div style={{ marginTop: 16 }}>
+          <PCard><PTitle>Activity history</PTitle>
+            {["Completed outreach task — 8 Aug", "Attended training module 2 — 28 Jul", "Verified 12 membership forms — 20 Jul"].map((a, i) => (
+              <div key={i} style={{ fontFamily: sans, fontSize: 13, color: C.ink, padding: "8px 0", borderBottom: `1px solid ${C.line}55` }}><span style={{ color: C.lime, marginRight: 8 }}>●</span>{a}</div>))}
+          </PCard>
+        </div>
+      </DetailShell>
+    );
+  }
+  const active = SEED_KARYAKARTAS.filter((k) => k.active).length;
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Karyakartas" sub="The organisation's working strength — separate from general membership." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
+        {[["Active Karyakartas", active, C.forest], ["New this month", 3, C.slate], ["Training completed", SEED_KARYAKARTAS.filter((k) => k.training === "Completed").length, C.gold], ["Tasks completed", SEED_KARYAKARTAS.reduce((a, k) => a + k.tasksDone, 0), C.slateSoft]].map(([l, v, c]) => (
+          <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 32, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".07em", color: C.mute, textTransform: "uppercase", marginTop: 4 }}>{l}</div></PCard>
+        ))}
+      </div>
+      <DataTable
+        columns={[
+          { key: "name", label: "Name", strong: true, render: (r) => <span style={{ display: "flex", gap: 10, alignItems: "center" }}><Avatar name={r.name} size={28} />{r.name}</span> },
+          { key: "role", label: "Role" }, { key: "district", label: "District" }, { key: "unit", label: "Unit" },
+          { key: "availability", label: "Availability" }, { key: "tasksDone", label: "Tasks done" },
+          { key: "training", label: "Training", render: (r) => <Badge tone={r.training === "Completed" ? "Completed" : "In Progress"}>{r.training}</Badge> },
+        ]}
+        rows={SEED_KARYAKARTAS} searchKeys={["name", "role", "unit"]} dense
+        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "role", label: "Role", options: [...new Set(SEED_KARYAKARTAS.map((k) => k.role))] }]}
+        onRow={(r) => nav(`karyakartas/${r.id}`)}
+      />
+    </div>
+  );
+}
+
+function UnitsModule({ nav, query }) {
+  const attnOnly = query && query.includes("attn=1");
+  const dFilter = query && query.includes("d=") ? decodeURIComponent(query.split("d=")[1]) : null;
+  const [sel, setSel] = useState(null);
+  let rows = SEED_UNITS;
+  if (attnOnly) rows = rows.filter((u) => u.health < 65);
+  if (dFilter) rows = rows.filter((u) => u.district === dFilter);
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Local Units" sub={attnOnly ? "Filtered: units needing attention (health below 65%)" : dFilter ? `Filtered: ${dFilter}` : "Ground-level unit cards with live health checks."} right={(attnOnly || dFilter) && <Btn size="sm" kind="subtle" onClick={() => nav("units")}>Clear filter</Btn>} />
+      {rows.length === 0 ? <EmptyState title="No units match" sub="Clear the filter to see all units." cta="Show all units" onCta={() => nav("units")} /> : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 14 }}>
+          {rows.map((u) => (
+            <PCard key={u.id} onClick={() => setSel(u)}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15.5, color: C.ink }}>{u.name}</div>
+                  <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 3 }}>{u.district} · {u.block}</div>
+                </div>
+                <HealthRing pct={u.health} size={46} stroke={5} />
+              </div>
+              <div style={{ fontFamily: sans, fontSize: 12.5, color: "#4A554C", lineHeight: 1.8 }}>
+                Leader: <b>{u.leader}</b> (demo)<br />
+                {u.karyakartas} Karyakartas · {u.members} members<br />
+                {u.openIssues} open issues · {u.pendingTasks} pending tasks · report: <b style={{ color: u.lastReport === "Missing" ? C.red : C.ink }}>{u.lastReport}</b>
+              </div>
+            </PCard>
+          ))}
+        </div>
+      )}
+      <Modal open={!!sel} onClose={() => setSel(null)} title={sel ? sel.name : ""}>
+        {sel && (
+          <div style={{ fontFamily: sans }}>
+            <KV items={[["Leader (demo)", sel.leader], ["Committee", `${sel.committee} members`], ["Active Karyakartas", sel.karyakartas], ["Last activity", sel.lastActivity], ["Open issues", sel.openIssues], ["Latest report", sel.lastReport]]} />
+            <div style={{ marginTop: 16, background: C.ivory, borderRadius: 12, padding: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: C.mute, marginBottom: 10 }}>UNIT HEALTH CHECKS</div>
+              {[["Leadership assigned", sel.checks.leadership], ["Committee formed", sel.checks.committee], ["Recent activity", sel.checks.activity], ["Reporting up to date", sel.checks.reporting], [`Tasks — ${sel.pendingTasks} pending`, sel.pendingTasks === 0]].map(([l, ok]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "6px 0" }}>
+                  <span style={{ color: C.ink }}>{l}</span><span style={{ color: ok ? "#4A6B1D" : C.red, fontWeight: 700 }}>{ok ? "✓" : "✕"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+const TASK_FLOW = ["Not Started", "In Progress", "Submitted", "Under Review", "Completed"];
+function TasksModule({ nav, id, query, user }) {
+  const store = useStore(); const toast = useToast();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [tab, setTab] = useState(query && query.includes("f=Overdue") ? "Overdue" : "All");
+  const [nf, setNf] = useState({ name: "", district: user.district || "", priority: "Medium", assignee: "", deadline: "" });
+  if (id) {
+    const t = store.tasks.find((x) => x.id === id);
+    if (!t) return <EmptyState title="Task not found" cta="Back to tasks" onCta={() => nav("tasks")} />;
+    const idx = TASK_FLOW.indexOf(t.status);
+    const advance = () => {
+      const next = t.status === "Overdue" ? "In Progress" : TASK_FLOW[Math.min(idx + 1, TASK_FLOW.length - 1)];
+      store.setTasks(store.tasks.map((x) => x.id === t.id ? { ...x, status: next } : x));
+      toast(`Task moved to “${next}”.`);
+    };
+    return (
+      <DetailShell back={() => nav("tasks")} backLabel="Tasks" title={{ text: t.name }} sub={`${t.id} · ${t.district} · ${t.unit} · deadline ${t.deadline}`} badge={<Badge tone={t.status}>{t.status}</Badge>}
+        actions={<>{t.status !== "Completed" && <Btn size="sm" onClick={advance}>{t.status === "Overdue" ? "Resume task" : idx >= 3 ? "Mark completed" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Demo — comment added (simulated).")}>Add comment</Btn></>}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 18, flexWrap: "wrap" }}>
+          {["Create", "Assign", "Execute", "Report", "Verify", "Complete"].map((s, i) => {
+            const done = t.status === "Completed" ? true : i <= (idx < 0 ? 2 : idx + 1);
+            return (
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: 99, background: done ? C.forest : "#EAE6D7", color: done ? "#fff" : C.mute }}>{s}</div>
+                {i < 5 && <span style={{ color: C.line }}>—</span>}
+              </div>
+            );
+          })}
+        </div>
+        <KV items={[["Assigned to", t.assignee], ["Priority", t.priority], ["Deadline", t.deadline], ["Evidence", t.evidence], ["Comments", t.comments], ["District", t.district]]} />
+        <PCard style={{ marginTop: 16 }}><PTitle>Description</PTitle><p style={{ fontFamily: sans, fontSize: 14, lineHeight: 1.7, color: "#3C463E", margin: 0 }}>{t.desc}</p></PCard>
+      </DetailShell>
+    );
+  }
+  const tabs = ["All", "My Tasks", "Overdue", "In Progress", "Completed", "Assigned by me"];
+  let rows = store.tasks;
+  if (user.district && user.key !== "central-admin" && user.key !== "central-leadership") rows = rows.filter((t) => t.district === user.district || tab === "All");
+  if (tab === "Overdue") rows = store.tasks.filter((t) => t.status === "Overdue");
+  else if (tab === "In Progress") rows = store.tasks.filter((t) => t.status === "In Progress");
+  else if (tab === "Completed") rows = store.tasks.filter((t) => t.status === "Completed");
+  else if (tab === "My Tasks") rows = store.tasks.slice(0, 4);
+  else if (tab === "Assigned by me") rows = store.tasks.slice(4, 9);
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Tasks" sub="Create → Assign → Execute → Report → Verify → Complete" right={<Btn size="sm" onClick={() => setCreateOpen(true)}>+ Create task</Btn>} />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {tabs.map((t) => <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "7px 15px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
+      </div>
+      <DataTable
+        columns={[
+          { key: "name", label: "Task", strong: true },
+          { key: "assignee", label: "Assigned to" }, { key: "district", label: "District" },
+          { key: "priority", label: "Priority", render: (r) => <Badge tone={r.priority}>{r.priority}</Badge> },
+          { key: "deadline", label: "Deadline" },
+          { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
+        ]}
+        rows={rows} searchKeys={["name", "assignee", "district"]} dense
+        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "priority", label: "Priority", options: ["High", "Medium", "Low"] }]}
+        onRow={(r) => nav(`tasks/${r.id}`)}
+        empty={<EmptyState title="No tasks assigned" sub="Tasks matching this view will appear here." cta="+ Create task" onCta={() => setCreateOpen(true)} />}
+      />
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create task">
+        <Field label="Task name" required><TextInput value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} /></Field>
+        <Field label="Assign to" required><Select value={nf.assignee} onChange={(e) => setNf({ ...nf, assignee: e.target.value })} options={SEED_KARYAKARTAS.map((k) => k.name)} placeholder="Choose a Karyakarta" /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <Field label="District"><Select value={nf.district} onChange={(e) => setNf({ ...nf, district: e.target.value })} options={DISTRICTS} placeholder="District" /></Field>
+          <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["High", "Medium", "Low"]} /></Field>
+        </div>
+        <Field label="Deadline"><TextInput value={nf.deadline} onChange={(e) => setNf({ ...nf, deadline: e.target.value })} placeholder="e.g. 25 Aug 2026" /></Field>
+        <Btn style={{ width: "100%" }} onClick={() => {
+          if (!nf.name.trim() || !nf.assignee) { toast("Task name and assignee are required.", "error"); return; }
+          store.setTasks([{ id: `T-${Math.floor(500 + Math.random() * 400)}`, name: nf.name, district: nf.district || "Dehradun", priority: nf.priority, assignee: nf.assignee, unit: "Local Unit 01", deadline: nf.deadline || "31 Aug 2026", status: "Not Started", desc: "Newly created task. Assign, execute and report through the standard workflow.", comments: 0, evidence: "—" }, ...store.tasks]);
+          setCreateOpen(false); setNf({ name: "", district: user.district || "", priority: "Medium", assignee: "", deadline: "" }); toast("Task created and assigned.");
+        }}>Create task</Btn>
+      </Modal>
+    </div>
+  );
+}
+
+function IssuesModule({ nav, id, query }) {
+  const store = useStore(); const toast = useToast();
+  const aged = query && query.includes("age=15");
+  if (id) {
+    const iss = store.issues.find((x) => x.id === id);
+    if (!iss) return <EmptyState title="Issue not found" cta="Back to issues" onCta={() => nav("issues")} />;
+    const idx = ISSUE_STAGES.indexOf(iss.status);
+    const advance = () => {
+      const next = ISSUE_STAGES[Math.min(idx + 1, ISSUE_STAGES.length - 1)];
+      store.setIssues(store.issues.map((x) => x.id === iss.id ? { ...x, status: next } : x));
+      toast(`Issue moved to “${next}”.`);
+    };
+    return (
+      <DetailShell back={() => nav("issues")} backLabel="People's Issues" title={{ text: iss.category }} sub={`${iss.id} · ${iss.location} · submitted ${iss.date}`} badge={<Badge tone={iss.status}>{iss.status}</Badge>}
+        actions={<>{iss.status !== "Closed" && <Btn size="sm" onClick={advance}>{idx >= 3 ? "Close issue" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Internal note added (demo).")}>Add internal note</Btn></>}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+          <PCard>
+            <PTitle>Issue information</PTitle>
+            <p style={{ fontFamily: sans, fontSize: 14.5, lineHeight: 1.7, color: "#3C463E", marginTop: 0 }}>{iss.title}.</p>
+            <KV items={[["Citizen", iss.citizen], ["Contact", iss.phone], ["Priority", iss.priority], ["Age", `${iss.ageDays} days`], ["Assigned unit", iss.assignedUnit], ["Attachments", "1 photo (demo)"]]} />
+          </PCard>
+          <PCard>
+            <PTitle>Status timeline</PTitle>
+            {ISSUE_STAGES.map((s, i) => (
+              <div key={s} style={{ display: "flex", gap: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: i <= idx ? C.forest : "#E7E3D4", color: i <= idx ? "#fff" : C.mute, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700 }}>{i <= idx ? "✓" : i + 1}</div>
+                  {i < ISSUE_STAGES.length - 1 && <div style={{ width: 2, height: 24, background: i < idx ? C.forest : "#E7E3D4" }} />}
+                </div>
+                <div style={{ fontFamily: sans, fontSize: 13.5, fontWeight: i === idx ? 700 : 500, color: i <= idx ? C.ink : C.mute, paddingTop: 2 }}>{s}{i === idx && <span style={{ color: C.gold, marginLeft: 8, fontSize: 11.5 }}>CURRENT</span>}</div>
+              </div>
+            ))}
+            <div style={{ marginTop: 14, background: C.ivory, borderRadius: 10, padding: 12, fontFamily: sans, fontSize: 12.5, color: C.mute }}>
+              Internal notes ({iss.notes}) · resolution and closure summary are recorded here before an issue is closed.
+            </div>
+          </PCard>
+        </div>
+      </DetailShell>
+    );
+  }
+  const rows = aged ? store.issues.filter((i) => i.ageDays > 15 && !["Resolved", "Closed"].includes(i.status)) : store.issues;
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="People's Issues" sub={aged ? "Filtered: unresolved issues older than 15 days" : "Every public issue submitted through the website, tracked to closure."} right={aged && <Btn size="sm" kind="subtle" onClick={() => nav("issues")}>Clear filter</Btn>} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 20 }}>
+        <PCard><PTitle>Open vs resolved</PTitle>
+          <Donut label={String(store.issues.length)} sub="TOTAL" segments={[
+            { k: "Open", v: store.issues.filter((i) => !["Resolved", "Closed"].includes(i.status)).length, c: C.gold },
+            { k: "Resolved", v: store.issues.filter((i) => ["Resolved", "Closed"].includes(i.status)).length, c: C.lime },
+          ]} /></PCard>
+        <PCard><PTitle>Issues by category</PTitle>
+          <Bars height={150} color={C.slate} data={["Road & Connectivity", "Water", "Transport", "Electricity", "Healthcare"].map((c) => ({ k: c.split(" ")[0], v: store.issues.filter((i) => i.category === c).length || 1 }))} /></PCard>
+        <PCard><PTitle>Issue ageing</PTitle>
+          <Bars height={150} color={C.gold} data={[["0–7d", 0, 7], ["8–15d", 8, 15], ["16–25d", 16, 25], ["25d+", 26, 99]].map(([k, a, b]) => ({ k, v: store.issues.filter((i) => i.ageDays >= a && i.ageDays <= b).length, c: b > 15 ? C.red : C.gold }))} /></PCard>
+      </div>
+      <DataTable
+        columns={[
+          { key: "id", label: "Issue ID", strong: true },
+          { key: "category", label: "Category" }, { key: "district", label: "District" },
+          { key: "assignedUnit", label: "Assigned Unit" }, { key: "date", label: "Date" },
+          { key: "priority", label: "Priority", render: (r) => <Badge tone={r.priority}>{r.priority}</Badge> },
+          { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
+        ]}
+        rows={rows} searchKeys={["id", "category", "district", "title"]} dense
+        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "category", label: "Category", options: ISSUE_CATEGORIES }, { key: "status", label: "Status", options: ISSUE_STAGES }]}
+        onRow={(r) => nav(`issues/${r.id}`)}
+        empty={<EmptyState title="No public issues found" sub="Issues submitted on the public website appear here automatically." />}
+      />
+    </div>
+  );
+}
+
+function PEventsModule({ nav, id }) {
+  const toast = useToast();
+  const store = useStore();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [tab, setTab] = useState("Overview");
+  if (id) {
+    const e = SEED_EVENTS.find((x) => x.id === id) || SEED_EVENTS[0];
+    return (
+      <DetailShell back={() => nav("pevents")} backLabel="Events" title={{ text: e.title }} sub={`${e.date} · ${e.time} · ${e.venue}`} badge={<Badge>{e.type}</Badge>}
+        actions={<Btn size="sm" onClick={() => toast("Attendance sheet opened (demo).")}>Record attendance</Btn>}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          {["Overview", "Attendance", "Tasks", "Documents", "Photos", "Follow-up"].map((t) => (
+            <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "7px 15px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>
+          ))}
+        </div>
+        {tab === "Overview" && <><KV items={[["Organiser (demo)", e.organiser], ["Expected participants", e.participants], ["District", e.district], ["Type", e.type]]} /><PCard style={{ marginTop: 14 }}><PTitle>Meeting agenda</PTitle>{["Opening & attendance", "Organisational review of the district", "Public issue follow-ups", "Task assignments & minutes", "Decisions and next meeting"].map((a, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55`, color: C.ink }}><b style={{ color: C.gold, marginRight: 10 }}>{i + 1}.</b>{a}</div>)}</PCard></>}
+        {tab === "Attendance" && <PCard><PTitle>Attendance ({Math.floor(e.participants * 0.8)} / {e.participants} confirmed)</PTitle>{SEED_MEMBERS.slice(0, 6).map((m) => <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${C.line}55`, fontFamily: sans, fontSize: 13.5 }}><Avatar name={m.name} size={28} /><span style={{ flex: 1, color: C.ink, fontWeight: 600 }}>{m.name}</span><Badge tone="Active">Present</Badge></div>)}</PCard>}
+        {tab === "Tasks" && <PCard><PTitle>Follow-up tasks</PTitle>{store.tasks.slice(0, 3).map((t) => <button key={t.id} onClick={() => nav(`tasks/${t.id}`)} className="rowhover" style={{ display: "flex", width: "100%", justifyContent: "space-between", padding: "10px", borderRadius: 8, background: "none", border: "none", fontFamily: sans, fontSize: 13.5, cursor: "pointer" }}><span style={{ fontWeight: 600, color: C.ink }}>{t.name}</span><Badge tone={t.status}>{t.status}</Badge></button>)}</PCard>}
+        {["Documents", "Photos", "Follow-up"].includes(tab) && <EmptyState title={`No ${tab.toLowerCase()} yet`} sub={`${tab} recorded for this event will appear here.`} cta={`Add ${tab.toLowerCase()} (demo)`} onCta={() => toast("Demo — upload simulated.")} />}
+      </DetailShell>
+    );
+  }
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Events & Meetings" sub="Programmes, meetings, minutes, decisions and follow-up." right={<Btn size="sm" onClick={() => setCreateOpen(true)}>+ Create event</Btn>} />
+      <DataTable
+        columns={[
+          { key: "title", label: "Event", strong: true }, { key: "type", label: "Type", render: (r) => <Badge>{r.type}</Badge> },
+          { key: "date", label: "Date" }, { key: "time", label: "Time" }, { key: "district", label: "District" }, { key: "participants", label: "Participants" },
+        ]}
+        rows={SEED_EVENTS} searchKeys={["title", "district", "type"]} dense
+        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "type", label: "Type", options: [...new Set(SEED_EVENTS.map((e) => e.type))] }]}
+        onRow={(r) => nav(`pevents/${r.id}`)}
+      />
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create event (demo)">
+        <Field label="Title" required><TextInput placeholder="Event title" /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <Field label="Date"><TextInput placeholder="e.g. 28 Aug 2026" /></Field>
+          <Field label="District"><Select options={DISTRICTS} placeholder="District" /></Field>
+        </div>
+        <Btn style={{ width: "100%" }} onClick={() => { setCreateOpen(false); toast("Event created (demo)."); }}>Create event</Btn>
+      </Modal>
+    </div>
+  );
+}
+
+function PDocsModule() {
+  const toast = useToast();
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Documents" sub="The organisation's digital archive — searchable, filterable, tagged." right={<Btn size="sm" onClick={() => toast("Demo — upload simulated.")}>⇪ Upload</Btn>} />
+      <DataTable
+        columns={[
+          { key: "title", label: "Document", strong: true },
+          { key: "category", label: "Category", render: (r) => <Badge>{r.category}</Badge> },
+          { key: "district", label: "District" }, { key: "date", label: "Added" }, { key: "size", label: "Size" },
+          { key: "a", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview · ↓</span> },
+        ]}
+        rows={SEED_DOCS} searchKeys={["title", "category"]} dense
+        filters={[{ key: "category", label: "Category", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "year", label: "Year", options: ["2026", "2025"] }]}
+        onRow={() => toast("Document preview (demo).")}
+        empty={<EmptyState title="No documents uploaded" sub="Upload the first document to start the archive." cta="⇪ Upload (demo)" onCta={() => toast("Demo — upload simulated.")} />}
+      />
+    </div>
+  );
+}
+
+function NoticesModule({ user }) {
+  const store = useStore(); const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState(null);
+  const [nf, setNf] = useState({ title: "", type: "Official Notice", audience: "All Units", priority: "Medium", content: "" });
+  const canPublish = ["central-admin", "central-leadership"].includes(user.key);
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Notice Centre" sub={canPublish ? "Publish official notices, circulars and instructions to the organisation." : "Notices published by central leadership. Your role can read and acknowledge."} right={canPublish && <Btn size="sm" onClick={() => setOpen(true)}>+ Publish notice</Btn>} />
+      <div style={{ display: "grid", gap: 12 }}>
+        {store.notices.map((n) => (
+          <PCard key={n.id} onClick={() => setSel(n)}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{n.title}</span>
+                  <Badge tone={n.priority}>{n.priority}</Badge>
+                </div>
+                <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 5 }}>{n.type} · Sent to: {n.audience} · {n.date}</div>
+              </div>
+              <div style={{ fontFamily: sans, fontSize: 12.5, textAlign: "right" }}>
+                <div style={{ color: C.slate, fontWeight: 700 }}>Read {n.read[0]} / {n.read[1]}</div>
+                <div style={{ color: "#4A6B1D", fontWeight: 700 }}>Acknowledged {n.ack[0]} / {n.ack[1]}</div>
+              </div>
+            </div>
+          </PCard>
+        ))}
+      </div>
+      <Modal open={!!sel} onClose={() => setSel(null)} title={sel ? sel.type : ""}>
+        {sel && (
+          <div style={{ fontFamily: sans }}>
+            <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 10 }}>{sel.title}</div>
+            <p style={{ fontSize: 14.5, lineHeight: 1.7, color: "#3C463E" }}>{sel.content}</p>
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <Btn size="sm" onClick={() => { toast("Acknowledged (demo)."); setSel(null); }}>Acknowledge</Btn>
+              <Btn size="sm" kind="ghost" onClick={() => toast("Attachment preview (demo).")}>View attachment</Btn>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal open={open} onClose={() => setOpen(false)} title="Publish notice">
+        <Field label="Title" required><TextInput value={nf.title} onChange={(e) => setNf({ ...nf, title: e.target.value })} /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <Field label="Type"><Select value={nf.type} onChange={(e) => setNf({ ...nf, type: e.target.value })} options={["Official Notice", "Circular", "Instruction", "Announcement", "Event Notice"]} /></Field>
+          <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["High", "Medium", "Low"]} /></Field>
+        </div>
+        <Field label="Audience"><Select value={nf.audience} onChange={(e) => setNf({ ...nf, audience: e.target.value })} options={["All Units", "District Presidents", "District Admins", "Block Coordinators", "Karyakartas"]} /></Field>
+        <Field label="Content" required><TextArea value={nf.content} onChange={(e) => setNf({ ...nf, content: e.target.value })} /></Field>
+        <Btn style={{ width: "100%" }} onClick={() => {
+          if (!nf.title.trim() || !nf.content.trim()) { toast("Title and content are required.", "error"); return; }
+          store.setNotices([{ id: `NT-${Date.now()}`, title: nf.title, type: nf.type, audience: nf.audience, priority: nf.priority, date: "12 Aug 2026", read: [0, 47], ack: [0, 47], content: nf.content }, ...store.notices]);
+          setOpen(false); setNf({ title: "", type: "Official Notice", audience: "All Units", priority: "Medium", content: "" }); toast("Notice published to the organisation.");
+        }}>Publish notice</Btn>
+      </Modal>
+    </div>
+  );
+}
+
+function ReportsModule() {
+  const toast = useToast();
+  const [sel, setSel] = useState(null);
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Reports" sub="Reporting line: Local Unit → Block → District → Mandal → Central. Week 32 shown." right={<Btn size="sm" onClick={() => toast("Weekly report form opened (demo).")}>+ Submit report</Btn>} />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, fontFamily: sans, fontSize: 12.5, fontWeight: 700 }}>
+        {["Local Unit", "Block", "District", "Mandal", "Central"].map((s, i, a) => (
+          <React.Fragment key={s}>
+            <span style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 99, padding: "7px 16px", color: C.ink }}>{s}</span>
+            {i < a.length - 1 && <span style={{ alignSelf: "center", color: C.gold }}>→</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      <DataTable
+        columns={[
+          { key: "district", label: "District", strong: true }, { key: "week", label: "Week" },
+          { key: "meetings", label: "Meetings" }, { key: "activities", label: "Activities" }, { key: "tasksDone", label: "Tasks done" },
+          { key: "membersAdded", label: "Members added" }, { key: "issuesResolved", label: "Issues resolved" },
+          { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
+        ]}
+        rows={SEED_REPORTS} searchKeys={["district"]} dense
+        filters={[{ key: "status", label: "Status", options: ["Submitted", "Missing", "Draft"] }]}
+        onRow={(r) => setSel(r)}
+      />
+      <Modal open={!!sel} onClose={() => setSel(null)} title={sel ? `${sel.district} — Weekly report (${sel.week})` : ""}>
+        {sel && (sel.status === "Missing" ? <EmptyState title="Report not submitted" sub="This district has not filed its weekly report. A reminder can be sent from here." cta="Send reminder (demo)" onCta={() => { toast("Reminder sent to district admin (demo)."); setSel(null); }} /> : (
+          <div style={{ fontFamily: sans }}>
+            <KV items={[["Meetings", sel.meetings], ["Activities", sel.activities], ["Tasks completed", sel.tasksDone], ["Members added", sel.membersAdded], ["Issues received", sel.issuesIn], ["Issues resolved", sel.issuesResolved]]} />
+            <PCard style={{ marginTop: 14 }} pad={16}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: C.mute, marginBottom: 8 }}>CHALLENGES</div>
+              <div style={{ fontSize: 13.5, color: C.ink }}>{sel.challenges}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: C.mute, margin: "14px 0 8px" }}>SUPPORT REQUIRED</div>
+              <div style={{ fontSize: 13.5, color: C.ink }}>{sel.support}</div>
+            </PCard>
+          </div>
+        ))}
+      </Modal>
+    </div>
+  );
+}
+
+function FinanceModule() {
+  const toast = useToast();
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Finance" sub="Demo financial dashboard — all figures are fictional and no payments are processed." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
+        {[["Total Contributions", "₹4.6 L", C.forest], ["This Month", "₹58,300", C.slate], ["District Allocation", "₹1.9 L", C.slateSoft], ["Expenses", "₹1.2 L", C.gold], ["Pending Approvals", "3", C.red]].map(([l, v, c]) => (
+          <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 28, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".07em", color: C.mute, textTransform: "uppercase", marginTop: 4 }}>{l}</div></PCard>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 20 }}>
+        <PCard><PTitle>Contributions — last 6 weeks (demo)</PTitle><Bars height={160} color={C.forest} data={["Wk27", "Wk28", "Wk29", "Wk30", "Wk31", "Wk32"].map((k, i) => ({ k, v: [31, 44, 38, 52, 47, 58][i] }))} /></PCard>
+        <PCard><PTitle>By purpose (demo)</PTitle><Donut label="100%" sub="ALLOCATED" segments={[{ k: "Organisation", v: 38, c: C.forest }, { k: "Public work", v: 27, c: C.gold }, { k: "Events", v: 20, c: C.slate }, { k: "Office", v: 15, c: "#B9B4A1" }]} /></PCard>
+      </div>
+      <PTitle>Transactions (demo)</PTitle>
+      <DataTable
+        columns={[
+          { key: "date", label: "Date" }, { key: "type", label: "Type", strong: true },
+          { key: "amount", label: "Amount", render: (r) => <b>₹{r.amount.toLocaleString("en-IN")}</b> },
+          { key: "district", label: "District" },
+          { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
+          { key: "receipt", label: "Receipt", render: (r) => <span style={{ color: C.forest, fontWeight: 700 }}>{r.receipt} ↓</span> },
+        ]}
+        rows={SEED_TXNS} searchKeys={["type", "district", "receipt"]} dense
+        filters={[{ key: "type", label: "Type", options: ["Contribution", "District Allocation", "Expense"] }, { key: "status", label: "Status", options: ["Recorded", "Pending Approval"] }]}
+        onRow={() => toast("Receipt preview (demo).")}
+      />
+    </div>
+  );
+}
+
+function AnalyticsModule() {
+  const store = useStore();
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Analytics" sub="Operational analytics — membership, organisation health, tasks, issues and events. Demo data." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: 14 }}>
+        <PCard><PTitle>Membership growth (6 months)</PTitle><Bars height={170} color={C.forest} data={["Mar", "Apr", "May", "Jun", "Jul", "Aug"].map((k, i) => ({ k, v: [18, 24, 29, 33, 38, store.members.length][i] }))} /></PCard>
+        <PCard><PTitle>Karyakarta activity — tasks / week</PTitle><Bars height={170} color={C.slate} data={["Wk27", "Wk28", "Wk29", "Wk30", "Wk31", "Wk32"].map((k, i) => ({ k, v: [12, 15, 11, 18, 16, 21][i] }))} /></PCard>
+        <PCard><PTitle>Organisation health by region</PTitle><Bars height={170} data={[{ k: "Garhwal", v: 81, c: C.forest }, { k: "Kumaon", v: 76, c: C.gold }, { k: "Tarai", v: 71, c: C.gold }]} /></PCard>
+        <PCard><PTitle>Task completion</PTitle><Donut label={`${Math.round(store.tasks.filter((t) => t.status === "Completed").length / store.tasks.length * 100)}%`} sub="COMPLETED" segments={[{ k: "Completed", v: store.tasks.filter((t) => t.status === "Completed").length, c: C.lime }, { k: "Active", v: store.tasks.filter((t) => !["Completed", "Overdue"].includes(t.status)).length, c: C.gold }, { k: "Overdue", v: store.tasks.filter((t) => t.status === "Overdue").length, c: C.red }]} /></PCard>
+        <PCard><PTitle>Issue resolution time (days, avg)</PTitle><Bars height={170} color={C.gold} data={["Road", "Water", "Elec.", "Health", "Transport"].map((k, i) => ({ k, v: [14, 9, 7, 12, 6][i] }))} /></PCard>
+        <PCard><PTitle>Events by district (upcoming)</PTitle><Bars height={170} color={C.slateSoft} data={["Dehradun", "Almora", "Pauri", "Haridwar", "Others"].map((k) => ({ k, v: SEED_EVENTS.filter((e) => e.district.startsWith(k)).length || 1 }))} /></PCard>
+      </div>
+    </div>
+  );
+}
+
+const AI_ANSWERS = {
+  "summarise this week's organisation report": "Week 32 summary (demo): 11 of 13 districts submitted reports. 27 meetings were held, 41 tasks completed, 19 members added statewide. Tehri Garhwal and Nainital have missing reports. Issue resolution improved — 6 resolved vs 4 last week. Recommended focus: overdue tasks in Pauri Garhwal and Pithoragarh.",
+  "which districts have overdue tasks": "Demo answer: 2 tasks are currently overdue — 'Booth committee verification drive' (Pauri Garhwal) and 'Notice acknowledgement follow-up' (Pithoragarh). Both are assigned and older than their deadlines. Open the Tasks module with the Overdue filter to act on them.",
+  "show unresolved issues older than 15 days": "Demo answer: several unresolved public issues have crossed 15 days, led by road & connectivity complaints in Pauri Garhwal and Uttarkashi, and a healthcare staffing issue in Chamoli. The Issues module has an aged-issues filter linked from the Command Centre.",
+  "which units haven't submitted reports": "Demo answer: 3 units have not filed their Week 32 report — including units in Tehri Garhwal and Nainital. Their district admins were flagged in 'Attention Required'. You can send reminders from the Reports module.",
+  "what changed this week": "Demo answer since last Monday: +4 members, 1 new local unit under survey (Bageshwar), 2 issues resolved, 1 high-priority notice published (reporting deadline), and district health for Dehradun rose from 85% to 88%.",
+};
+function AIModule() {
+  const [msgs, setMsgs] = useState([{ role: "ai", text: "Namaste. I'm the UKD organisation assistant (demo). Ask me about reports, tasks, issues or units — or tap a suggestion below." }]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const endRef = useRef(null);
+  useEffect(() => { endRef.current && endRef.current.scrollIntoView({ behavior: "smooth" }); }, [msgs, thinking]);
+  const ask = (q) => {
+    if (!q.trim()) return;
+    setMsgs((m) => [...m, { role: "user", text: q }]); setInput(""); setThinking(true);
+    setTimeout(() => {
+      const key = Object.keys(AI_ANSWERS).find((k) => q.toLowerCase().includes(k.split(" ")[1]) && q.toLowerCase().includes(k.split(" ")[2] || ""));
+      const hit = AI_ANSWERS[q.toLowerCase().replace(/[?.]/g, "").trim()] || (key && AI_ANSWERS[key]);
+      setMsgs((m) => [...m, { role: "ai", text: hit || "Demo assistant: in the full system I'd query the organisation's live data for that. Try one of the suggested prompts to see a worked answer." }]);
+      setThinking(false);
+    }, 900);
+  };
+  return (
+    <div className="ukd-fade" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 170px)", minHeight: 420 }}>
+      <PageTitle title="Ask UKD AI" sub="A frontend-only assistant concept with mock answers — no live AI is connected." />
+      <PCard style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }} pad={0}>
+        <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+          {msgs.map((m, i) => (
+            <div key={i} className="ukd-fade" style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "82%", background: m.role === "user" ? C.forest : C.ivory, color: m.role === "user" ? "#fff" : C.ink, fontFamily: sans, fontSize: 14, lineHeight: 1.65, padding: "11px 15px", borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px" }}>{m.text}</div>
+          ))}
+          {thinking && <div style={{ alignSelf: "flex-start", fontFamily: sans, fontSize: 13, color: C.mute, padding: "10px 14px" }}>Thinking…</div>}
+          <div ref={endRef} />
+        </div>
+        <div style={{ borderTop: `1px solid ${C.line}`, padding: 14 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            {Object.keys(AI_ANSWERS).map((q) => (
+              <button key={q} onClick={() => ask(q.charAt(0).toUpperCase() + q.slice(1) + "?")} style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 600, padding: "6px 12px", borderRadius: 99, border: `1px solid ${C.slate}44`, background: "#fff", color: C.slate, cursor: "pointer" }}>{q.charAt(0).toUpperCase() + q.slice(1)}?</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <TextInput value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask(input)} placeholder="Ask about the organisation…" />
+            <Btn onClick={() => ask(input)}>Ask</Btn>
+          </div>
+        </div>
+      </PCard>
+    </div>
+  );
+}
+
+function NotificationsModule() {
+  const [items, setItems] = useState(SEED_NOTIFS);
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Notifications" sub={`${items.filter((n) => n.unread).length} unread`} right={<Btn size="sm" kind="subtle" onClick={() => setItems(items.map((n) => ({ ...n, unread: false })))}>Mark all read</Btn>} />
+      {items.length === 0 ? <EmptyState title="You're all caught up" sub="New notifications will appear here." /> : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {items.map((n) => (
+            <PCard key={n.id} pad={16} onClick={() => setItems(items.map((x) => x.id === n.id ? { ...x, unread: false } : x))}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", fontFamily: sans }}>
+                {n.unread && <span style={{ width: 8, height: 8, borderRadius: 99, background: C.gold, flexShrink: 0 }} />}
+                <span style={{ fontSize: 14, color: C.ink, fontWeight: n.unread ? 700 : 500, flex: 1 }}>{n.text}</span>
+                <span style={{ fontSize: 12, color: C.mute, whiteSpace: "nowrap" }}>{n.time}</span>
+              </div>
+            </PCard>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsModule({ user }) {
+  const toast = useToast();
+  const [tab, setTab] = useState("Profile");
+  const tabs = ["Profile", "Security", "Permissions", "Audit Log", "System"];
+  return (
+    <div className="ukd-fade">
+      <PageTitle title="Settings" sub="Profile, security, roles and the audit trail." />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+        {tabs.map((t) => <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "8px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
+      </div>
+      {tab === "Profile" && (
+        <PCard style={{ maxWidth: 560 }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 20 }}>
+            <Avatar name={user.label} size={54} />
+            <div style={{ fontFamily: sans }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: C.ink }}>{user.label} (demo)</div>
+              <div style={{ fontSize: 12.5, color: C.mute }}>{user.scope}</div>
+            </div>
+          </div>
+          <Field label="Display name"><TextInput defaultValue={user.label} /></Field>
+          <Field label="Email"><TextInput defaultValue="demo@ukd.org" /></Field>
+          <Btn onClick={() => toast("Profile saved (demo).")}>Save changes</Btn>
+        </PCard>
+      )}
+      {tab === "Security" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+          <PCard><PTitle>Password</PTitle><Field label="Current password"><TextInput type="password" /></Field><Field label="New password"><TextInput type="password" /></Field><Btn size="sm" onClick={() => toast("Password changed (demo).")}>Update password</Btn></PCard>
+          <PCard><PTitle>Two-factor authentication</PTitle><p style={{ fontFamily: sans, fontSize: 13.5, color: "#4A554C", lineHeight: 1.6 }}>Protect the account with a one-time code at sign-in.</p><Btn size="sm" kind="ghost" onClick={() => toast("2FA enabled (demo).")}>Enable 2FA (demo)</Btn></PCard>
+          <PCard><PTitle>Active sessions</PTitle>{[["This device — Dehradun", "Now"], ["Android app — Pauri", "2 d ago"]].map(([d, t]) => <div key={d} style={{ display: "flex", justifyContent: "space-between", fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55` }}><span style={{ color: C.ink }}>{d}</span><span style={{ color: C.mute }}>{t}</span></div>)}<Btn size="sm" kind="danger" style={{ marginTop: 12 }} onClick={() => toast("Other sessions signed out (demo).")}>Sign out other sessions</Btn></PCard>
+        </div>
+      )}
+      {tab === "Permissions" && (
+        <PCard>
+          <PTitle>Role permissions matrix (demo)</PTitle>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", fontFamily: sans, fontSize: 13, width: "100%" }}>
+              <thead><tr><th style={{ textAlign: "left", padding: 10, color: C.mute, fontSize: 11.5, textTransform: "uppercase", letterSpacing: ".07em" }}>Module</th>{["Central Admin", "District Admin", "Block Coord.", "Karyakarta"].map((r) => <th key={r} style={{ padding: 10, color: C.mute, fontSize: 11.5, textTransform: "uppercase", letterSpacing: ".07em" }}>{r}</th>)}</tr></thead>
+              <tbody>
+                {[["Members", 1, 1, 1, 0], ["Finance", 1, 1, 0, 0], ["Notices — publish", 1, 0, 0, 0], ["Tasks — assign", 1, 1, 1, 0], ["Issues — close", 1, 1, 0, 0], ["Settings — roles", 1, 0, 0, 0]].map(([m, ...cols]) => (
+                  <tr key={m} style={{ borderTop: `1px solid ${C.line}66` }}>
+                    <td style={{ padding: 10, fontWeight: 600, color: C.ink }}>{m}</td>
+                    {cols.map((c, i) => <td key={i} style={{ padding: 10, textAlign: "center", color: c ? "#4A6B1D" : C.red, fontWeight: 700 }}>{c ? "✓" : "—"}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </PCard>
+      )}
+      {tab === "Audit Log" && (
+        <DataTable
+          columns={[{ key: "user", label: "User", strong: true }, { key: "action", label: "Action" }, { key: "module", label: "Module" }, { key: "time", label: "Timestamp" }, { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> }]}
+          rows={SEED_AUDIT} searchKeys={["user", "action", "module"]} dense
+          filters={[{ key: "module", label: "Module", options: [...new Set(SEED_AUDIT.map((a) => a.module))] }]}
+        />
+      )}
+      {tab === "System" && (
+        <PCard style={{ maxWidth: 560 }}>
+          <PTitle>System (demo)</PTitle>
+          {["Email notifications", "Weekly digest to leadership", "Auto-flag missing reports", "Public issue auto-routing"].map((s, i) => (
+            <label key={s} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: sans, fontSize: 14, padding: "11px 0", borderBottom: `1px solid ${C.line}55`, cursor: "pointer" }}>
+              <span style={{ color: C.ink }}>{s}</span><input type="checkbox" defaultChecked={i !== 1} onChange={() => toast("Setting updated (demo).")} />
+            </label>
+          ))}
+        </PCard>
+      )}
+    </div>
+  );
+}
+
+function CommandPalette({ open, onClose, nav }) {
+  const store = useStore();
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+  useEffect(() => { if (open) { setQ(""); setTimeout(() => ref.current && ref.current.focus(), 40); } }, [open]);
+  if (!open) return null;
+  const ql = q.toLowerCase();
+  const hits = q.length < 2 ? PORTAL_NAV.slice(0, 6).map(([r, l]) => ({ t: "Go to", label: l, r })) : [
+    ...PORTAL_NAV.filter(([r, l]) => l.toLowerCase().includes(ql)).map(([r, l]) => ({ t: "Module", label: l, r })),
+    ...store.members.filter((m) => m.name.toLowerCase().includes(ql)).slice(0, 3).map((m) => ({ t: "Member", label: `${m.name} — ${m.district}`, r: `members/${m.id}` })),
+    ...SEED_KARYAKARTAS.filter((k) => k.name.toLowerCase().includes(ql)).slice(0, 2).map((k) => ({ t: "Karyakarta", label: k.name, r: `karyakartas/${k.id}` })),
+    ...store.tasks.filter((t) => t.name.toLowerCase().includes(ql)).slice(0, 3).map((t) => ({ t: "Task", label: t.name, r: `tasks/${t.id}` })),
+    ...store.issues.filter((i) => (i.id + i.category + i.title).toLowerCase().includes(ql)).slice(0, 3).map((i) => ({ t: "Issue", label: `${i.id} — ${i.category}`, r: `issues/${i.id}` })),
+    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).slice(0, 2).map((e) => ({ t: "Event", label: e.title, r: `pevents/${e.id}` })),
+    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).slice(0, 2).map((d) => ({ t: "Document", label: d.title, r: "pdocs" })),
+    ...store.notices.filter((n) => n.title.toLowerCase().includes(ql)).slice(0, 2).map((n) => ({ t: "Notice", label: n.title, r: "notices" })),
+  ].slice(0, 10);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 240, background: "rgba(16,24,18,.62)", backdropFilter: "blur(5px)", display: "flex", justifyContent: "center", paddingTop: "10vh" }}>
+      <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ width: "min(600px, 92vw)", alignSelf: "flex-start", background: C.paper, borderRadius: 16, overflow: "hidden", boxShadow: "0 30px 90px -20px rgba(0,0,0,.6)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 20px" }}>
+          <span style={{ color: C.gold, fontSize: 17 }}>⌘</span>
+          <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search members, tasks, issues, units, documents…" style={{ flex: 1, border: "none", padding: "17px 0", fontFamily: sans, fontSize: 16, background: "transparent", color: C.ink }} />
+          <span style={{ fontFamily: sans, fontSize: 11, color: C.mute, border: `1px solid ${C.line}`, borderRadius: 6, padding: "3px 7px" }}>ESC</span>
+        </div>
+        <div style={{ borderTop: `1px solid ${C.line}`, maxHeight: 360, overflowY: "auto" }}>
+          {hits.length === 0 && <div style={{ padding: 24, fontFamily: sans, fontSize: 14, color: C.mute }}>No matches for “{q}”.</div>}
+          {hits.map((h, i) => (
+            <button key={i} onClick={() => { onClose(); nav(h.r); }} className="rowhover" style={{ display: "flex", width: "100%", gap: 14, alignItems: "center", padding: "12px 20px", background: "none", border: "none", cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${C.line}55` }}>
+              <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: C.gold, width: 86, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
+              <span style={{ fontFamily: sans, fontSize: 14, color: C.ink }}>{h.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Portal({ toSite }) {
+  const store = useStore();
+  const [user, setUser] = useState(null);
+  const [route, setRoute] = useState("dashboard");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const mobile = useIsMobile(1020);
+  const nav = (r) => { setRoute(r); setDrawer(false); window.scrollTo({ top: 0, behavior: "instant" }); };
+  useEffect(() => {
+    const f = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPaletteOpen((v) => !v); } if (e.key === "Escape") setPaletteOpen(false); };
+    window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f);
+  }, []);
+  if (!user) return <PortalLogin onLogin={(u) => { setUser(u); setRoute("dashboard"); }} toSite={toSite} />;
+
+  const [base, sub] = [route.split("?")[0].split("/")[0], route.split("?")[0].split("/")[1]];
+  const query = route.includes("?") ? route.split("?")[1] : "";
+  const allowed = {
+    karyakarta: ["dashboard", "tasks", "pevents", "notices", "ai", "notifications", "settings"],
+    "unit-coordinator": ["dashboard", "organisation", "members", "karyakartas", "units", "tasks", "issues", "pevents", "pdocs", "notices", "reports", "ai", "notifications", "settings"],
+  }[user.key];
+  const visibleNav = PORTAL_NAV.filter(([r]) => !allowed || allowed.includes(r));
+  const restricted = allowed && !allowed.includes(base) && base !== "notifications";
+
+  let page;
+  if (restricted) page = <EmptyState icon="🔒" title="No permission" sub={`The ${user.label} role does not have access to this module. Sign in as Central Admin to explore everything.`} cta="Back to dashboard" onCta={() => nav("dashboard")} />;
+  else if (base === "dashboard") page = <CommandCentre nav={nav} user={user} />;
+  else if (base === "organisation") page = <OrgModule nav={nav} />;
+  else if (base === "members") page = <MembersModule nav={nav} id={sub} user={user} />;
+  else if (base === "karyakartas") page = <KaryakartaModule nav={nav} id={sub} />;
+  else if (base === "units") page = <UnitsModule nav={nav} query={query} />;
+  else if (base === "tasks") page = <TasksModule nav={nav} id={sub} query={query} user={user} />;
+  else if (base === "issues") page = <IssuesModule nav={nav} id={sub} query={query} />;
+  else if (base === "pevents") page = <PEventsModule nav={nav} id={sub} />;
+  else if (base === "pdocs") page = <PDocsModule />;
+  else if (base === "notices") page = <NoticesModule user={user} />;
+  else if (base === "reports") page = <ReportsModule />;
+  else if (base === "finance") page = <FinanceModule />;
+  else if (base === "analytics") page = <AnalyticsModule />;
+  else if (base === "ai") page = <AIModule />;
+  else if (base === "notifications") page = <NotificationsModule />;
+  else if (base === "settings") page = <SettingsModule user={user} />;
+  else page = <EmptyState icon="⚠" title="Something went wrong" sub="This screen could not be found. Return to the dashboard and try again." cta="Back to dashboard" onCta={() => nav("dashboard")} />;
+
+  const Sidebar = (
+    <div style={{ width: 240, background: `linear-gradient(180deg, ${C.forestDeep}, ${C.forestDark})`, color: C.ivory, display: "flex", flexDirection: "column", height: mobile ? "100%" : "100vh", position: mobile ? "relative" : "sticky", top: 0, flexShrink: 0 }}>
+      <div style={{ padding: "20px 18px 14px", display: "flex", gap: 10, alignItems: "center", borderBottom: `1px solid ${C.ivory}14` }}>
+        <Logo size={36} light />
+        <div>
+          <div style={{ fontFamily: serif, fontSize: 15.5, fontWeight: 600, lineHeight: 1.1 }}>UKD Command</div>
+          <div style={{ fontFamily: sans, fontSize: 9.5, letterSpacing: ".2em", color: C.goldSoft, fontWeight: 700 }}>ONE ORGANISATION</div>
+        </div>
+      </div>
+      <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
+        {visibleNav.map(([r, l, ic]) => {
+          const active = base === r;
+          const badge = r === "issues" ? store.issues.filter((i) => !["Resolved", "Closed"].includes(i.status)).length : r === "tasks" ? store.tasks.filter((t) => t.status === "Overdue").length : null;
+          return (
+            <button key={r} onClick={() => nav(r)} style={{ display: "flex", width: "100%", gap: 11, alignItems: "center", padding: "10px 12px", borderRadius: 9, border: "none", background: active ? `${C.gold}26` : "transparent", color: active ? C.goldSoft : "#C6D1C1", fontFamily: sans, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: "pointer", marginBottom: 2, borderLeft: `3px solid ${active ? C.gold : "transparent"}` }}
+              onMouseEnter={(e) => !active && (e.currentTarget.style.background = `${C.ivory}0d`)} onMouseLeave={(e) => !active && (e.currentTarget.style.background = "transparent")}>
+              <span style={{ width: 18, textAlign: "center", opacity: .9 }}>{ic}</span>{l}
+              {badge > 0 && <span style={{ marginLeft: "auto", background: r === "tasks" ? C.red : C.gold, color: "#fff", fontSize: 10.5, fontWeight: 700, borderRadius: 99, padding: "1px 7px" }}>{badge}</span>}
+            </button>
+          );
+        })}
+      </nav>
+      <div style={{ padding: 14, borderTop: `1px solid ${C.ivory}14`, fontFamily: sans }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+          <Avatar name={user.label} size={34} dark />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.label}</div>
+            <div style={{ fontSize: 10.5, color: "#9DAA97", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.scope}</div>
+          </div>
+        </div>
+        <button onClick={() => setUser(null)} style={{ width: "100%", background: `${C.ivory}12`, border: "none", color: C.ivory, fontFamily: sans, fontSize: 12.5, fontWeight: 700, borderRadius: 8, padding: "8px 0", cursor: "pointer" }}>Sign out</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", background: "#F1EDDF", minHeight: "100vh" }}>
+      {!mobile && Sidebar}
+      {mobile && drawer && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 180 }} onClick={() => setDrawer(false)}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.5)" }} />
+          <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, top: 0, bottom: 0 }}>{Sidebar}</div>
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 90, background: "#F1EDDFF0", backdropFilter: "blur(8px)", borderBottom: `1px solid ${C.line}`, padding: "12px 22px", display: "flex", alignItems: "center", gap: 12 }}>
+          {mobile && <button onClick={() => setDrawer(true)} aria-label="Open menu" style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.ink }}>☰</button>}
+          <button onClick={() => setPaletteOpen(true)} style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 14px", fontFamily: sans, fontSize: 13, color: C.mute, cursor: "pointer", width: mobile ? "auto" : 320 }}>
+            ⌕ Search everything… <span style={{ marginLeft: "auto", fontSize: 10.5, border: `1px solid ${C.line}`, borderRadius: 5, padding: "1px 6px" }}>⌘K</span>
+          </button>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setNotifOpen(!notifOpen)} aria-label="Notifications" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 12px", cursor: "pointer", fontSize: 15 }}>🔔<span style={{ position: "absolute", top: -4, right: -4, background: C.red, color: "#fff", fontFamily: sans, fontSize: 9.5, fontWeight: 700, borderRadius: 99, padding: "1px 5px" }}>4</span></button>
+              {notifOpen && (
+                <div className="ukd-pop" style={{ position: "absolute", right: 0, top: 46, width: 330, background: C.paper, border: `1px solid ${C.line}`, borderRadius: 14, boxShadow: "0 24px 60px -20px rgba(0,0,0,.35)", overflow: "hidden", zIndex: 95 }}>
+                  {SEED_NOTIFS.slice(0, 4).map((n) => <div key={n.id} style={{ padding: "11px 16px", borderBottom: `1px solid ${C.line}66`, fontFamily: sans, fontSize: 12.5, color: C.ink }}>{n.text}<div style={{ fontSize: 11, color: C.mute, marginTop: 2 }}>{n.time}</div></div>)}
+                  <button onClick={() => { setNotifOpen(false); nav("notifications"); }} style={{ width: "100%", background: "none", border: "none", padding: 12, fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.forest, cursor: "pointer" }}>View all notifications</button>
+                </div>
+              )}
+            </div>
+            <button onClick={toSite} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 14px", fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.slate, cursor: "pointer" }}>Public site ↗</button>
+          </div>
+        </div>
+        <main key={route} style={{ padding: mobile ? "20px 16px 60px" : "26px 28px 70px", flex: 1 }} onClick={() => notifOpen && setNotifOpen(false)}>{page}</main>
+      </div>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} nav={nav} />
+    </div>
+  );
+}
+
+export default function App() {
+  const [mode, setMode] = useState("site");
+  const [toasts, setToasts] = useState([]);
+  const toast = (msg, kind = "ok") => {
+    const id = Date.now() + Math.random();
+    setToasts((t) => [...t, { id, msg, kind }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+  };
+  const [issues, setIssues] = useState(SEED_ISSUES);
+  const [members, setMembers] = useState(SEED_MEMBERS);
+  const [tasks, setTasks] = useState(SEED_TASKS);
+  const [notices, setNotices] = useState(SEED_NOTICES);
+  const store = { issues, setIssues, members, setMembers, tasks, setTasks, notices, setNotices };
+  return (
+    <StoreCtx.Provider value={store}>
+      <ToastCtx.Provider value={toast}>
+        <GlobalStyle />
+        <div style={{ fontFamily: sans }}>
+          {mode === "site" ? <PublicSite toPortal={() => setMode("portal")} /> : <Portal toSite={() => setMode("site")} />}
+        </div>
+        <ToastHost toasts={toasts} />
+      </ToastCtx.Provider>
+    </StoreCtx.Provider>
+  );
+}
