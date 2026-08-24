@@ -49,6 +49,31 @@ const GlobalStyle = () => (
     @media (prefers-reduced-motion: reduce) { .ukd-fade, .ukd-pop, .ukd-skel, .ukd-skel-dark { animation: none; } .hoverlift:hover { transform:none } }
     @keyframes ukdBar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
     .baranim { transform-origin: bottom; animation: ukdBar .6s ease both; }
+    /* ---- mobile ----
+       Component styles here are inline, which outranks any stylesheet rule,
+       so the overrides below need !important to land. */
+    html, body { overflow-x: hidden; max-width: 100%; }
+    img, svg, video, canvas { max-width: 100%; }
+    @media (max-width: 860px) {
+      /* Anything laid out in fixed columns collapses to one */
+      [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"], [style*="repeat(2, 1fr)"] {
+        grid-template-columns: 1fr !important;
+      }
+      /* Two-up hero/feature splits stack */
+      [style*="1.15fr"], [style*="1.2fr"] { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 620px) {
+      /* Comfortable touch targets */
+      button, a[role="button"], input, select, textarea { min-height: 44px; }
+      /* Tables and other wide content scroll inside themselves, never the page */
+      table { display: block; overflow-x: auto; max-width: 100%; }
+      /* Dialogs use the full width they have */
+      .ukd-pop { max-width: calc(100vw - 24px) !important; }
+    }
+    @media (max-width: 420px) {
+      h1 { font-size: clamp(27px, 8.4vw, 34px) !important; }
+      h2 { font-size: clamp(21px, 6.4vw, 26px) !important; }
+    }
     .ukd-ring { transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease; }
     .ukd-portrait:hover .ukd-ring { transform: translateY(-6px) scale(1.03); box-shadow: 0 30px 62px -18px rgba(0,0,0,.8); }
     @media (prefers-reduced-motion: reduce) { .ukd-portrait:hover .ukd-ring { transform: none; } }
@@ -67,8 +92,8 @@ const REGIONS = {
 const DISTRICTS = Object.values(REGIONS).flat();
 const regionOf = (d) => Object.keys(REGIONS).find((r) => REGIONS[r].includes(d));
 
-const FIRST = ["Arun","Meera","Devendra","Kamla","Harish","Sunita","Prakash","Deepa","Mohan","Radha","Suresh","Anita","Rajendra","Geeta","Naveen","Pushpa","Dinesh","Savita","Trilok","Hema","Bhuwan","Laxmi","Girish","Tara"];
-const LAST = ["Rawat","Bisht","Negi","Bhatt","Joshi","Pant","Kandpal","Bhandari","Chauhan","Adhikari","Mehra","Gusain","Kathait","Tamta","Dhoundiyal","Panwar"];
+const FIRST = ["अरुण","मीरा","देवेंद्र","कमला","हरीश","सुनीता","प्रकाश","दीपा","मोहन","राधा","सुरेश","अनीता","राजेंद्र","गीता","नवीन","पुष्पा","दिनेश","सविता","त्रिलोक","हेमा","भुवन","लक्ष्मी","गिरीश","तारा"];
+const LAST = ["रावत","बिष्ट","नेगी","भट्ट","जोशी","पंत","कांडपाल","भंडारी","चौहान","अधिकारी","मेहरा","गुसाईं","कठैत","टम्टा","ढौंडियाल","पंवार"];
 const seededName = (i) => `${FIRST[i % FIRST.length]} ${LAST[(i * 7 + 3) % LAST.length]}`;
 
 const SEED_MEMBERS = Array.from({ length: 42 }, (_, i) => ({
@@ -77,9 +102,9 @@ const SEED_MEMBERS = Array.from({ length: 42 }, (_, i) => ({
   district: DISTRICTS[i % 13],
   unit: `Local Unit ${String(1 + (i % 6)).padStart(2, "0")}`,
   block: `Block ${"ABCD"[i % 4]}`,
-  role: ["Member","Member","Member","Committee Member","Unit Secretary","Member"][i % 6],
+  role: ["Member","Member","Member","समिति सदस्य","इकाई सचिव","Member"][i % 6],
   joined: `${["Jan","Feb","Mar","Apr","May","Jun","Jul"][i % 7]} 2026`,
-  status: i % 9 === 0 ? "Pending" : "Active",
+  status: i % 9 === 0 ? "लंबित" : "सक्रिय",
   lastActivity: `${(i % 12) + 1} d ago`,
   phone: `+91 98XXX ${String(10000 + i * 91).slice(0, 5)}`,
 }));
@@ -89,11 +114,11 @@ const SEED_KARYAKARTAS = Array.from({ length: 18 }, (_, i) => ({
   name: seededName(i + 9),
   district: DISTRICTS[(i * 3) % 13],
   unit: `Local Unit ${String(1 + (i % 6)).padStart(2, "0")}`,
-  role: ["Field Karyakarta","Booth Karyakarta","Training Lead","Field Karyakarta","Outreach Karyakarta"][i % 5],
-  skills: [["Outreach","Hindi comms"],["Logistics","Transport"],["Training","Documentation"],["Media liaison","Photography"],["Data entry","Reporting"]][i % 5],
-  availability: ["Weekends","Full-time","Evenings","Full-time"][i % 4],
+  role: ["Field Karyakarta","बूथ कार्यकर्ता","प्रशिक्षण प्रभारी","Field Karyakarta","Outreach Karyakarta"][i % 5],
+  skills: [["Outreach","Hindi comms"],["Logistics","परिवहन"],["प्रशिक्षण","Documentation"],["Media liaison","Photography"],["डेटा प्रविष्टि","रिपोर्टिंग"]][i % 5],
+  availability: ["सप्ताहांत","Full-time","Evenings","Full-time"][i % 4],
   tasksDone: 4 + (i * 5) % 23,
-  training: i % 3 === 0 ? "Completed" : i % 3 === 1 ? "In progress" : "Scheduled",
+  training: i % 3 === 0 ? "पूर्ण" : i % 3 === 1 ? "In progress" : "निर्धारित",
   active: i % 7 !== 0,
 }));
 
@@ -104,62 +129,62 @@ const SEED_UNITS = Array.from({ length: 14 }, (_, i) => {
     district: d, block: `Block ${"ABCD"[i % 4]}`,
     leader: seededName(i + 3), committee: 5 + (i % 4), karyakartas: 6 + (i * 3) % 15,
     members: 24 + (i * 17) % 90, lastActivity: `${(i % 9) + 1} d ago`,
-    openIssues: i % 5, pendingTasks: i % 4, lastReport: i % 6 === 0 ? "Missing" : "Wk 32",
+    openIssues: i % 5, pendingTasks: i % 4, lastReport: i % 6 === 0 ? "अप्राप्त" : "Wk 32",
     health: 58 + (i * 7) % 40,
     checks: { leadership: true, committee: i % 6 !== 2, activity: i % 5 !== 4, reporting: i % 6 !== 0 },
   };
 });
 
 const SEED_TASKS = [
-  ["Booth committee verification drive","पौड़ी गढ़वाल","High"],["Weekly unit report collection","अल्मोड़ा","Medium"],
-  ["Membership form digitisation","देहरादून","Medium"],["Village outreach — road issue follow-up","चमोली","High"],
-  ["District office document archive","नैनीताल","Low"],["Karyakarta training session prep","टिहरी गढ़वाल","High"],
-  ["Event logistics — हरिद्वार meet","हरिद्वार","High"],["Issue verification — water supply","अल्मोड़ा","Medium"],
-  ["New unit formation survey","बागेश्वर","Medium"],["Notice acknowledgement follow-up","पिथौरागढ़","Low"],
-  ["Photo documentation of public work","रुद्रप्रयाग","Low"],["Local grievance camp setup","चम्पावत","High"],
-  ["Member data cleanup — Block B","ऊधम सिंह नगर","Medium"],["Transparency ledger upload prep","देहरादून","Medium"],
+  ["बूथ समिति सत्यापन अभियान","पौड़ी गढ़वाल","उच्च"],["साप्ताहिक इकाई रिपोर्ट संकलन","अल्मोड़ा","मध्यम"],
+  ["Membership form digitisation","देहरादून","मध्यम"],["ग्राम संपर्क — सड़क समस्या अनुवर्ती","चमोली","उच्च"],
+  ["District office document archive","नैनीताल","निम्न"],["Karyakarta training session prep","टिहरी गढ़वाल","उच्च"],
+  ["Event logistics — हरिद्वार meet","हरिद्वार","उच्च"],["Issue verification — water supply","अल्मोड़ा","मध्यम"],
+  ["New unit formation survey","बागेश्वर","मध्यम"],["Notice acknowledgement follow-up","पिथौरागढ़","निम्न"],
+  ["Photo documentation of public work","रुद्रप्रयाग","निम्न"],["Local grievance camp setup","चम्पावत","उच्च"],
+  ["Member data cleanup — Block B","ऊधम सिंह नगर","मध्यम"],["पारदर्शिता लेखा अपलोड तैयारी","देहरादून","मध्यम"],
 ].map((t, i) => ({
   id: `T-${400 + i}`, name: t[0], district: t[1], priority: t[2],
   assignee: seededName(i + 5), unit: `Local Unit ${String((i % 6) + 1).padStart(2, "0")}`,
   deadline: `${12 + (i % 15)} Aug 2026`,
-  status: ["Overdue","In Progress","Not Started","In Progress","Submitted","Under Review","Completed","In Progress","Not Started","Overdue","Completed","In Progress","Submitted","Not Started"][i],
+  status: ["विलंबित","प्रगति पर","शुरू नहीं","प्रगति पर","जमा","समीक्षाधीन","पूर्ण","प्रगति पर","शुरू नहीं","विलंबित","पूर्ण","प्रगति पर","जमा","शुरू नहीं"][i],
   desc: "Coordinate with the unit leadership, complete the ground work, attach evidence and submit for review.",
   comments: 1 + (i % 4), evidence: i % 3 === 0 ? "2 photos" : i % 3 === 1 ? "1 document" : "—",
 }));
 
 const SEED_ISSUES = [
-  ["Road & Connectivity","पौड़ी गढ़वाल","Received","कोटद्वार–सतपुली stretch badly damaged after monsoon"],
-  ["Water","अल्मोड़ा","In Progress","Irregular drinking water supply in ward 6 for three weeks"],
-  ["Transport","देहरादून","Resolved","No evening bus service on Rajpur route"],
-  ["Electricity","टिहरी गढ़वाल","Assigned","Frequent outages affecting school examinations"],
-  ["Healthcare","चमोली","In Progress","PHC has no attending doctor on weekends"],
-  ["Education","बागेश्वर","Received","Primary school building needs urgent roof repair"],
-  ["Employment","हरिद्वार","Assigned","Request for skill-training camp for local youth"],
-  ["Disaster-related","रुद्रप्रयाग","In Progress","Landslide debris blocking village footpath"],
-  ["Environment","नैनीताल","Received","Unregulated waste dumping near lake inlet"],
-  ["Local Administration","पिथौरागढ़","Resolved","Delay in issuing residence certificates"],
-  ["Water","चम्पावत","Received","Hand-pump repair pending since June"],
-  ["Road & Connectivity","उत्तरकाशी","Assigned","Bridge approach road washed out near Bhatwari"],
+  ["सड़क व संपर्क","पौड़ी गढ़वाल","प्राप्त","कोटद्वार–सतपुली stretch badly damaged after monsoon"],
+  ["पानी","अल्मोड़ा","प्रगति पर","Irregular drinking water supply in ward 6 for three weeks"],
+  ["परिवहन","देहरादून","हल हुआ","No evening bus service on Rajpur route"],
+  ["बिजली","टिहरी गढ़वाल","सौंपा गया","Frequent outages affecting school examinations"],
+  ["स्वास्थ्य","चमोली","प्रगति पर","PHC has no attending doctor on weekends"],
+  ["शिक्षा","बागेश्वर","प्राप्त","Primary school building needs urgent roof repair"],
+  ["रोज़गार","हरिद्वार","सौंपा गया","स्थानीय युवाओं हेतु कौशल प्रशिक्षण शिविर की माँग"],
+  ["आपदा संबंधी","रुद्रप्रयाग","प्रगति पर","Landslide debris blocking village footpath"],
+  ["पर्यावरण","नैनीताल","प्राप्त","झील के मुहाने पर अनियंत्रित कूड़ा निस्तारण"],
+  ["स्थानीय प्रशासन","पिथौरागढ़","हल हुआ","निवास प्रमाण पत्र जारी होने में देरी"],
+  ["पानी","चम्पावत","प्राप्त","Hand-pump repair pending since June"],
+  ["सड़क व संपर्क","उत्तरकाशी","सौंपा गया","Bridge approach road washed out near Bhatwari"],
 ].map((x, i) => ({
   id: `UKD-ISSUE-2026-${String(400 + i * 7).padStart(5, "0")}`,
   category: x[0], district: x[1], status: x[2], title: x[3],
   location: `${x[1]} • Block ${"ABC"[i % 3]}`, date: `${1 + (i % 11)} Aug 2026`,
   citizen: seededName(i + 14), phone: "+91 97XXX XXXXX",
-  priority: ["High","Medium","Medium","High","High","Medium","Low","High","Medium","Low","Medium","High"][i],
+  priority: ["उच्च","मध्यम","मध्यम","उच्च","उच्च","मध्यम","निम्न","उच्च","मध्यम","निम्न","मध्यम","उच्च"][i],
   assignedUnit: `${x[1].split(" ")[0]} Local Unit 0${(i % 3) + 1}`,
   ageDays: 2 + (i * 3) % 26,
   notes: i % 2 ? 1 : 2,
 }));
 
 const SEED_EVENTS = [
-  ["District Organisational Meeting","देहरादून","18 Aug 2026","Organisation"],
-  ["Karyakarta Training Camp","अल्मोड़ा","21 Aug 2026","Training"],
-  ["Public Issue Resolution Camp","पौड़ी गढ़वाल","24 Aug 2026","Public Work"],
-  ["Statehood Movement Remembrance","देहरादून","1 Sep 2026","Commemoration"],
-  ["Block Coordinators Review","हरिद्वार","5 Sep 2026","Organisation"],
-  ["Village Outreach Yatra — Phase II","चमोली","9 Sep 2026","Outreach"],
-  ["Youth Dialogue on Mountain Employment","नैनीताल","14 Sep 2026","Public Work"],
-  ["Central Committee Session","देहरादून","20 Sep 2026","Organisation"],
+  ["District Organisational Meeting","देहरादून","18 Aug 2026","संगठन"],
+  ["Karyakarta Training Camp","अल्मोड़ा","21 Aug 2026","प्रशिक्षण"],
+  ["जन समस्या समाधान शिविर","पौड़ी गढ़वाल","24 Aug 2026","जन कार्य"],
+  ["राज्य आंदोलन स्मरण दिवस","देहरादून","1 Sep 2026","स्मरण"],
+  ["Block Coordinators Review","हरिद्वार","5 Sep 2026","संगठन"],
+  ["ग्राम संपर्क यात्रा — द्वितीय चरण","चमोली","9 Sep 2026","Outreach"],
+  ["पर्वतीय रोज़गार पर युवा संवाद","नैनीताल","14 Sep 2026","जन कार्य"],
+  ["केंद्रीय समिति सत्र","देहरादून","20 Sep 2026","संगठन"],
 ].map((e, i) => ({
   id: `E-${70 + i}`, title: e[0], district: e[1], date: e[2], type: e[3],
   time: ["10:00 AM","9:30 AM","11:00 AM","8:00 AM","10:30 AM","7:30 AM","3:00 PM","10:00 AM"][i],
@@ -169,48 +194,48 @@ const SEED_EVENTS = [
 }));
 
 const SEED_NEWS = [
-  ["Official Update","UKD launches its official digital home","A single verified source for the organisation's news, documents and public engagement across all 13 districts.","10 Aug 2026"],
-  ["Public Work","Issue resolution camps announced for hill blocks","Camps in पौड़ी, अल्मोड़ा and चमोली will take citizen grievances directly and track them to closure.","8 Aug 2026"],
-  ["Organisation","District units complete weekly reporting cycle","A structured reporting line from local units to the centre is now in regular operation.","6 Aug 2026"],
-  ["Press","Statement on hill road connectivity","UKD placed a formal representation on monsoon-damaged routes and demanded time-bound restoration.","4 Aug 2026"],
-  ["Public Work","Water supply follow-up in अल्मोड़ा ward 6","The assigned unit met the local administration; restoration work has been scheduled.","2 Aug 2026"],
-  ["Organisation","New local units under formation in बागेश्वर","Survey and committee formation is underway in three development blocks.","30 Jul 2026"],
+  ["आधिकारिक सूचना","दल ने अपना आधिकारिक डिजिटल मंच शुरू किया","A single verified source for the organisation's news, documents and public engagement across all 13 districts.","10 Aug 2026"],
+  ["जन कार्य","Issue resolution camps announced for hill blocks","Camps in पौड़ी, अल्मोड़ा and चमोली will take citizen grievances directly and track them to closure.","8 Aug 2026"],
+  ["संगठन","District units complete weekly reporting cycle","A structured reporting line from local units to the centre is now in regular operation.","6 Aug 2026"],
+  ["प्रेस","पर्वतीय सड़क संपर्क पर वक्तव्य","UKD placed a formal representation on monsoon-damaged routes and demanded time-bound restoration.","4 Aug 2026"],
+  ["जन कार्य","Water supply follow-up in अल्मोड़ा ward 6","The assigned unit met the local administration; restoration work has been scheduled.","2 Aug 2026"],
+  ["संगठन","New local units under formation in बागेश्वर","तीन विकासखंडों में सर्वेक्षण और समिति गठन जारी है।","30 Jul 2026"],
 ].map((n, i) => ({ id: `N-${i + 1}`, tag: n[0], title: n[1], excerpt: n[2], date: n[3],
   body: "This is demonstration editorial content for the UKD digital prototype. The full article layout supports rich text, photographs, official quotes and linked documents. Real published material will replace this text when the organisation supplies it.\n\nEvery article is categorised, dated and searchable, and appears in the global search and the news archive automatically." }));
 
 const SEED_DOCS = [
-  ["Party Constitution (Demo Copy)","Party Documents","2026","Central"],
-  ["Resolution — Hill Employment Policy","Resolutions","2026","Central"],
-  ["Central Committee Meeting Minutes — July","Meeting Minutes","2026","Central"],
+  ["Party Constitution (Demo Copy)","Party Documents","2026","केंद्र"],
+  ["प्रस्ताव — पर्वतीय रोज़गार नीति","प्रस्ताव","2026","केंद्र"],
+  ["केंद्रीय समिति बैठक कार्यवृत्त — जुलाई","Meeting Minutes","2026","केंद्र"],
   ["District Weekly Report — पौड़ी, Wk 31","District Reports","2026","पौड़ी गढ़वाल"],
-  ["Press Release — Road Connectivity","Press Releases","2026","Central"],
-  ["Notice — Membership Drive Guidelines","Official Notices","2026","Central"],
-  ["Statehood Movement Archive Note","Historical Documents","2025","Central"],
-  ["Public Representation — Water Supply","Public Representations","2026","अल्मोड़ा"],
-  ["Organisational Appointment Letter (Demo)","Appointments","2026","नैनीताल"],
-  ["Annual Disclosure Statement (Demo)","Disclosures","2025","Central"],
+  ["Press Release — Road Connectivity","Press Releases","2026","केंद्र"],
+  ["Notice — Membership Drive Guidelines","Official Notices","2026","केंद्र"],
+  ["राज्य आंदोलन अभिलेख टिप्पणी","Historical Documents","2025","केंद्र"],
+  ["जन प्रतिनिधित्व — पेयजल आपूर्ति","जन प्रतिनिधित्व","2026","अल्मोड़ा"],
+  ["Organisational Appointment Letter (Demo)","नियुक्तियाँ","2026","नैनीताल"],
+  ["वार्षिक घोषणा विवरण","घोषणाएँ","2025","केंद्र"],
 ].map((d, i) => ({ id: `D-${i + 1}`, title: d[0], category: d[1], year: d[2], district: d[3], size: `${120 + i * 34} KB`, date: `${2 + i * 2} Aug 2026` }));
 
 const SEED_NOTICES = [
-  { id: "NT-1", title: "Weekly reporting deadline — every Sunday 6 PM", type: "Instruction", audience: "District Presidents", priority: "High", date: "9 Aug 2026", read: [41, 47], ack: [38, 47], content: "All district teams must submit the weekly organisational report by Sunday evening. Units with missing reports will be flagged on the command centre." },
-  { id: "NT-2", title: "Statehood remembrance programme — 1 September", type: "Event Notice", audience: "All Units", priority: "High", date: "7 Aug 2026", read: [122, 140], ack: [98, 140], content: "All units are requested to organise local remembrance programmes and record attendance in the portal." },
-  { id: "NT-3", title: "Membership form digitisation circular", type: "Circular", audience: "Block Coordinators", priority: "Medium", date: "4 Aug 2026", read: [51, 56], ack: [44, 56], content: "Paper membership records collected before July must be digitised through the member module by 25 August." },
-  { id: "NT-4", title: "Issue camp conduct guidelines", type: "Official Notice", audience: "District Admins", priority: "Medium", date: "1 Aug 2026", read: [13, 13], ack: [13, 13], content: "Guidelines for conducting public issue resolution camps, including registration, verification and closure reporting." },
+  { id: "NT-1", title: "Weekly reporting deadline — every Sunday 6 PM", type: "Instruction", audience: "District Presidents", priority: "उच्च", date: "9 Aug 2026", read: [41, 47], ack: [38, 47], content: "All district teams must submit the weekly organisational report by Sunday evening. Units with missing reports will be flagged on the command centre." },
+  { id: "NT-2", title: "Statehood remembrance programme — 1 September", type: "Event Notice", audience: "सभी इकाइयाँ", priority: "उच्च", date: "7 Aug 2026", read: [122, 140], ack: [98, 140], content: "All units are requested to organise local remembrance programmes and record attendance in the portal." },
+  { id: "NT-3", title: "Membership form digitisation circular", type: "परिपत्र", audience: "ब्लॉक संयोजक", priority: "मध्यम", date: "4 Aug 2026", read: [51, 56], ack: [44, 56], content: "Paper membership records collected before July must be digitised through the member module by 25 August." },
+  { id: "NT-4", title: "Issue camp conduct guidelines", type: "Official Notice", audience: "District Admins", priority: "मध्यम", date: "1 Aug 2026", read: [13, 13], ack: [13, 13], content: "Guidelines for conducting public issue resolution camps, including registration, verification and closure reporting." },
 ];
 
 const SEED_TXNS = Array.from({ length: 12 }, (_, i) => ({
   id: `TX-${900 + i}`, date: `${1 + i * 2} Aug 2026`,
-  type: ["Contribution","Contribution","District Allocation","Expense","Contribution","Expense"][i % 6],
+  type: ["सहयोग राशि","सहयोग राशि","District Allocation","Expense","सहयोग राशि","Expense"][i % 6],
   amount: [2100, 5000, 15000, 3200, 1100, 4800, 2500, 7500, 12000, 900, 5100, 2200][i],
   district: DISTRICTS[(i * 5) % 13],
-  status: i % 5 === 3 ? "Pending Approval" : "Recorded", receipt: `RCPT-${2600 + i}`,
+  status: i % 5 === 3 ? "Pending Approval" : "दर्ज", receipt: `RCPT-${2600 + i}`,
 }));
 
 const SEED_REPORTS = DISTRICTS.map((d, i) => ({
   id: `R-${i}`, district: d, week: "Wk 32", meetings: 1 + (i % 4), activities: 2 + (i % 5),
   tasksDone: 3 + (i * 2) % 11, membersAdded: (i * 3) % 14, issuesIn: (i % 6), issuesResolved: (i % 4),
-  status: i % 5 === 2 ? "Missing" : i % 5 === 4 ? "Draft" : "Submitted",
-  challenges: "Transport and network connectivity in remote blocks.", support: "Printed material for outreach.",
+  status: i % 5 === 2 ? "अप्राप्त" : i % 5 === 4 ? "प्रारूप" : "जमा",
+  challenges: "दूरस्थ ब्लॉकों में परिवहन और नेटवर्क संपर्क।", support: "जन संपर्क हेतु मुद्रित सामग्री।",
 }));
 
 const SEED_NOTIFS = [
@@ -225,32 +250,32 @@ const SEED_NOTIFS = [
 ].map((n, i) => ({ id: i, kind: n[0], text: n[1], time: n[2], unread: i < 4 }));
 
 const SEED_AUDIT = [
-  ["District Admin","Updated member profile","Members","Today 11:42","Success"],
-  ["Central Admin","Published notice — reporting deadline","Notices","Today 10:05","Success"],
-  ["Block Coordinator","Completed task — form digitisation","Tasks","Today 09:18","Success"],
-  ["District Admin","Exported district report","Reports","Yesterday 18:22","Success"],
-  ["Central Leadership","Viewed finance dashboard","Finance","Yesterday 16:10","Success"],
-  ["Local Unit Coordinator","Failed login attempt","Security","Yesterday 08:47","Warning"],
-  ["Central Admin","Changed role permissions — District Admin","Settings","11 Aug 14:35","Success"],
+  ["ज़िला प्रशासक","Updated member profile","Members","Today 11:42","सफल"],
+  ["केंद्रीय प्रशासक","Published notice — reporting deadline","Notices","Today 10:05","सफल"],
+  ["ब्लॉक संयोजक","Completed task — form digitisation","Tasks","Today 09:18","सफल"],
+  ["ज़िला प्रशासक","Exported district report","रिपोर्ट","Yesterday 18:22","सफल"],
+  ["केंद्रीय नेतृत्व","Viewed finance dashboard","Finance","Yesterday 16:10","सफल"],
+  ["स्थानीय इकाई संयोजक","Failed login attempt","सुरक्षा","Yesterday 08:47","चेतावनी"],
+  ["केंद्रीय प्रशासक","Changed role permissions — District Admin","सेटिंग्स","11 Aug 14:35","सफल"],
 ].map((a, i) => ({ id: i, user: a[0], action: a[1], module: a[2], time: a[3], status: a[4] }));
 
 const TIMELINE_HISTORY = [
-  ["The demand for a hill state","Decades of civic movements argued that the Himalayan districts needed a state of their own — its own priorities, its own voice.","Movement era"],
+  ["पर्वतीय राज्य की माँग","Decades of civic movements argued that the Himalayan districts needed a state of their own — its own priorities, its own voice.","Movement era"],
   ["A party born from the movement","UKD emerged as a regional political voice dedicated to statehood and to the identity of the mountain people.","Founding"],
-  ["The statehood struggle intensifies","Mass mobilisation across गढ़वाल and कुमाऊँ carried the demand from village squares to the national stage.","Struggle"],
-  ["Uttarakhand becomes a state","The long-sought state was created in November 2000 — a defining moment for the movement and the region.","2000"],
-  ["Serving the new state","UKD's focus turned to the promises of statehood: mountain employment, migration, land, water, and dignity.","Statehood years"],
+  ["राज्य आंदोलन तेज़ हुआ","Mass mobilisation across गढ़वाल and कुमाऊँ carried the demand from village squares to the national stage.","संघर्ष"],
+  ["उत्तराखंड राज्य बना","The long-sought state was created in November 2000 — a defining moment for the movement and the region.","2000"],
+  ["नए राज्य की सेवा में","UKD's focus turned to the promises of statehood: mountain employment, migration, land, water, and dignity.","राज्य निर्माण के वर्ष"],
   ["A modern digital organisation","One digital home now connects the organisation, its Karyakartas and the public — this platform.","2026"],
 ];
 
-const ISSUE_CATEGORIES = ["Road & Connectivity","Water","Electricity","Healthcare","Education","Employment","Transport","Local Administration","Environment","Disaster-related","Other"];
+const ISSUE_CATEGORIES = ["सड़क व संपर्क","पानी","बिजली","स्वास्थ्य","शिक्षा","रोज़गार","परिवहन","स्थानीय प्रशासन","पर्यावरण","आपदा संबंधी","अन्य"];
 const ROLES = [
-  { key: "central-admin", label: "Central Admin", scope: "Statewide control", district: null },
-  { key: "central-leadership", label: "Central Leadership", scope: "Statewide overview", district: null },
-  { key: "district-admin", label: "District Admin", scope: "पौड़ी गढ़वाल district", district: "पौड़ी गढ़वाल" },
-  { key: "block-coordinator", label: "Block Coordinator", scope: "पौड़ी गढ़वाल • Block A", district: "पौड़ी गढ़वाल" },
-  { key: "unit-coordinator", label: "Local Unit Coordinator", scope: "पौड़ी Local Unit 01", district: "पौड़ी गढ़वाल" },
-  { key: "karyakarta", label: "Karyakarta", scope: "Assigned work only", district: "पौड़ी गढ़वाल" },
+  { key: "central-admin", label: "केंद्रीय प्रशासक", scope: "राज्यव्यापी नियंत्रण", district: null },
+  { key: "central-leadership", label: "केंद्रीय नेतृत्व", scope: "राज्यव्यापी अवलोकन", district: null },
+  { key: "district-admin", label: "ज़िला प्रशासक", scope: "पौड़ी गढ़वाल district", district: "पौड़ी गढ़वाल" },
+  { key: "block-coordinator", label: "ब्लॉक संयोजक", scope: "पौड़ी गढ़वाल • Block A", district: "पौड़ी गढ़वाल" },
+  { key: "unit-coordinator", label: "स्थानीय इकाई संयोजक", scope: "पौड़ी Local Unit 01", district: "पौड़ी गढ़वाल" },
+  { key: "karyakarta", label: "कार्यकर्ता", scope: "केवल सौंपा गया कार्य", district: "पौड़ी गढ़वाल" },
 ];
 
 /* ============================== PRIMITIVES ============================== */
@@ -295,10 +320,10 @@ const Btn = ({ children, kind = "primary", size = "md", onClick, style = {}, dis
 
 const STATUS_COLORS = {
   Received: { bg: "#E8EDF1", fg: C.slate }, Assigned: { bg: "#F3E9D6", fg: "#8A5D14" },
-  "In Progress": { bg: "#F3E9D6", fg: "#8A5D14" }, Resolved: { bg: "#E7F0DA", fg: "#4A6B1D" },
+  "प्रगति पर": { bg: "#F3E9D6", fg: "#8A5D14" }, Resolved: { bg: "#E7F0DA", fg: "#4A6B1D" },
   Closed: { bg: "#E6E4DC", fg: C.mute }, Completed: { bg: "#E7F0DA", fg: "#4A6B1D" },
-  Overdue: { bg: "#F5E3DE", fg: C.red }, "Not Started": { bg: "#E6E4DC", fg: C.mute },
-  Submitted: { bg: "#E8EDF1", fg: C.slate }, "Under Review": { bg: "#EDE6F2", fg: "#5E4478" },
+  Overdue: { bg: "#F5E3DE", fg: C.red }, "शुरू नहीं": { bg: "#E6E4DC", fg: C.mute },
+  Submitted: { bg: "#E8EDF1", fg: C.slate }, "समीक्षाधीन": { bg: "#EDE6F2", fg: "#5E4478" },
   Active: { bg: "#E7F0DA", fg: "#4A6B1D" }, Pending: { bg: "#F3E9D6", fg: "#8A5D14" },
   Missing: { bg: "#F5E3DE", fg: C.red }, Draft: { bg: "#E6E4DC", fg: C.mute },
   High: { bg: "#F5E3DE", fg: C.red }, Medium: { bg: "#F3E9D6", fg: "#8A5D14" }, Low: { bg: "#E6E4DC", fg: C.mute },
@@ -321,7 +346,7 @@ const Modal = ({ open, onClose, title, children, wide }) => {
       <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ background: C.paper, borderRadius: 16, width: "100%", maxWidth: wide ? 760 : 520, maxHeight: "88vh", overflowY: "auto", boxShadow: "0 30px 80px -20px rgba(0,0,0,.5)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: `1px solid ${C.line}` }}>
           <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink }}>{title}</div>
-          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.mute, lineHeight: 1 }}>×</button>
+          <button onClick={onClose} aria-label="बंद करें" style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.mute, lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 24 }}>{children}</div>
       </div>
@@ -455,7 +480,7 @@ function DataTable({ columns, rows, onRow, searchKeys = [], filters = [], empty,
     <div style={{ fontFamily: sans }}>
       {(searchKeys.length > 0 || filters.length > 0) && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-          {searchKeys.length > 0 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" aria-label="Search table" style={{ ...inputStyle(), maxWidth: 260, padding: "9px 13px" }} />}
+          {searchKeys.length > 0 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="खोजें…" aria-label="तालिका में खोजें" style={{ ...inputStyle(), maxWidth: 260, padding: "9px 13px" }} />}
           {filters.map((f) => (
             <select key={f.key} value={fvals[f.key] || ""} onChange={(e) => setFvals({ ...fvals, [f.key]: e.target.value })} aria-label={`Filter by ${f.label}`} style={{ ...inputStyle(), width: "auto", padding: "9px 13px" }}>
               <option value="">{f.label}: All</option>
@@ -465,7 +490,7 @@ function DataTable({ columns, rows, onRow, searchKeys = [], filters = [], empty,
           <div style={{ marginLeft: "auto", alignSelf: "center", fontSize: 12.5, color: C.mute }}>{filtered.length} of {rows.length}</div>
         </div>
       )}
-      {filtered.length === 0 ? (empty || <EmptyState title="Nothing found" sub="Try clearing the search or filters." />) : mobile ? (
+      {filtered.length === 0 ? (empty || <EmptyState title="कुछ नहीं मिला" sub="खोज या फ़िल्टर हटाकर देखें।" />) : mobile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map((r, i) => (
             <div key={i} className="hoverlift" onClick={() => onRow && onRow(r)} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 14, cursor: onRow ? "pointer" : "default" }}>
@@ -532,7 +557,7 @@ function SiteHeader({ route, nav, openSearch }) {
             <button onClick={openSearch} aria-label="खोजें" style={{ background: "none", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", color: C.mute, fontFamily: sans, fontSize: 13.5 }}>⌕ खोजें</button>
             {!mobile && <Btn size="sm" kind="ghost" onClick={() => go("people/report")}>समस्या दर्ज करें</Btn>}
             {!mobile && <Btn size="sm" kind="gold" onClick={() => go("join")}>सदस्य बनें</Btn>}
-            {mobile && <button aria-label="Menu" onClick={() => setDrawer(true)} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: C.ink }}>☰</button>}
+            {mobile && <button aria-label="मेनू" onClick={() => setDrawer(true)} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: C.ink }}>☰</button>}
           </div>
         </div>
       </header>
@@ -618,16 +643,16 @@ function SearchOverlay({ open, onClose, nav }) {
   if (!open) return null;
   const ql = q.toLowerCase();
   const hits = q.length < 2 ? [] : [
-    ...SEED_NEWS.filter((n) => n.title.toLowerCase().includes(ql)).map((n) => ({ t: "News", label: n.title, r: `news/${n.id}` })),
+    ...SEED_NEWS.filter((n) => n.title.toLowerCase().includes(ql)).map((n) => ({ t: "समाचार", label: n.title, r: `news/${n.id}` })),
     ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).map((d) => ({ t: "Document", label: d.title, r: "documents" })),
     ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).map((e) => ({ t: "Event", label: e.title, r: `events/${e.id}` })),
-    ...DISTRICTS.filter((d) => d.toLowerCase().includes(ql)).map((d) => ({ t: "Organisation", label: `${d} district`, r: `organisation/district/${d}` })),
-    ...TIMELINE_HISTORY.filter((h) => h[0].toLowerCase().includes(ql)).map((h) => ({ t: "History", label: h[0], r: "history" })),
+    ...DISTRICTS.filter((d) => d.toLowerCase().includes(ql)).map((d) => ({ t: "संगठन", label: `${d} district`, r: `organisation/district/${d}` })),
+    ...TIMELINE_HISTORY.filter((h) => h[0].toLowerCase().includes(ql)).map((h) => ({ t: "इतिहास", label: h[0], r: "history" })),
   ].slice(0, 9);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(20,30,22,.6)", backdropFilter: "blur(6px)", display: "flex", justifyContent: "center", paddingTop: "12vh" }}>
       <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ width: "min(640px, 92vw)", alignSelf: "flex-start", background: C.paper, borderRadius: 16, overflow: "hidden", boxShadow: "0 30px 90px -20px rgba(0,0,0,.6)" }}>
-        <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search news, documents, events, districts, history…" style={{ width: "100%", border: "none", padding: "20px 24px", fontFamily: sans, fontSize: 17, background: "transparent", color: C.ink }} />
+        <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="समाचार, दस्तावेज़, कार्यक्रम, ज़िले, इतिहास खोजें…" style={{ width: "100%", border: "none", padding: "20px 24px", fontFamily: sans, fontSize: 17, background: "transparent", color: C.ink }} />
         <div style={{ borderTop: `1px solid ${C.line}`, maxHeight: 380, overflowY: "auto" }}>
           {q.length >= 2 && hits.length === 0 && <div style={{ padding: 28, fontFamily: sans, color: C.mute, fontSize: 14 }}>No results for “{q}”. Try a district name, an event or a document title.</div>}
           {hits.map((h, i) => (
@@ -645,14 +670,14 @@ function SearchOverlay({ open, onClose, nav }) {
 
 const Section = ({ children, bg, style = {} }) => (
   <section style={{ background: bg || "transparent", ...style }}>
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 20px", ...style.inner }}>{children}</div>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(44px, 7vw, 80px) clamp(16px, 4vw, 20px)", ...style.inner }}>{children}</div>
   </section>
 );
 const H2 = ({ children, light, style = {} }) => (
-  <h2 style={{ fontFamily: serif, fontWeight: 500, fontSize: "clamp(28px, 4vw, 44px)", lineHeight: 1.12, color: light ? C.ivory : C.ink, margin: "0 0 16px", letterSpacing: "-0.01em", ...style }}>{children}</h2>
+  <h2 style={{ fontFamily: serif, fontWeight: 700, fontSize: "clamp(24px, 3.6vw, 40px)", lineHeight: 1.32, color: light ? C.ivory : C.ink, margin: "0 0 16px", ...style }}>{children}</h2>
 );
 const Lead = ({ children, light, style = {} }) => (
-  <p style={{ fontFamily: sans, fontSize: 16.5, lineHeight: 1.7, color: light ? "#C9D2C4" : "#4A554C", maxWidth: 640, margin: "0 0 24px", ...style }}>{children}</p>
+  <p style={{ fontFamily: sans, fontSize: "clamp(15.5px, 1.5vw, 17px)", lineHeight: 1.85, color: light ? "#C9D2C4" : "#4A554C", maxWidth: 640, margin: "0 0 24px", ...style }}>{children}</p>
 );
 
 /* Three founding faces as compact horizontal cards. Badoni and Airy lead, and
@@ -691,10 +716,10 @@ function HeroFaces({ nav }) {
 function Hero({ nav }) {
   const stack = useIsMobile(880);
   return (
-    <div style={{ background: C.forestDeep, position: "relative", overflow: "hidden", minHeight: stack ? "auto" : "min(74vh, 640px)", display: "flex", alignItems: "center" }}>
+    <div style={{ background: C.forestDeep, position: "relative", overflow: "hidden", minHeight: stack ? "min(86vh, 560px)" : "min(74vh, 640px)", display: "flex", alignItems: "center" }}>
       {/* The photograph sits behind everything, anchored right so she survives every crop */}
       <img src="/hero-woman.jpg" alt="पौड़ी की एक महिला अपने मोबाइल पर समाधान की सूचना दिखाती हुई"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: stack ? "72% 12%" : "right 15%" }} />
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: stack ? "68% 30%" : "right 34%" }} />
       {/* Green scrim from the left keeps the Devanagari legible over the hillside */}
       <div aria-hidden="true" style={{
         position: "absolute", inset: 0,
@@ -761,13 +786,13 @@ function StatStrip() {
 }
 
 function OrgPreview({ nav }) {
-  const chain = ["UKD", "Central Leadership", "Mandal", "District", "Block", "Local Unit"];
+  const chain = ["UKD", "केंद्रीय नेतृत्व", "मंडल", "ज़िला", "ब्लॉक", "स्थानीय इकाई"];
   return (
     <Section>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 50, alignItems: "center" }}>
         <div>
-          <Eyebrow>Leadership & Organisation</Eyebrow>
-          <H2>Structured from the centre to every village.</H2>
+          <Eyebrow>नेतृत्व व संगठन</Eyebrow>
+          <H2>केंद्र से हर गाँव तक संगठित।</H2>
           <Lead>UKD is organised as one connected network — from central leadership through Mandals, districts and blocks, down to local units on the ground.</Lead>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 26 }}>
             {[0, 1, 2].map((i) => (
@@ -775,12 +800,12 @@ function OrgPreview({ nav }) {
                 <Avatar name={seededName(i * 4)} size={34} />
                 <div style={{ fontFamily: sans }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink }}>{seededName(i * 4)}</div>
-                  <div style={{ fontSize: 11, color: C.mute }}>Demo office bearer</div>
+                  <div style={{ fontSize: 11, color: C.mute }}>पदाधिकारी</div>
                 </div>
               </div>
             ))}
           </div>
-          <Btn onClick={() => nav("organisation")}>Explore the organisation</Btn>
+          <Btn onClick={() => nav("organisation")}>संगठन देखें</Btn>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
           {chain.map((c, i) => (
@@ -802,7 +827,7 @@ function RegionMap({ nav, compact }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 40, alignItems: "start" }}>
       <div>
-        <svg viewBox="0 0 400 300" style={{ width: "100%", maxWidth: 480 }} role="img" aria-label="Stylised map of Uttarakhand regions">
+        <svg viewBox="0 0 400 300" style={{ width: "100%", maxWidth: 480 }} role="img" aria-label="उत्तराखंड के क्षेत्रों का मानचित्र">
           {[
             ["गढ़वाल", "M30,180 L70,80 L150,40 L210,90 L190,170 L120,220 Z"],
             ["कुमाऊँ", "M210,90 L300,50 L370,110 L330,200 L240,210 L190,170 Z"],
@@ -810,9 +835,9 @@ function RegionMap({ nav, compact }) {
           ].map(([r, d]) => (
             <path key={r} d={d} fill={tones[r]} opacity={open === r ? 1 : 0.45} stroke={C.ivory} strokeWidth="4" style={{ cursor: "pointer", transition: "opacity .2s" }} onClick={() => setOpen(r)} />
           ))}
-          <text x="105" y="140" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="15" pointerEvents="none">GARHWAL</text>
-          <text x="255" y="140" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="15" pointerEvents="none">KUMAON</text>
-          <text x="195" y="245" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="14" pointerEvents="none">TARAI</text>
+          <text x="105" y="140" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="15" pointerEvents="none">गढ़वाल</text>
+          <text x="255" y="140" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="15" pointerEvents="none">कुमाऊँ</text>
+          <text x="195" y="245" fill={C.ivory} fontFamily={sans} fontWeight="700" fontSize="14" pointerEvents="none">तराई</text>
         </svg>
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
           {Object.keys(REGIONS).map((r) => (
@@ -831,7 +856,7 @@ function RegionMap({ nav, compact }) {
               <button key={d} className="hoverlift" onClick={() => nav(`organisation/district/${d}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, cursor: "pointer" }}>
                 <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{d}</div>
                 <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 6, lineHeight: 1.6 }}>{units || 1} active unit{units === 1 ? "" : "s"} · {issues} public issue{issues === 1 ? "" : "s"}<br />Latest update: local outreach drive</div>
-                <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, marginTop: 8 }}>View district →</div>
+                <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, marginTop: 8 }}>ज़िला देखें →</div>
               </button>
             );
           })}
@@ -852,7 +877,7 @@ function NewsCard({ n, nav, big }) {
         <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginBottom: 8 }}>{n.date}</div>
         <div style={{ fontFamily: serif, fontSize: big ? 22 : 18.5, fontWeight: 600, color: C.ink, lineHeight: 1.28, marginBottom: 10 }}>{n.title}</div>
         <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C", margin: 0, flex: 1 }}>{n.excerpt}</p>
-        <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 14 }}>Read more →</div>
+        <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 14 }}>और पढ़ें →</div>
       </div>
     </article>
   );
@@ -938,12 +963,12 @@ function HomePage({ nav }) {
         <Section style={{ inner: { paddingTop: 70, paddingBottom: 70 } }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 44, alignItems: "center", position: "relative", zIndex: 2 }}>
             <div>
-              <Eyebrow light>People's Portal</Eyebrow>
-              <H2 light>Your issue deserves a response.</H2>
+              <Eyebrow light>जन पोर्टल</Eyebrow>
+              <H2 light>आपकी समस्या का जवाब मिलना चाहिए।</H2>
               <Lead light>Any citizen of Uttarakhand can submit a public issue — a road, a water line, a school, a clinic — and track it to resolution through the organisation's network.</Lead>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Btn kind="gold" onClick={() => nav("people/report")}>Submit a Public Issue</Btn>
-                <Btn kind="ghostLight" onClick={() => nav("people/track")}>Track an Issue</Btn>
+                <Btn kind="gold" onClick={() => nav("people/report")}>जन समस्या दर्ज करें</Btn>
+                <Btn kind="ghostLight" onClick={() => nav("people/track")}>समस्या की स्थिति देखें</Btn>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -962,8 +987,8 @@ function HomePage({ nav }) {
       </div>
       <Section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14, marginBottom: 30 }}>
-          <div><Eyebrow>Latest News</Eyebrow><H2 style={{ marginBottom: 0 }}>From the organisation.</H2></div>
-          <Btn kind="ghost" size="sm" onClick={() => nav("news")}>All news →</Btn>
+          <div><Eyebrow>ताज़ा समाचार</Eyebrow><H2 style={{ marginBottom: 0 }}>संगठन की ओर से।</H2></div>
+          <Btn kind="ghost" size="sm" onClick={() => nav("news")}>सभी समाचार →</Btn>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 18 }}>
           {SEED_NEWS.slice(0, 3).map((n) => <NewsCard key={n.id} n={n} nav={nav} />)}
@@ -971,8 +996,8 @@ function HomePage({ nav }) {
       </Section>
       <div style={{ background: "#EFEBDD" }}>
         <Section>
-          <Eyebrow>History & Legacy</Eyebrow>
-          <H2>Remember where we came from.</H2>
+          <Eyebrow>इतिहास व विरासत</Eyebrow>
+          <H2>याद रखें — हम कहाँ से आए हैं।</H2>
           <Lead>The statehood movement, the birth of a party, and the road to a modern Uttarakhand.</Lead>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 0, borderLeft: `2px solid ${C.gold}`, paddingLeft: 0 }}>
             {TIMELINE_HISTORY.slice(0, 3).map((t, i) => (
@@ -983,13 +1008,13 @@ function HomePage({ nav }) {
               </div>
             ))}
           </div>
-          <Btn kind="ghost" onClick={() => nav("history")} style={{ marginTop: 10 }}>Walk the full timeline</Btn>
+          <Btn kind="ghost" onClick={() => nav("history")} style={{ marginTop: 10 }}>पूरा इतिहास देखें</Btn>
         </Section>
       </div>
       <Section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14, marginBottom: 30 }}>
-          <div><Eyebrow>Events</Eyebrow><H2 style={{ marginBottom: 0 }}>On the ground, on the calendar.</H2></div>
-          <Btn kind="ghost" size="sm" onClick={() => nav("events")}>All events →</Btn>
+          <div><Eyebrow>कार्यक्रम</Eyebrow><H2 style={{ marginBottom: 0 }}>ज़मीन पर, और कैलेंडर पर।</H2></div>
+          <Btn kind="ghost" size="sm" onClick={() => nav("events")}>सभी कार्यक्रम →</Btn>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
           {SEED_EVENTS.slice(0, 4).map((e) => (
@@ -1002,7 +1027,7 @@ function HomePage({ nav }) {
                 <div>
                   <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink, lineHeight: 1.35 }}>{e.title}</div>
                   <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 6 }}>{e.district} · {e.type}</div>
-                  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.gold, marginTop: 8 }}>View details →</div>
+                  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.gold, marginTop: 8 }}>विवरण देखें →</div>
                 </div>
               </div>
             </button>
@@ -1010,50 +1035,50 @@ function HomePage({ nav }) {
         </div>
       </Section>
       <Section style={{ inner: { paddingTop: 20 } }}>
-        <Eyebrow>Gallery</Eyebrow>
-        <H2>The organisation in pictures.</H2>
+        <Eyebrow>चित्र दीर्घा</Eyebrow>
+        <H2>तस्वीरों में संगठन।</H2>
         <GalleryGrid preview nav={nav} />
       </Section>
       <div style={{ background: `linear-gradient(135deg, ${C.forest}, ${C.slate})`, position: "relative" }}>
         <Section style={{ inner: { paddingTop: 70, paddingBottom: 70, textAlign: "center" } }}>
-          <H2 light style={{ maxWidth: 640, margin: "0 auto 14px" }}>Become part of the organisation.</H2>
+          <H2 light style={{ maxWidth: 640, margin: "0 auto 14px" }}>संगठन का हिस्सा बनें।</H2>
           <Lead light style={{ margin: "0 auto 30px", textAlign: "center" }}>Join UKD as a member, or support the movement's public work. Every district, every block, every village counts.</Lead>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <Btn kind="gold" size="lg" onClick={() => nav("join")}>Join UKD</Btn>
-            <Btn kind="ghostLight" size="lg" onClick={() => nav("support")}>Support the movement</Btn>
+            <Btn kind="gold" size="lg" onClick={() => nav("join")}>सदस्य बनें</Btn>
+            <Btn kind="ghostLight" size="lg" onClick={() => nav("support")}>आंदोलन में सहयोग करें</Btn>
           </div>
         </Section>
       </div>
       <Section>
-        <Eyebrow>Transparency</Eyebrow>
-        <H2>Open by design.</H2>
+        <Eyebrow>पारदर्शिता</Eyebrow>
+        <H2>पारदर्शिता, शुरुआत से।</H2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 10 }}>
-          {["Public Disclosures", "Official Documents", "Reports", "Public Statements", "Organisational Updates"].map((t) => (
+          {["सार्वजनिक घोषणाएँ", "Official Documents", "रिपोर्ट", "जन वक्तव्य", "Organisational Updates"].map((t) => (
             <button key={t} className="hoverlift" onClick={() => nav("transparency")} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "22px 18px", cursor: "pointer", textAlign: "left" }}>
               <div style={{ width: 34, height: 34, borderRadius: 9, background: `${C.slate}18`, color: C.slate, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, marginBottom: 12 }}>◫</div>
               <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink }}>{t}</div>
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 24 }}><Btn onClick={() => nav("transparency")}>View Transparency Centre</Btn></div>
+        <div style={{ marginTop: 24 }}><Btn onClick={() => nav("transparency")}>पारदर्शिता केंद्र देखें</Btn></div>
       </Section>
     </>
   );
 }
 
 function GalleryGrid({ preview, nav }) {
-  const cats = ["Events", "Leadership", "Public Interaction", "Organisation", "Uttarakhand"];
-  const [cat, setCat] = useState("All");
+  const cats = ["कार्यक्रम", "Leadership", "जन संवाद", "संगठन", "Uttarakhand"];
+  const [cat, setCat] = useState("सभी");
   const tiles = Array.from({ length: preview ? 6 : 12 }, (_, i) => ({
     id: i, cat: cats[i % 5],
     g: [`linear-gradient(135deg, ${C.forest}, ${C.lime}66)`, `linear-gradient(135deg, ${C.slate}, ${C.forest})`, `linear-gradient(135deg, ${C.gold}, ${C.forest})`, `linear-gradient(160deg, ${C.forestDeep}, ${C.slate})`, `linear-gradient(135deg, ${C.slateSoft}, ${C.gold}88)`][i % 5],
   }));
-  const shown = tiles.filter((t) => cat === "All" || t.cat === cat);
+  const shown = tiles.filter((t) => cat === "सभी" || t.cat === cat);
   return (
     <div>
       {!preview && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "20px 0" }}>
-          {["All", ...cats].map((c) => (
+          {["सभी", ...cats].map((c) => (
             <button key={c} onClick={() => setCat(c)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: cat === c ? C.forest : "transparent", color: cat === c ? "#fff" : C.forest, cursor: "pointer" }}>{c}</button>
           ))}
         </div>
@@ -1067,7 +1092,7 @@ function GalleryGrid({ preview, nav }) {
           </div>
         ))}
       </div>
-      {preview && <div style={{ marginTop: 22 }}><Btn kind="ghost" onClick={() => nav("gallery")}>Open full gallery</Btn></div>}
+      {preview && <div style={{ marginTop: 22 }}><Btn kind="ghost" onClick={() => nav("gallery")}>पूरी दीर्घा देखें</Btn></div>}
     </div>
   );
 }
@@ -1153,7 +1178,7 @@ function OrganisationPage({ nav, sub }) {
               <div key={u.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
                 <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{u.name}</div>
                 <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, margin: "6px 0 10px" }}>संयोजक: {u.leader} · {u.members} सदस्य</div>
-                <Badge tone="Active">सक्रिय</Badge>
+                <Badge tone="सक्रिय">सक्रिय</Badge>
               </div>
             ))}
           </div>
@@ -1196,7 +1221,7 @@ const OrgPreviewInner = () => (
 function HistoryPage({ nav }) {
   return (
     <>
-      <PageHead eyebrow="History & Legacy" title="Remember where we came from." sub="From the streets of the statehood movement to the state of Uttarakhand — and the work that continues." crumbs={[["Home", "home"], ["History"]]} nav={nav} />
+      <PageHead eyebrow="इतिहास व विरासत" title="याद रखें — हम कहाँ से आए हैं।" sub="राज्य आंदोलन की सड़कों से उत्तराखंड राज्य तक — और वह काम जो आज भी जारी है।" crumbs={[["मुख्य पृष्ठ", "home"], ["इतिहास"]]} nav={nav} />
       <Section>
         <div style={{ position: "relative", maxWidth: 820, margin: "0 auto" }}>
           <div style={{ position: "absolute", left: 19, top: 0, bottom: 0, width: 2, background: `linear-gradient(${C.gold}, ${C.forest})` }} />
@@ -1218,12 +1243,12 @@ function HistoryPage({ nav }) {
 }
 
 function NewsPage({ nav, id }) {
-  const [tag, setTag] = useState("All");
+  const [tag, setTag] = useState("सभी");
   if (id) {
     const n = SEED_NEWS.find((x) => x.id === id) || SEED_NEWS[0];
     return (
       <>
-        <PageHead eyebrow={n.tag} title={n.title} sub={`${n.date} · Official communication`} crumbs={[["Home", "home"], ["News", "news"], ["Article"]]} nav={nav} />
+        <PageHead eyebrow={n.tag} title={n.title} sub={`${n.date} · Official communication`} crumbs={[["मुख्य पृष्ठ", "home"], ["समाचार", "news"], ["लेख"]]} nav={nav} />
         <Section style={{ inner: { maxWidth: 780, paddingTop: 56 } }}>
           <p style={{ fontFamily: serif, fontSize: 21, lineHeight: 1.6, color: C.ink }}>{n.excerpt}</p>
           {n.body.split("\n\n").map((p, i) => <p key={i} style={{ fontFamily: sans, fontSize: 16, lineHeight: 1.8, color: "#3C463E" }}>{p}</p>)}
@@ -1232,16 +1257,16 @@ function NewsPage({ nav, id }) {
       </>
     );
   }
-  const tags = ["All", "Official Update", "Public Work", "Press", "Organisation"];
-  const shown = SEED_NEWS.filter((n) => tag === "All" || n.tag === tag);
+  const tags = ["सभी", "आधिकारिक सूचना", "जन कार्य", "प्रेस", "संगठन"];
+  const shown = SEED_NEWS.filter((n) => tag === "सभी" || n.tag === tag);
   return (
     <>
-      <PageHead eyebrow="News" title="Official updates & press." sub="Every verified statement, update and press note from the organisation, in one archive." crumbs={[["Home", "home"], ["News"]]} nav={nav} />
+      <PageHead eyebrow="समाचार" title="आधिकारिक सूचनाएँ और प्रेस।" sub="संगठन का हर प्रामाणिक वक्तव्य, सूचना और प्रेस नोट — एक ही जगह।" crumbs={[["मुख्य पृष्ठ", "home"], ["समाचार"]]} nav={nav} />
       <Section>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 26 }}>
           {tags.map((t) => <button key={t} onClick={() => setTag(t)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: tag === t ? C.forest : "transparent", color: tag === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
         </div>
-        {shown.length === 0 ? <EmptyState title="No articles in this category" sub="Try another category." /> : (
+        {shown.length === 0 ? <EmptyState title="इस श्रेणी में कोई लेख नहीं" sub="कोई दूसरी श्रेणी देखें।" /> : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 18 }}>
             {shown.map((n) => <NewsCard key={n.id} n={n} nav={nav} big />)}
           </div>
@@ -1256,10 +1281,10 @@ function EventsPage({ nav, id }) {
     const e = SEED_EVENTS.find((x) => x.id === id) || SEED_EVENTS[0];
     return (
       <>
-        <PageHead eyebrow={e.type} title={e.title} sub={`${e.date} · ${e.time} · ${e.venue}`} crumbs={[["Home", "home"], ["Events", "events"], ["Detail"]]} nav={nav} />
+        <PageHead eyebrow={e.type} title={e.title} sub={`${e.date} · ${e.time} · ${e.venue}`} crumbs={[["मुख्य पृष्ठ", "home"], ["कार्यक्रम", "events"], ["विवरण"]]} nav={nav} />
         <Section style={{ inner: { maxWidth: 820, paddingTop: 56 } }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 30 }}>
-            {[["Date", e.date], ["Time", e.time], ["District", e.district], ["Organiser (demo)", e.organiser]].map(([l, v]) => (
+            {[["दिनांक", e.date], ["समय", e.time], ["ज़िला", e.district], ["आयोजक", e.organiser]].map(([l, v]) => (
               <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute }}>{l}</div>
                 <div style={{ fontFamily: sans, fontSize: 15, fontWeight: 700, color: C.ink, marginTop: 6 }}>{v}</div>
@@ -1274,7 +1299,7 @@ function EventsPage({ nav, id }) {
   }
   return (
     <>
-      <PageHead eyebrow="Events" title="The organisation's calendar." sub="Meetings, camps, training and public programmes across Uttarakhand." crumbs={[["Home", "home"], ["Events"]]} nav={nav} />
+      <PageHead eyebrow="कार्यक्रम" title="संगठन का कार्यक्रम विवरण।" sub="पूरे उत्तराखंड में बैठकें, शिविर, प्रशिक्षण और जन कार्यक्रम।" crumbs={[["मुख्य पृष्ठ", "home"], ["कार्यक्रम"]]} nav={nav} />
       <Section>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {SEED_EVENTS.map((e) => (
@@ -1285,7 +1310,7 @@ function EventsPage({ nav, id }) {
               </div>
               <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, lineHeight: 1.3, marginBottom: 8 }}>{e.title}</div>
               <div style={{ fontFamily: sans, fontSize: 13, color: C.mute }}>{e.venue}</div>
-              <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 12 }}>View details →</div>
+              <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 12 }}>विवरण देखें →</div>
             </button>
           ))}
         </div>
@@ -1297,7 +1322,7 @@ function EventsPage({ nav, id }) {
 function GalleryPage({ nav }) {
   return (
     <>
-      <PageHead eyebrow="Gallery" title="The organisation in pictures." sub="Events, leadership, public interaction and the landscapes of Uttarakhand. Placeholder visuals until official photography is supplied." crumbs={[["Home", "home"], ["Gallery"]]} nav={nav} />
+      <PageHead eyebrow="चित्र दीर्घा" title="तस्वीरों में संगठन।" sub="Events, leadership, public interaction and the landscapes of Uttarakhand. Placeholder visuals until official photography is supplied." crumbs={[["मुख्य पृष्ठ", "home"], ["चित्र दीर्घा"]]} nav={nav} />
       <Section><GalleryGrid nav={nav} /></Section>
     </>
   );
@@ -1307,18 +1332,18 @@ function PeopleLanding({ nav }) {
   const store = useStore();
   return (
     <>
-      <PageHead eyebrow="People's Portal" title="Your issue deserves a response." sub="Submit a public issue from anywhere in Uttarakhand and track it until it is resolved. This is the organisation's open door." crumbs={[["Home", "home"], ["People's Portal"]]} nav={nav} />
+      <PageHead eyebrow="जन पोर्टल" title="आपकी समस्या का जवाब मिलना चाहिए।" sub="Submit a public issue from anywhere in Uttarakhand and track it until it is resolved. This is the organisation's open door." crumbs={[["मुख्य पृष्ठ", "home"], ["जन पोर्टल"]]} nav={nav} />
       <Section>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 50 }}>
-          <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>Submit an Issue</Btn>
-          <Btn kind="ghost" size="lg" onClick={() => nav("people/track")}>Track an Issue</Btn>
+          <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>समस्या दर्ज करें</Btn>
+          <Btn kind="ghost" size="lg" onClick={() => nav("people/track")}>समस्या की स्थिति देखें</Btn>
         </div>
-        <H2 style={{ fontSize: 28 }}>How it works</H2>
+        <H2 style={{ fontSize: 28 }}>यह कैसे काम करता है</H2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 54 }}>
-          {[["Submit", "Describe the issue, the location and attach photos if you have them."],
-            ["Receive an ID", "You get a tracking ID instantly — keep it safe."],
-            ["We assign it", "The issue is routed to the responsible district unit."],
-            ["Track to closure", "Follow the status timeline until the issue is resolved."]].map(([t, d], i) => (
+          {[["दर्ज करें", "समस्या, स्थान और यदि तस्वीरें हों तो उन्हें संलग्न करें।"],
+            ["क्रमांक प्राप्त करें", "आपको तुरंत एक क्रमांक मिलेगा — उसे सुरक्षित रखें।"],
+            ["हम इसे सौंपते हैं", "समस्या संबंधित ज़िला इकाई को भेज दी जाती है।"],
+            ["समाधान तक देखें", "Follow the status timeline until the issue is resolved."]].map(([t, d], i) => (
             <div key={t} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22 }}>
               <div style={{ width: 34, height: 34, borderRadius: 99, background: C.forest, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, marginBottom: 14 }}>{i + 1}</div>
               <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 6 }}>{t}</div>
@@ -1326,7 +1351,7 @@ function PeopleLanding({ nav }) {
             </div>
           ))}
         </div>
-        <H2 style={{ fontSize: 28 }}>Recently raised by citizens</H2>
+        <H2 style={{ fontSize: 28 }}>नागरिकों द्वारा हाल में दर्ज</H2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
           {store.issues.slice(0, 6).map((i) => (
             <div key={i.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
@@ -1355,15 +1380,15 @@ function ReportIssuePage({ nav }) {
     const e = {};
     if (!f.name.trim()) e.name = "Please enter your name.";
     if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
-    if (!f.district) e.district = "Select your district.";
-    if (!f.category) e.category = "Select an issue category.";
+    if (!f.district) e.district = "अपना ज़िला चुनें।";
+    if (!f.category) e.category = "समस्या की श्रेणी चुनें।";
     if (f.desc.trim().length < 20) e.desc = "Describe the issue in at least 20 characters.";
     setErrs(e);
     if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
     setBusy(true);
     setTimeout(() => {
       const id = `UKD-ISSUE-2026-${String(Math.floor(480 + Math.random() * 400)).padStart(5, "0")}`;
-      store.setIssues([{ id, category: f.category, district: f.district, status: "Received", title: f.desc.slice(0, 70), location: `${f.district}${f.block ? " • " + f.block : ""}`, date: "12 Aug 2026", citizen: f.name, phone: f.mobile, priority: "Medium", assignedUnit: "Pending assignment", ageDays: 0, notes: 0 }, ...store.issues]);
+      store.setIssues([{ id, category: f.category, district: f.district, status: "प्राप्त", title: f.desc.slice(0, 70), location: `${f.district}${f.block ? " • " + f.block : ""}`, date: "12 Aug 2026", citizen: f.name, phone: f.mobile, priority: "मध्यम", assignedUnit: "Pending assignment", ageDays: 0, notes: 0 }, ...store.issues]);
       setDone(id); setBusy(false); toast("Issue submitted successfully.");
     }, 900);
   };
@@ -1371,48 +1396,48 @@ function ReportIssuePage({ nav }) {
     <Section style={{ inner: { maxWidth: 640, textAlign: "center", paddingTop: 90 } }}>
       <div className="ukd-pop" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 18, padding: 40 }}>
         <div style={{ width: 62, height: 62, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
-        <H2 style={{ fontSize: 30 }}>Issue received.</H2>
+        <H2 style={{ fontSize: 30 }}>समस्या दर्ज हो गई।</H2>
         <Lead style={{ margin: "0 auto 22px", textAlign: "center" }}>Your issue has been registered with the People's Portal and will be assigned to the responsible district unit.</Lead>
         <div style={{ background: C.ivory, border: `1.5px dashed ${C.gold}`, borderRadius: 12, padding: 18, fontFamily: sans, marginBottom: 22 }}>
-          <div style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>YOUR TRACKING ID</div>
+          <div style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>आपका समस्या क्रमांक</div>
           <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.forest, margin: "6px 0" }}>{done}</div>
           <div style={{ fontSize: 12.5, color: C.mute }}>Status: Received · Submitted 12 Aug 2026</div>
         </div>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Btn onClick={() => nav("people/track")}>Track this issue</Btn>
-          <Btn kind="ghost" onClick={() => nav("home")}>Back to home</Btn>
+          <Btn onClick={() => nav("people/track")}>इस समस्या की स्थिति देखें</Btn>
+          <Btn kind="ghost" onClick={() => nav("home")}>मुख्य पृष्ठ पर लौटें</Btn>
         </div>
       </div>
     </Section>
   );
   return (
     <>
-      <PageHead eyebrow="People's Portal" title="Submit a public issue." sub="Fields marked * are required. Your submission generates a demo tracking ID instantly." crumbs={[["Home", "home"], ["People's Portal", "people"], ["Submit"]]} nav={nav} />
+      <PageHead eyebrow="जन पोर्टल" title="जन समस्या दर्ज करें।" sub="Fields marked * are required. Your submission generates a demo tracking ID instantly." crumbs={[["मुख्य पृष्ठ", "home"], ["जन पोर्टल", "people"], ["दर्ज करें"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 720, paddingTop: 50 } }}>
         <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: "30px 30px 20px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", columnGap: 18 }}>
-            <Field label="Full name" required error={errs.name}><TextInput value={f.name} onChange={set("name")} error={errs.name} placeholder="Your name" /></Field>
-            <Field label="Mobile" required error={errs.mobile} hint="10 digits, used only for issue tracking."><TextInput value={f.mobile} onChange={set("mobile")} error={errs.mobile} placeholder="98XXXXXXXX" inputMode="numeric" /></Field>
-            <Field label="Email"><TextInput value={f.email} onChange={set("email")} placeholder="Optional" /></Field>
-            <Field label="District" required error={errs.district}><Select value={f.district} onChange={set("district")} error={errs.district} options={DISTRICTS} placeholder="Select district" /></Field>
-            <Field label="Block"><TextInput value={f.block} onChange={set("block")} placeholder="Optional" /></Field>
-            <Field label="Location / village"><TextInput value={f.location} onChange={set("location")} placeholder="Where is the issue?" /></Field>
+            <Field label="पूरा नाम" required error={errs.name}><TextInput value={f.name} onChange={set("name")} error={errs.name} placeholder="आपका नाम" /></Field>
+            <Field label="मोबाइल नंबर" required error={errs.mobile} hint="10 digits, used only for issue tracking."><TextInput value={f.mobile} onChange={set("mobile")} error={errs.mobile} placeholder="98XXXXXXXX" inputMode="numeric" /></Field>
+            <Field label="ईमेल"><TextInput value={f.email} onChange={set("email")} placeholder="वैकल्पिक" /></Field>
+            <Field label="ज़िला" required error={errs.district}><Select value={f.district} onChange={set("district")} error={errs.district} options={DISTRICTS} placeholder="ज़िला चुनें" /></Field>
+            <Field label="ब्लॉक"><TextInput value={f.block} onChange={set("block")} placeholder="वैकल्पिक" /></Field>
+            <Field label="स्थान / गाँव"><TextInput value={f.location} onChange={set("location")} placeholder="समस्या कहाँ है?" /></Field>
           </div>
-          <Field label="Issue category" required error={errs.category}><Select value={f.category} onChange={set("category")} error={errs.category} options={ISSUE_CATEGORIES} placeholder="Select category" /></Field>
-          <Field label="Description" required error={errs.desc}><TextArea value={f.desc} onChange={set("desc")} error={errs.desc} placeholder="Describe the issue clearly — what, where, since when." /></Field>
+          <Field label="समस्या की श्रेणी" required error={errs.category}><Select value={f.category} onChange={set("category")} error={errs.category} options={ISSUE_CATEGORIES} placeholder="श्रेणी चुनें" /></Field>
+          <Field label="विवरण" required error={errs.desc}><TextArea value={f.desc} onChange={set("desc")} error={errs.desc} placeholder="समस्या स्पष्ट रूप से लिखें — क्या, कहाँ, कब से।" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
             {["Photo upload", "Document upload"].map((l) => (
               <button key={l} onClick={() => toast("Demo prototype — uploads are simulated.")} style={{ border: `1.5px dashed ${C.line}`, background: C.paper, borderRadius: 10, padding: "18px 12px", fontFamily: sans, fontSize: 13, color: C.mute, cursor: "pointer" }}>⇪ {l} (demo)</button>
             ))}
           </div>
-          <Btn size="lg" onClick={submit} disabled={busy} style={{ width: "100%" }}>{busy ? "Submitting…" : "Submit issue"}</Btn>
+          <Btn size="lg" onClick={submit} disabled={busy} style={{ width: "100%" }}>{busy ? "Submitting…" : "समस्या दर्ज करें"}</Btn>
         </div>
       </Section>
     </>
   );
 }
 
-const ISSUE_STAGES = ["Received", "Assigned", "In Progress", "Resolved", "Closed"];
+const ISSUE_STAGES = ["प्राप्त", "सौंपा गया", "प्रगति पर", "हल हुआ", "बंद"];
 function TrackIssuePage({ nav }) {
   const store = useStore(); const toast = useToast();
   const [id, setId] = useState(""); const [ref, setRef] = useState("");
@@ -1426,18 +1451,18 @@ function TrackIssuePage({ nav }) {
       setBusy(false);
     }, 700);
   };
-  const stageIdx = found ? Math.max(0, ISSUE_STAGES.indexOf(found.status === "Closed" ? "Closed" : found.status)) : 0;
+  const stageIdx = found ? Math.max(0, ISSUE_STAGES.indexOf(found.status === "बंद" ? "बंद" : found.status)) : 0;
   return (
     <>
-      <PageHead eyebrow="People's Portal" title="Track an issue." sub="Enter your tracking ID to see the live status timeline." crumbs={[["Home", "home"], ["People's Portal", "people"], ["Track"]]} nav={nav} />
+      <PageHead eyebrow="जन पोर्टल" title="समस्या की स्थिति देखें।" sub="स्थिति देखने के लिए अपना समस्या क्रमांक दर्ज करें।" crumbs={[["मुख्य पृष्ठ", "home"], ["जन पोर्टल", "people"], ["Track"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 680, paddingTop: 50 } }}>
         <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 28 }}>
-          <Field label="Issue ID" required hint={`Try one from the homepage, e.g. ${store.issues[0].id}`}><TextInput value={id} onChange={(e) => setId(e.target.value)} placeholder="UKD-ISSUE-2026-00482" /></Field>
-          <Field label="Mobile / reference"><TextInput value={ref} onChange={(e) => setRef(e.target.value)} placeholder="Optional in this demo" /></Field>
-          <Btn onClick={track} disabled={busy} style={{ width: "100%" }}>{busy ? "Checking…" : "Track issue"}</Btn>
+          <Field label="समस्या क्रमांक" required hint={`Try one from the homepage, e.g. ${store.issues[0].id}`}><TextInput value={id} onChange={(e) => setId(e.target.value)} placeholder="UKD-ISSUE-2026-00482" /></Field>
+          <Field label="मोबाइल / संदर्भ"><TextInput value={ref} onChange={(e) => setRef(e.target.value)} placeholder="वैकल्पिक" /></Field>
+          <Btn onClick={track} disabled={busy} style={{ width: "100%" }}>{busy ? "Checking…" : "स्थिति देखें"}</Btn>
         </div>
         {busy && <div style={{ marginTop: 24 }}><Skeleton rows={3} /></div>}
-        {notFound && <div style={{ marginTop: 24 }}><EmptyState icon="⌕" title="No issue found with that ID" sub="Check the ID and try again, or submit a new issue." cta="Submit an issue" onCta={() => nav("people/report")} /></div>}
+        {notFound && <div style={{ marginTop: 24 }}><EmptyState icon="⌕" title="इस क्रमांक से कोई समस्या नहीं मिली" sub="क्रमांक जाँचें और दोबारा प्रयास करें, या नई समस्या दर्ज करें।" cta="समस्या दर्ज करें" onCta={() => nav("people/report")} /></div>}
         {found && (
           <div className="ukd-fade" style={{ marginTop: 24, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 6 }}>
@@ -1459,7 +1484,7 @@ function TrackIssuePage({ nav }) {
                     </div>
                     <div style={{ fontFamily: sans, paddingTop: 3 }}>
                       <div style={{ fontSize: 14.5, fontWeight: 700, color: on ? C.ink : C.mute }}>{s}</div>
-                      {i === stageIdx && <div style={{ fontSize: 12.5, color: C.gold, fontWeight: 700 }}>Current stage</div>}
+                      {i === stageIdx && <div style={{ fontSize: 12.5, color: C.gold, fontWeight: 700 }}>वर्तमान स्थिति</div>}
                     </div>
                   </div>
                 );
@@ -1485,20 +1510,20 @@ function JoinPage({ nav }) {
       if (!f.name.trim()) e.name = "Enter your full name.";
       if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
       if (f.email && !/.+@.+\..+/.test(f.email)) e.email = "Enter a valid email or leave blank.";
-      if (!f.district) e.district = "Select your district.";
+      if (!f.district) e.district = "अपना ज़िला चुनें।";
       setErrs(e);
       if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
     }
     if (step === 2) {
-      store.setMembers([{ id: memberId.current, name: f.name, district: f.district, unit: f.unit || "To be assigned", block: f.block || "—", role: "Member", joined: "Aug 2026", status: "Pending", lastActivity: "Just now", phone: `+91 ${f.mobile.slice(0, 5)}XXXXX` }, ...store.members]);
+      store.setMembers([{ id: memberId.current, name: f.name, district: f.district, unit: f.unit || "सौंपा जाना शेष", block: f.block || "—", role: "Member", joined: "Aug 2026", status: "लंबित", lastActivity: "Just now", phone: `+91 ${f.mobile.slice(0, 5)}XXXXX` }, ...store.members]);
       toast("Membership request submitted.");
     }
     setStep(step + 1);
   };
-  const steps = ["Basic information", "Profile", "Review", "Success"];
+  const steps = ["बुनियादी जानकारी", "प्रोफ़ाइल", "समीक्षा", "सफल"];
   return (
     <>
-      <PageHead eyebrow="Join UKD" title="Become part of the organisation." sub="A four-step membership request. This prototype issues a demo digital membership card instantly." crumbs={[["Home", "home"], ["Join UKD"]]} nav={nav} />
+      <PageHead eyebrow="सदस्य बनें" title="संगठन का हिस्सा बनें।" sub="A four-step membership request. This prototype issues a demo digital membership card instantly." crumbs={[["मुख्य पृष्ठ", "home"], ["सदस्य बनें"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 760, paddingTop: 50 } }}>
         <div style={{ display: "flex", gap: 4, marginBottom: 30 }}>
           {steps.map((s, i) => (
@@ -1511,25 +1536,25 @@ function JoinPage({ nav }) {
         <div className="ukd-fade" key={step} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 30 }}>
           {step === 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", columnGap: 18 }}>
-              <Field label="Full name" required error={errs.name}><TextInput value={f.name} onChange={set("name")} error={errs.name} /></Field>
-              <Field label="Mobile" required error={errs.mobile}><TextInput value={f.mobile} onChange={set("mobile")} error={errs.mobile} inputMode="numeric" /></Field>
-              <Field label="Email" error={errs.email}><TextInput value={f.email} onChange={set("email")} error={errs.email} /></Field>
-              <Field label="District" required error={errs.district}><Select value={f.district} onChange={set("district")} error={errs.district} options={DISTRICTS} placeholder="Select district" /></Field>
-              <Field label="Block"><TextInput value={f.block} onChange={set("block")} placeholder="Optional" /></Field>
-              <Field label="Local unit"><TextInput value={f.unit} onChange={set("unit")} placeholder="If known" /></Field>
+              <Field label="पूरा नाम" required error={errs.name}><TextInput value={f.name} onChange={set("name")} error={errs.name} /></Field>
+              <Field label="मोबाइल नंबर" required error={errs.mobile}><TextInput value={f.mobile} onChange={set("mobile")} error={errs.mobile} inputMode="numeric" /></Field>
+              <Field label="ईमेल" error={errs.email}><TextInput value={f.email} onChange={set("email")} error={errs.email} /></Field>
+              <Field label="ज़िला" required error={errs.district}><Select value={f.district} onChange={set("district")} error={errs.district} options={DISTRICTS} placeholder="ज़िला चुनें" /></Field>
+              <Field label="ब्लॉक"><TextInput value={f.block} onChange={set("block")} placeholder="वैकल्पिक" /></Field>
+              <Field label="स्थानीय इकाई"><TextInput value={f.unit} onChange={set("unit")} placeholder="यदि ज्ञात हो" /></Field>
             </div>
           )}
           {step === 1 && (
             <div>
               <button onClick={() => toast("Demo prototype — photo upload is simulated.")} style={{ width: "100%", border: `1.5px dashed ${C.line}`, background: C.paper, borderRadius: 12, padding: 26, fontFamily: sans, fontSize: 13.5, color: C.mute, cursor: "pointer", marginBottom: 20 }}>⇪ Upload photo (demo)</button>
-              <Field label="Address"><TextArea value={f.address} onChange={set("address")} placeholder="Village / town, block, district" style={{ minHeight: 80 }} /></Field>
-              <Field label="Anything you'd like to add"><TextArea value={f.note} onChange={set("note")} placeholder="Optional — skills, availability, interests" style={{ minHeight: 80 }} /></Field>
+              <Field label="पता"><TextArea value={f.address} onChange={set("address")} placeholder="गाँव / कस्बा, ब्लॉक, ज़िला" style={{ minHeight: 80 }} /></Field>
+              <Field label="कुछ और कहना चाहें तो लिखें"><TextArea value={f.note} onChange={set("note")} placeholder="वैकल्पिक — कौशल, उपलब्धता, रुचि" style={{ minHeight: 80 }} /></Field>
             </div>
           )}
           {step === 2 && (
             <div style={{ fontFamily: sans }}>
-              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Review your details</div>
-              {[["Name", f.name], ["Mobile", f.mobile], ["Email", f.email || "—"], ["District", f.district], ["Block", f.block || "—"], ["Local unit", f.unit || "To be assigned"], ["Address", f.address || "—"]].map(([l, v]) => (
+              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>अपना विवरण जाँचें</div>
+              {[["Name", f.name], ["मोबाइल नंबर", f.mobile], ["ईमेल", f.email || "—"], ["ज़िला", f.district], ["ब्लॉक", f.block || "—"], ["Local unit", f.unit || "सौंपा जाना शेष"], ["पता", f.address || "—"]].map(([l, v]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "9px 0", borderBottom: `1px solid ${C.line}66`, fontSize: 14 }}>
                   <span style={{ color: C.mute }}>{l}</span><span style={{ fontWeight: 600, color: C.ink, textAlign: "right" }}>{v}</span>
                 </div>
@@ -1539,19 +1564,19 @@ function JoinPage({ nav }) {
           {step === 3 && (
             <div style={{ textAlign: "center" }}>
               <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>✓</div>
-              <H2 style={{ fontSize: 28 }}>Your membership request has been submitted.</H2>
+              <H2 style={{ fontSize: 28 }}>आपका सदस्यता अनुरोध दर्ज हो गया है।</H2>
               <Lead style={{ margin: "0 auto 26px", textAlign: "center" }}>Your local unit will verify the request. Here is your demo digital membership card.</Lead>
               <MembershipCard name={f.name} district={f.district} id={memberId.current} />
               <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 26, flexWrap: "wrap" }}>
-                <Btn onClick={() => toast("Demo card saved (simulated).")}>Download card (demo)</Btn>
-                <Btn kind="ghost" onClick={() => nav("home")}>Back to home</Btn>
+                <Btn onClick={() => toast("Demo card saved (simulated).")}>कार्ड डाउनलोड करें</Btn>
+                <Btn kind="ghost" onClick={() => nav("home")}>मुख्य पृष्ठ पर लौटें</Btn>
               </div>
             </div>
           )}
           {step < 3 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
               <Btn kind="subtle" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>← Back</Btn>
-              <Btn onClick={next}>{step === 2 ? "Submit request" : "Continue →"}</Btn>
+              <Btn onClick={next}>{step === 2 ? "अनुरोध भेजें" : "आगे बढ़ें →"}</Btn>
             </div>
           )}
         </div>
@@ -1569,18 +1594,18 @@ function MembershipCard({ name, district, id }) {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <Logo size={34} light />
             <div>
-              <div style={{ fontFamily: serif, color: C.ivory, fontSize: 15, fontWeight: 600 }}>Uttarakhand Kranti Dal</div>
-              <div style={{ fontFamily: sans, color: C.goldSoft, fontSize: 9, fontWeight: 700 }}>DEMO DIGITAL MEMBERSHIP ID</div>
+              <div style={{ fontFamily: serif, color: C.ivory, fontSize: 15, fontWeight: 600 }}>उत्तराखंड क्रांति दल</div>
+              <div style={{ fontFamily: sans, color: C.goldSoft, fontSize: 9, fontWeight: 700 }}>डिजिटल सदस्यता पहचान पत्र</div>
             </div>
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ fontFamily: sans }}>
             <div style={{ color: C.ivory, fontSize: 19, fontWeight: 700 }}>{name || "Member Name"}</div>
-            <div style={{ color: "#B9C6B2", fontSize: 12.5, marginTop: 3 }}>{district || "District"} · Joined Aug 2026</div>
+            <div style={{ color: "#B9C6B2", fontSize: 12.5, marginTop: 3 }}>{district || "ज़िला"} · Joined Aug 2026</div>
             <div style={{ color: C.goldSoft, fontSize: 13.5, fontWeight: 700, marginTop: 12 }}>{id}</div>
           </div>
-          <svg width="62" height="62" viewBox="0 0 62 62" aria-label="Demo QR visual" style={{ background: C.ivory, borderRadius: 8, padding: 5 }}>
+          <svg width="62" height="62" viewBox="0 0 62 62" aria-label="क्यूआर कोड" style={{ background: C.ivory, borderRadius: 8, padding: 5 }}>
             {Array.from({ length: 49 }).map((_, i) => {
               const x = (i % 7) * 8 + 3, y = Math.floor(i / 7) * 8 + 3;
               return ((i * 7 + 3) % 5 < 3) ? <rect key={i} x={x} y={y} width="6" height="6" fill={C.forestDeep} /> : null;
@@ -1612,7 +1637,7 @@ function SupportPage({ nav }) {
   };
   return (
     <>
-      <PageHead eyebrow="Support UKD" title="Support the movement." sub="A demonstration contribution flow. No real money is processed anywhere in this prototype." crumbs={[["Home", "home"], ["Support"]]} nav={nav} />
+      <PageHead eyebrow="सहयोग करें" title="आंदोलन में सहयोग करें।" sub="A demonstration contribution flow. No real money is processed anywhere in this prototype." crumbs={[["मुख्य पृष्ठ", "home"], ["Support"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 640, paddingTop: 50 } }}>
         <div style={{ background: "#FDF6E7", border: `1px solid ${C.gold}66`, borderRadius: 10, padding: "12px 16px", fontFamily: sans, fontSize: 13, color: "#8A5D14", marginBottom: 20, fontWeight: 600 }}>
           Demo only — this screen simulates a contribution and does not process payments.
@@ -1620,29 +1645,29 @@ function SupportPage({ nav }) {
         <div className="ukd-fade" key={step} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 30 }}>
           {step === 0 && (
             <>
-              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Choose a contribution</div>
+              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>सहयोग राशि चुनें</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 22 }}>
                 {amounts.map((a) => (
                   <button key={a} onClick={() => setAmt(a)} style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, padding: "12px 22px", borderRadius: 10, border: `2px solid ${amt === a ? C.gold : C.line}`, background: amt === a ? "#FDF6E7" : "#fff", color: amt === a ? "#8A5D14" : C.ink, cursor: "pointer" }}>₹{a}</button>
                 ))}
               </div>
-              <Field label="Your name" required error={errs.name}><TextInput value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} /></Field>
-              <Field label="Mobile" required error={errs.mobile}><TextInput value={f.mobile} onChange={(e) => setF({ ...f, mobile: e.target.value })} error={errs.mobile} inputMode="numeric" /></Field>
-              <Field label="District"><Select value={f.district} onChange={(e) => setF({ ...f, district: e.target.value })} options={DISTRICTS} placeholder="Optional" /></Field>
-              <Btn size="lg" onClick={next} style={{ width: "100%" }}>Continue to demo payment</Btn>
+              <Field label="आपका नाम" required error={errs.name}><TextInput value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} /></Field>
+              <Field label="मोबाइल नंबर" required error={errs.mobile}><TextInput value={f.mobile} onChange={(e) => setF({ ...f, mobile: e.target.value })} error={errs.mobile} inputMode="numeric" /></Field>
+              <Field label="ज़िला"><Select value={f.district} onChange={(e) => setF({ ...f, district: e.target.value })} options={DISTRICTS} placeholder="वैकल्पिक" /></Field>
+              <Btn size="lg" onClick={next} style={{ width: "100%" }}>भुगतान की ओर बढ़ें</Btn>
             </>
           )}
           {step === 1 && (
             <>
-              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>Demo payment step</div>
+              <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>भुगतान चरण</div>
               <div style={{ background: C.ivory, borderRadius: 12, padding: 20, fontFamily: sans, marginBottom: 22 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14.5, marginBottom: 8 }}><span style={{ color: C.mute }}>Contribution</span><b>₹{amt}</b></div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14.5 }}><span style={{ color: C.mute }}>Contributor</span><b>{f.name}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14.5, marginBottom: 8 }}><span style={{ color: C.mute }}>सहयोग राशि</span><b>₹{amt}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14.5 }}><span style={{ color: C.mute }}>सहयोगकर्ता</span><b>{f.name}</b></div>
               </div>
               <div style={{ border: `1.5px dashed ${C.line}`, borderRadius: 12, padding: 24, textAlign: "center", fontFamily: sans, fontSize: 13.5, color: C.mute, marginBottom: 22 }}>
                 Payment gateway placeholder — no real transaction occurs.
               </div>
-              <Btn size="lg" kind="gold" onClick={next} style={{ width: "100%" }}>Complete demo payment</Btn>
+              <Btn size="lg" kind="gold" onClick={next} style={{ width: "100%" }}>भुगतान पूर्ण करें</Btn>
             </>
           )}
           {step === 2 && (
@@ -1650,7 +1675,7 @@ function SupportPage({ nav }) {
               <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>✓</div>
               <H2 style={{ fontSize: 27 }}>Thank you, {f.name.split(" ")[0]}.</H2>
               <Lead style={{ margin: "0 auto 24px", textAlign: "center" }}>Your demo contribution of ₹{amt} was recorded in this prototype. In the real system, an official receipt would be issued and reflected in the Transparency Centre.</Lead>
-              <Btn kind="ghost" onClick={() => nav("transparency")}>Visit Transparency Centre</Btn>
+              <Btn kind="ghost" onClick={() => nav("transparency")}>पारदर्शिता केंद्र देखें</Btn>
             </div>
           )}
         </div>
@@ -1660,27 +1685,27 @@ function SupportPage({ nav }) {
 }
 
 function DocumentsPage({ nav, transparency }) {
-  const cats = transparency ? ["Disclosures", "Public Statements", "Reports", "Official Notices", "Public Representations"] : [...new Set(SEED_DOCS.map((d) => d.category))];
+  const cats = transparency ? ["घोषणाएँ", "जन वक्तव्य", "रिपोर्ट", "Official Notices", "जन प्रतिनिधित्व"] : [...new Set(SEED_DOCS.map((d) => d.category))];
   return (
     <>
-      <PageHead eyebrow={transparency ? "Transparency Centre" : "Documents"} title={transparency ? "Open by design." : "The official archive."} sub={transparency ? "Disclosures, statements, reports and representations — published for the public record." : "Party documents, resolutions, minutes and press releases in one searchable archive."} crumbs={[["Home", "home"], [transparency ? "Transparency" : "Documents"]]} nav={nav} />
+      <PageHead eyebrow={transparency ? "पारदर्शिता केंद्र" : "दस्तावेज़"} title={transparency ? "Open by design." : "आधिकारिक अभिलेख।"} sub={transparency ? "Disclosures, statements, reports and representations — published for the public record." : "Party documents, resolutions, minutes and press releases in one searchable archive."} crumbs={[["मुख्य पृष्ठ", "home"], [transparency ? "पारदर्शिता" : "दस्तावेज़"]]} nav={nav} />
       <Section>
         <DataTable
           columns={[
             { key: "title", label: "Document", strong: true },
-            { key: "category", label: "Category", render: (r) => <Badge>{r.category}</Badge> },
-            { key: "district", label: "District" },
+            { key: "category", label: "श्रेणी", render: (r) => <Badge>{r.category}</Badge> },
+            { key: "district", label: "ज़िला" },
             { key: "year", label: "Year" },
             { key: "size", label: "Size" },
             { key: "dl", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview ↓</span> },
           ]}
-          rows={SEED_DOCS.filter((d) => !transparency || ["Disclosures", "Press Releases", "District Reports", "Official Notices", "Public Representations", "Resolutions"].includes(d.category))}
+          rows={SEED_DOCS.filter((d) => !transparency || ["घोषणाएँ", "Press Releases", "District Reports", "Official Notices", "जन प्रतिनिधित्व", "प्रस्ताव"].includes(d.category))}
           searchKeys={["title", "category"]}
-          filters={[{ key: "year", label: "Year", options: ["2026", "2025"] }, { key: "category", label: "Category", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "district", label: "District", options: [...new Set(SEED_DOCS.map((d) => d.district))] }]}
+          filters={[{ key: "year", label: "Year", options: ["2026", "2025"] }, { key: "category", label: "श्रेणी", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "district", label: "ज़िला", options: [...new Set(SEED_DOCS.map((d) => d.district))] }]}
           onRow={() => {}}
-          empty={<EmptyState title="No documents match" sub="Adjust the filters or search to see the archive." />}
+          empty={<EmptyState title="कोई दस्तावेज़ नहीं मिला" sub="अभिलेख देखने के लिए फ़िल्टर या खोज बदलें।" />}
         />
-        <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 12 }}>All documents shown are demo placeholders.</div>
+        <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 12 }}>यहाँ दिखाए गए दस्तावेज़ प्रदर्शन हेतु हैं।</div>
       </Section>
     </>
   );
@@ -1692,15 +1717,15 @@ function ContactPage({ nav }) {
   const [sent, setSent] = useState(false);
   return (
     <>
-      <PageHead eyebrow="Contact" title="Write to the organisation." sub="For official correspondence, media queries and public communication." crumbs={[["Home", "home"], ["Contact"]]} nav={nav} />
+      <PageHead eyebrow="संपर्क" title="संगठन को लिखें।" sub="आधिकारिक पत्राचार, मीडिया प्रश्न और जन संवाद हेतु।" crumbs={[["मुख्य पृष्ठ", "home"], ["संपर्क"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 640, paddingTop: 50 } }}>
         {sent ? (
-          <EmptyState icon="✓" title="Message sent" sub="Your message was recorded in this prototype. The organisation's office would respond through official channels." cta="Back to home" onCta={() => nav("home")} />
+          <EmptyState icon="✓" title="Message sent" sub="Your message was recorded in this prototype. The organisation's office would respond through official channels." cta="मुख्य पृष्ठ पर लौटें" onCta={() => nav("home")} />
         ) : (
           <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 30 }}>
-            <Field label="Your name" required><TextInput value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+            <Field label="आपका नाम" required><TextInput value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
             <Field label="Email or mobile" required><TextInput value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
-            <Field label="Message" required><TextArea value={f.msg} onChange={(e) => setF({ ...f, msg: e.target.value })} /></Field>
+            <Field label="संदेश" required><TextArea value={f.msg} onChange={(e) => setF({ ...f, msg: e.target.value })} /></Field>
             <Btn onClick={() => { if (!f.name || !f.email || !f.msg) { toast("Please fill in all fields.", "error"); return; } setSent(true); toast("Message sent."); }} style={{ width: "100%" }}>Send message</Btn>
             <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 12, textAlign: "center" }}>Official contact details will be published by the organisation. This form is a demo.</div>
           </div>
@@ -1735,7 +1760,7 @@ function PublicSite({ toPortal }) {
     <Section style={{ inner: { paddingTop: 120, textAlign: "center" } }}>
       <div style={{ fontFamily: serif, fontSize: 90, color: C.line, fontWeight: 500 }}>404</div>
       <H2 style={{ fontSize: 26 }}>This page doesn't exist.</H2>
-      <Btn onClick={() => nav("home")}>Back to home</Btn>
+      <Btn onClick={() => nav("home")}>मुख्य पृष्ठ पर लौटें</Btn>
     </Section>
   );
   return (
@@ -1804,20 +1829,20 @@ function PortalLogin({ onLogin, toSite }) {
 
 const PORTAL_NAV = [
   ["dashboard", "Dashboard", "▦"],
-  ["organisation", "Organisation", "⛰"],
+  ["organisation", "संगठन", "⛰"],
   ["members", "Members", "☰"],
   ["karyakartas", "Karyakartas", "✦"],
   ["units", "Local Units", "▤"],
   ["tasks", "Tasks", "✓"],
   ["issues", "People's Issues", "◉"],
-  ["pevents", "Events", "▣"],
-  ["pdocs", "Documents", "◫"],
+  ["pevents", "कार्यक्रम", "▣"],
+  ["pdocs", "दस्तावेज़", "◫"],
   ["notices", "Notices", "◈"],
-  ["reports", "Reports", "≡"],
+  ["reports", "रिपोर्ट", "≡"],
   ["finance", "Finance", "₹"],
   ["analytics", "Analytics", "∿"],
   ["ai", "AI Assistant", "✳"],
-  ["settings", "Settings", "⚙"],
+  ["settings", "सेटिंग्स", "⚙"],
 ];
 
 const PCard = ({ children, style = {}, onClick, pad = 20 }) => (
@@ -1844,11 +1869,11 @@ function CommandCentre({ nav, user }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => { const t = setTimeout(() => setLoading(false), 650); return () => clearTimeout(t); }, []);
   const scoped = user.district ? { m: store.members.filter((x) => x.district === user.district), i: store.issues.filter((x) => x.district === user.district), t: store.tasks.filter((x) => x.district === user.district) } : { m: store.members, i: store.issues, t: store.tasks };
-  const openIssues = scoped.i.filter((x) => !["Resolved", "Closed"].includes(x.status)).length;
-  const pendingTasks = scoped.t.filter((x) => !["Completed"].includes(x.status)).length;
-  const overdue = store.tasks.filter((t) => t.status === "Overdue");
-  const missingReports = SEED_REPORTS.filter((r) => r.status === "Missing");
-  const oldIssues = store.issues.filter((i) => i.ageDays > 15 && !["Resolved", "Closed"].includes(i.status));
+  const openIssues = scoped.i.filter((x) => !["हल हुआ", "बंद"].includes(x.status)).length;
+  const pendingTasks = scoped.t.filter((x) => !["पूर्ण"].includes(x.status)).length;
+  const overdue = store.tasks.filter((t) => t.status === "विलंबित");
+  const missingReports = SEED_REPORTS.filter((r) => r.status === "अप्राप्त");
+  const oldIssues = store.issues.filter((i) => i.ageDays > 15 && !["हल हुआ", "बंद"].includes(i.status));
   const attnUnits = SEED_UNITS.filter((u) => u.health < 65);
   const kpis = [
     ["Total Members", scoped.m.length, "members", [30, 33, 34, 38, 40, scoped.m.length]],
@@ -1880,7 +1905,7 @@ function CommandCentre({ nav, user }) {
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             <HealthRing pct={82} size={92} stroke={9} />
             <div style={{ flex: 1, fontFamily: sans, display: "flex", flexDirection: "column", gap: 8 }}>
-              {[["Central", 94], ["Mandal", 86], ["District", 81], ["Block", 74], ["Local Unit", 69]].map(([l, v]) => (
+              {[["केंद्र", 94], ["मंडल", 86], ["ज़िला", 81], ["ब्लॉक", 74], ["स्थानीय इकाई", 69]].map(([l, v]) => (
                 <div key={l}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}><span style={{ color: C.mute }}>{l}</span><b style={{ color: C.ink }}>{v}%</b></div>
                   <div style={{ height: 6, borderRadius: 99, background: "#EBE7D8" }}><div style={{ width: `${v}%`, height: "100%", borderRadius: 99, background: v >= 80 ? C.forest : v >= 70 ? C.gold : C.red }} /></div>
@@ -1890,7 +1915,7 @@ function CommandCentre({ nav, user }) {
           </div>
         </PCard>
         <PCard>
-          <PTitle right={<Badge tone="High">Action</Badge>}>Attention Required</PTitle>
+          <PTitle right={<Badge tone="उच्च">Action</Badge>}>Attention Required</PTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[[`${attnUnits.length} units need attention`, "units?attn=1"], [`${overdue.length} overdue tasks`, "tasks?f=Overdue"], [`${missingReports.length} missing reports`, "reports"], [`${oldIssues.length} unresolved issues older than 15 days`, "issues?age=15"]].map(([l, r]) => (
               <button key={l} onClick={() => nav(r)} className="rowhover" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#FBF7EC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 14px", fontFamily: sans, fontSize: 13.5, fontWeight: 600, color: C.ink, cursor: "pointer", textAlign: "left" }}>
@@ -1920,20 +1945,20 @@ function CommandCentre({ nav, user }) {
         <PCard>
           <PTitle right={<button onClick={() => nav("issues")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Issues →</button>}>Issue Overview</PTitle>
           <Donut label={String(store.issues.length)} sub="TOTAL" segments={[
-            { k: "Received", v: store.issues.filter((i) => i.status === "Received").length, c: C.slate },
-            { k: "Assigned", v: store.issues.filter((i) => i.status === "Assigned").length, c: C.slateSoft },
-            { k: "In Progress", v: store.issues.filter((i) => i.status === "In Progress").length, c: C.gold },
-            { k: "Resolved", v: store.issues.filter((i) => i.status === "Resolved").length, c: C.lime },
+            { k: "प्राप्त", v: store.issues.filter((i) => i.status === "प्राप्त").length, c: C.slate },
+            { k: "सौंपा गया", v: store.issues.filter((i) => i.status === "सौंपा गया").length, c: C.slateSoft },
+            { k: "प्रगति पर", v: store.issues.filter((i) => i.status === "प्रगति पर").length, c: C.gold },
+            { k: "हल हुआ", v: store.issues.filter((i) => i.status === "हल हुआ").length, c: C.lime },
           ]} />
         </PCard>
         <PCard>
           <PTitle right={<button onClick={() => nav("tasks")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Tasks →</button>}>Task Overview</PTitle>
           <Donut label={String(store.tasks.length)} sub="TOTAL" segments={[
-            { k: "In Progress", v: store.tasks.filter((t) => t.status === "In Progress").length, c: C.gold },
-            { k: "Not Started", v: store.tasks.filter((t) => t.status === "Not Started").length, c: "#B9B4A1" },
-            { k: "Review", v: store.tasks.filter((t) => ["Submitted", "Under Review"].includes(t.status)).length, c: C.slate },
-            { k: "Completed", v: store.tasks.filter((t) => t.status === "Completed").length, c: C.lime },
-            { k: "Overdue", v: store.tasks.filter((t) => t.status === "Overdue").length, c: C.red },
+            { k: "प्रगति पर", v: store.tasks.filter((t) => t.status === "प्रगति पर").length, c: C.gold },
+            { k: "शुरू नहीं", v: store.tasks.filter((t) => t.status === "शुरू नहीं").length, c: "#B9B4A1" },
+            { k: "समीक्षा", v: store.tasks.filter((t) => ["जमा", "समीक्षाधीन"].includes(t.status)).length, c: C.slate },
+            { k: "पूर्ण", v: store.tasks.filter((t) => t.status === "पूर्ण").length, c: C.lime },
+            { k: "विलंबित", v: store.tasks.filter((t) => t.status === "विलंबित").length, c: C.red },
           ]} />
         </PCard>
       </div>
@@ -1956,9 +1981,9 @@ function OrgModule({ nav }) {
   );
   return (
     <div className="ukd-fade">
-      <PageTitle title="Organisation" sub="The living structure — Central → Mandal → District → Block → Local Unit. Click a district to open its view." />
+      <PageTitle title="संगठन" sub="The living structure — Central → Mandal → District → Block → Local Unit. Click a district to open its view." />
       <PCard>
-        <Row label="UKD Central" meta="Central leadership · demo" depth={0} k="Central">
+        <Row label="UKD Central" meta="Central leadership · demo" depth={0} k="केंद्र">
           {Object.keys(REGIONS).map((reg) => (
             <Row key={reg} label={`${reg} Mandal`} meta={`${REGIONS[reg].length} districts`} depth={1} k={reg}>
               {REGIONS[reg].map((d) => (
@@ -1974,13 +1999,13 @@ function OrgModule({ nav }) {
           columns={[
             { key: "name", label: "Name", strong: true, render: (r) => <span style={{ display: "flex", gap: 10, alignItems: "center" }}><Avatar name={r.name} size={30} />{r.name}</span> },
             { key: "role", label: "Designation" },
-            { key: "district", label: "District" },
+            { key: "district", label: "ज़िला" },
             { key: "unit", label: "Unit" },
             { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
           ]}
-          rows={SEED_MEMBERS.filter((m) => m.role !== "Member").concat(SEED_KARYAKARTAS.slice(0, 4).map((k) => ({ ...k, role: k.role, status: "Active" })))}
+          rows={SEED_MEMBERS.filter((m) => m.role !== "Member").concat(SEED_KARYAKARTAS.slice(0, 4).map((k) => ({ ...k, role: k.role, status: "सक्रिय" })))}
           searchKeys={["name", "role", "district", "unit"]}
-          filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "role", label: "Designation", options: ["Committee Member", "Unit Secretary", "Field Karyakarta", "Booth Karyakarta", "Training Lead"] }]}
+          filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "role", label: "Designation", options: ["समिति सदस्य", "इकाई सचिव", "Field Karyakarta", "बूथ कार्यकर्ता", "प्रशिक्षण प्रभारी"] }]}
           onRow={(r) => nav(r.id.startsWith("KK") ? `karyakartas/${r.id}` : `members/${r.id}`)}
         />
       </div>
@@ -2046,8 +2071,8 @@ function MembersModule({ nav, id, user }) {
     if (!m) return <EmptyState title="Member not found" cta="Back to members" onCta={() => nav("members")} />;
     return (
       <DetailShell back={() => nav("members")} backLabel="Members" title={{ text: m.name, avatar: m.name }} sub={`${m.id} · ${m.district} · ${m.unit}`} badge={<Badge tone={m.status}>{m.status}</Badge>}
-        actions={<><Btn size="sm" kind="ghost" onClick={() => toast("Demo — edit is simulated.")}>Edit profile</Btn><Btn size="sm" onClick={() => { store.setMembers(store.members.map((x) => x.id === m.id ? { ...x, status: x.status === "Active" ? "Pending" : "Active" } : x)); toast(`Member marked ${m.status === "Active" ? "Pending" : "Active"}.`); }}>Toggle status</Btn></>}>
-        <KV items={[["Contact", m.phone], ["Role", m.role], ["Block", m.block], ["Joined", m.joined], ["Last activity", m.lastActivity], ["Region", regionOf(m.district)]]} />
+        actions={<><Btn size="sm" kind="ghost" onClick={() => toast("Demo — edit is simulated.")}>Edit profile</Btn><Btn size="sm" onClick={() => { store.setMembers(store.members.map((x) => x.id === m.id ? { ...x, status: x.status === "सक्रिय" ? "लंबित" : "सक्रिय" } : x)); toast(`Member marked ${m.status === "सक्रिय" ? "लंबित" : "सक्रिय"}.`); }}>Toggle status</Btn></>}>
+        <KV items={[["संपर्क", m.phone], ["Role", m.role], ["ब्लॉक", m.block], ["Joined", m.joined], ["Last activity", m.lastActivity], ["Region", regionOf(m.district)]]} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginTop: 16 }}>
           <PCard><PTitle>Assigned tasks</PTitle>
             {store.tasks.filter((t) => t.assignee === m.name).length === 0 ? <div style={{ fontFamily: sans, fontSize: 13, color: C.mute }}>No tasks assigned to this member.</div> :
@@ -2071,7 +2096,7 @@ function MembersModule({ nav, id, user }) {
         columns={[
           { key: "name", label: "Name", strong: true, render: (r) => <span style={{ display: "flex", gap: 10, alignItems: "center" }}><Avatar name={r.name} size={28} />{r.name}</span> },
           { key: "id", label: "Membership ID" },
-          { key: "district", label: "District" },
+          { key: "district", label: "ज़िला" },
           { key: "unit", label: "Unit" },
           { key: "role", label: "Role" },
           { key: "joined", label: "Joined" },
@@ -2079,17 +2104,17 @@ function MembersModule({ nav, id, user }) {
           { key: "lastActivity", label: "Last Activity" },
         ]}
         rows={rows} searchKeys={["name", "id", "unit"]} dense
-        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "status", label: "Status", options: ["Active", "Pending"] }, { key: "role", label: "Role", options: ["Member", "Committee Member", "Unit Secretary"] }]}
+        filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "status", label: "Status", options: ["सक्रिय", "लंबित"] }, { key: "role", label: "Role", options: ["Member", "समिति सदस्य", "इकाई सचिव"] }]}
         onRow={(r) => nav(`members/${r.id}`)}
         empty={<EmptyState title="No members found" sub="Adjust the filters, or add the first member of this unit." cta="+ Add member" onCta={() => setAddOpen(true)} />}
       />
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add member (demo)">
-        <Field label="Full name" required><TextInput value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} /></Field>
-        <Field label="District" required><Select value={nf.district} onChange={(e) => setNf({ ...nf, district: e.target.value })} options={DISTRICTS} placeholder="Select district" /></Field>
-        <Field label="Role"><Select value={nf.role} onChange={(e) => setNf({ ...nf, role: e.target.value })} options={["Member", "Committee Member", "Unit Secretary"]} /></Field>
+        <Field label="पूरा नाम" required><TextInput value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} /></Field>
+        <Field label="ज़िला" required><Select value={nf.district} onChange={(e) => setNf({ ...nf, district: e.target.value })} options={DISTRICTS} placeholder="ज़िला चुनें" /></Field>
+        <Field label="Role"><Select value={nf.role} onChange={(e) => setNf({ ...nf, role: e.target.value })} options={["Member", "समिति सदस्य", "इकाई सचिव"]} /></Field>
         <Btn style={{ width: "100%" }} onClick={() => {
           if (!nf.name.trim() || !nf.district) { toast("Name and district are required.", "error"); return; }
-          store.setMembers([{ id: `UKD-M-2026-${Math.floor(3000 + Math.random() * 5000)}`, name: nf.name, district: nf.district, unit: "To be assigned", block: "—", role: nf.role, joined: "Aug 2026", status: "Pending", lastActivity: "Just now", phone: "+91 9XXXXXXXXX" }, ...store.members]);
+          store.setMembers([{ id: `UKD-M-2026-${Math.floor(3000 + Math.random() * 5000)}`, name: nf.name, district: nf.district, unit: "सौंपा जाना शेष", block: "—", role: nf.role, joined: "Aug 2026", status: "लंबित", lastActivity: "Just now", phone: "+91 9XXXXXXXXX" }, ...store.members]);
           setAddOpen(false); setNf({ name: "", district: user.district || "", role: "Member" }); toast("Member added to the list.");
         }}>Add member</Btn>
       </Modal>
@@ -2103,9 +2128,9 @@ function KaryakartaModule({ nav, id }) {
     const k = SEED_KARYAKARTAS.find((x) => x.id === id);
     if (!k) return <EmptyState title="Karyakarta not found" cta="Back" onCta={() => nav("karyakartas")} />;
     return (
-      <DetailShell back={() => nav("karyakartas")} backLabel="Karyakartas" title={{ text: k.name, avatar: k.name }} sub={`${k.id} · ${k.role} · ${k.district}`} badge={<Badge tone={k.active ? "Active" : "Pending"}>{k.active ? "Active" : "Inactive"}</Badge>}
+      <DetailShell back={() => nav("karyakartas")} backLabel="Karyakartas" title={{ text: k.name, avatar: k.name }} sub={`${k.id} · ${k.role} · ${k.district}`} badge={<Badge tone={k.active ? "सक्रिय" : "लंबित"}>{k.active ? "सक्रिय" : "Inactive"}</Badge>}
         actions={<Btn size="sm" onClick={() => toast("Demo — task assignment is simulated.")}>Assign task</Btn>}>
-        <KV items={[["Unit", k.unit], ["Availability", k.availability], ["Skills", k.skills.join(", ")], ["Tasks completed", k.tasksDone], ["Training", k.training], ["Region", regionOf(k.district)]]} />
+        <KV items={[["Unit", k.unit], ["Availability", k.availability], ["Skills", k.skills.join(", ")], ["Tasks completed", k.tasksDone], ["प्रशिक्षण", k.training], ["Region", regionOf(k.district)]]} />
         <div style={{ marginTop: 16 }}>
           <PCard><PTitle>Activity history</PTitle>
             {["Completed outreach task — 8 Aug", "Attended training module 2 — 28 Jul", "Verified 12 membership forms — 20 Jul"].map((a, i) => (
@@ -2120,19 +2145,19 @@ function KaryakartaModule({ nav, id }) {
     <div className="ukd-fade">
       <PageTitle title="Karyakartas" sub="The organisation's working strength — separate from general membership." />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
-        {[["Active Karyakartas", active, C.forest], ["New this month", 3, C.slate], ["Training completed", SEED_KARYAKARTAS.filter((k) => k.training === "Completed").length, C.gold], ["Tasks completed", SEED_KARYAKARTAS.reduce((a, k) => a + k.tasksDone, 0), C.slateSoft]].map(([l, v, c]) => (
+        {[["Active Karyakartas", active, C.forest], ["New this month", 3, C.slate], ["Training completed", SEED_KARYAKARTAS.filter((k) => k.training === "पूर्ण").length, C.gold], ["Tasks completed", SEED_KARYAKARTAS.reduce((a, k) => a + k.tasksDone, 0), C.slateSoft]].map(([l, v, c]) => (
           <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 32, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute, marginTop: 4 }}>{l}</div></PCard>
         ))}
       </div>
       <DataTable
         columns={[
           { key: "name", label: "Name", strong: true, render: (r) => <span style={{ display: "flex", gap: 10, alignItems: "center" }}><Avatar name={r.name} size={28} />{r.name}</span> },
-          { key: "role", label: "Role" }, { key: "district", label: "District" }, { key: "unit", label: "Unit" },
+          { key: "role", label: "Role" }, { key: "district", label: "ज़िला" }, { key: "unit", label: "Unit" },
           { key: "availability", label: "Availability" }, { key: "tasksDone", label: "Tasks done" },
-          { key: "training", label: "Training", render: (r) => <Badge tone={r.training === "Completed" ? "Completed" : "In Progress"}>{r.training}</Badge> },
+          { key: "training", label: "प्रशिक्षण", render: (r) => <Badge tone={r.training === "पूर्ण" ? "पूर्ण" : "प्रगति पर"}>{r.training}</Badge> },
         ]}
         rows={SEED_KARYAKARTAS} searchKeys={["name", "role", "unit"]} dense
-        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "role", label: "Role", options: [...new Set(SEED_KARYAKARTAS.map((k) => k.role))] }]}
+        filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "role", label: "Role", options: [...new Set(SEED_KARYAKARTAS.map((k) => k.role))] }]}
         onRow={(r) => nav(`karyakartas/${r.id}`)}
       />
     </div>
@@ -2163,7 +2188,7 @@ function UnitsModule({ nav, query }) {
               <div style={{ fontFamily: sans, fontSize: 12.5, color: "#4A554C", lineHeight: 1.8 }}>
                 Leader: <b>{u.leader}</b> (demo)<br />
                 {u.karyakartas} Karyakartas · {u.members} members<br />
-                {u.openIssues} open issues · {u.pendingTasks} pending tasks · report: <b style={{ color: u.lastReport === "Missing" ? C.red : C.ink }}>{u.lastReport}</b>
+                {u.openIssues} open issues · {u.pendingTasks} pending tasks · report: <b style={{ color: u.lastReport === "अप्राप्त" ? C.red : C.ink }}>{u.lastReport}</b>
               </div>
             </PCard>
           ))}
@@ -2188,27 +2213,27 @@ function UnitsModule({ nav, query }) {
   );
 }
 
-const TASK_FLOW = ["Not Started", "In Progress", "Submitted", "Under Review", "Completed"];
+const TASK_FLOW = ["शुरू नहीं", "प्रगति पर", "जमा", "समीक्षाधीन", "पूर्ण"];
 function TasksModule({ nav, id, query, user }) {
   const store = useStore(); const toast = useToast();
   const [createOpen, setCreateOpen] = useState(false);
-  const [tab, setTab] = useState(query && query.includes("f=Overdue") ? "Overdue" : "All");
-  const [nf, setNf] = useState({ name: "", district: user.district || "", priority: "Medium", assignee: "", deadline: "" });
+  const [tab, setTab] = useState(query && query.includes("f=Overdue") ? "विलंबित" : "सभी");
+  const [nf, setNf] = useState({ name: "", district: user.district || "", priority: "मध्यम", assignee: "", deadline: "" });
   if (id) {
     const t = store.tasks.find((x) => x.id === id);
     if (!t) return <EmptyState title="Task not found" cta="Back to tasks" onCta={() => nav("tasks")} />;
     const idx = TASK_FLOW.indexOf(t.status);
     const advance = () => {
-      const next = t.status === "Overdue" ? "In Progress" : TASK_FLOW[Math.min(idx + 1, TASK_FLOW.length - 1)];
+      const next = t.status === "विलंबित" ? "प्रगति पर" : TASK_FLOW[Math.min(idx + 1, TASK_FLOW.length - 1)];
       store.setTasks(store.tasks.map((x) => x.id === t.id ? { ...x, status: next } : x));
       toast(`Task moved to “${next}”.`);
     };
     return (
       <DetailShell back={() => nav("tasks")} backLabel="Tasks" title={{ text: t.name }} sub={`${t.id} · ${t.district} · ${t.unit} · deadline ${t.deadline}`} badge={<Badge tone={t.status}>{t.status}</Badge>}
-        actions={<>{t.status !== "Completed" && <Btn size="sm" onClick={advance}>{t.status === "Overdue" ? "Resume task" : idx >= 3 ? "Mark completed" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Demo — comment added (simulated).")}>Add comment</Btn></>}>
+        actions={<>{t.status !== "पूर्ण" && <Btn size="sm" onClick={advance}>{t.status === "विलंबित" ? "Resume task" : idx >= 3 ? "Mark completed" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Demo — comment added (simulated).")}>Add comment</Btn></>}>
         <div style={{ display: "flex", gap: 4, marginBottom: 18, flexWrap: "wrap" }}>
           {["Create", "Assign", "Execute", "Report", "Verify", "Complete"].map((s, i) => {
-            const done = t.status === "Completed" ? true : i <= (idx < 0 ? 2 : idx + 1);
+            const done = t.status === "पूर्ण" ? true : i <= (idx < 0 ? 2 : idx + 1);
             return (
               <div key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, padding: "5px 12px", borderRadius: 99, background: done ? C.forest : "#EAE6D7", color: done ? "#fff" : C.mute }}>{s}</div>
@@ -2217,17 +2242,17 @@ function TasksModule({ nav, id, query, user }) {
             );
           })}
         </div>
-        <KV items={[["Assigned to", t.assignee], ["Priority", t.priority], ["Deadline", t.deadline], ["Evidence", t.evidence], ["Comments", t.comments], ["District", t.district]]} />
+        <KV items={[["Assigned to", t.assignee], ["Priority", t.priority], ["Deadline", t.deadline], ["Evidence", t.evidence], ["Comments", t.comments], ["ज़िला", t.district]]} />
         <PCard style={{ marginTop: 16 }}><PTitle>Description</PTitle><p style={{ fontFamily: sans, fontSize: 14, lineHeight: 1.7, color: "#3C463E", margin: 0 }}>{t.desc}</p></PCard>
       </DetailShell>
     );
   }
-  const tabs = ["All", "My Tasks", "Overdue", "In Progress", "Completed", "Assigned by me"];
+  const tabs = ["सभी", "My Tasks", "विलंबित", "प्रगति पर", "पूर्ण", "Assigned by me"];
   let rows = store.tasks;
-  if (user.district && user.key !== "central-admin" && user.key !== "central-leadership") rows = rows.filter((t) => t.district === user.district || tab === "All");
-  if (tab === "Overdue") rows = store.tasks.filter((t) => t.status === "Overdue");
-  else if (tab === "In Progress") rows = store.tasks.filter((t) => t.status === "In Progress");
-  else if (tab === "Completed") rows = store.tasks.filter((t) => t.status === "Completed");
+  if (user.district && user.key !== "central-admin" && user.key !== "central-leadership") rows = rows.filter((t) => t.district === user.district || tab === "सभी");
+  if (tab === "विलंबित") rows = store.tasks.filter((t) => t.status === "विलंबित");
+  else if (tab === "प्रगति पर") rows = store.tasks.filter((t) => t.status === "प्रगति पर");
+  else if (tab === "पूर्ण") rows = store.tasks.filter((t) => t.status === "पूर्ण");
   else if (tab === "My Tasks") rows = store.tasks.slice(0, 4);
   else if (tab === "Assigned by me") rows = store.tasks.slice(4, 9);
   return (
@@ -2239,13 +2264,13 @@ function TasksModule({ nav, id, query, user }) {
       <DataTable
         columns={[
           { key: "name", label: "Task", strong: true },
-          { key: "assignee", label: "Assigned to" }, { key: "district", label: "District" },
+          { key: "assignee", label: "Assigned to" }, { key: "district", label: "ज़िला" },
           { key: "priority", label: "Priority", render: (r) => <Badge tone={r.priority}>{r.priority}</Badge> },
           { key: "deadline", label: "Deadline" },
           { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
         ]}
         rows={rows} searchKeys={["name", "assignee", "district"]} dense
-        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "priority", label: "Priority", options: ["High", "Medium", "Low"] }]}
+        filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "priority", label: "Priority", options: ["उच्च", "मध्यम", "निम्न"] }]}
         onRow={(r) => nav(`tasks/${r.id}`)}
         empty={<EmptyState title="No tasks assigned" sub="Tasks matching this view will appear here." cta="+ Create task" onCta={() => setCreateOpen(true)} />}
       />
@@ -2253,14 +2278,14 @@ function TasksModule({ nav, id, query, user }) {
         <Field label="Task name" required><TextInput value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} /></Field>
         <Field label="Assign to" required><Select value={nf.assignee} onChange={(e) => setNf({ ...nf, assignee: e.target.value })} options={SEED_KARYAKARTAS.map((k) => k.name)} placeholder="Choose a Karyakarta" /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="District"><Select value={nf.district} onChange={(e) => setNf({ ...nf, district: e.target.value })} options={DISTRICTS} placeholder="District" /></Field>
-          <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["High", "Medium", "Low"]} /></Field>
+          <Field label="ज़िला"><Select value={nf.district} onChange={(e) => setNf({ ...nf, district: e.target.value })} options={DISTRICTS} placeholder="ज़िला" /></Field>
+          <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["उच्च", "मध्यम", "निम्न"]} /></Field>
         </div>
         <Field label="Deadline"><TextInput value={nf.deadline} onChange={(e) => setNf({ ...nf, deadline: e.target.value })} placeholder="e.g. 25 Aug 2026" /></Field>
         <Btn style={{ width: "100%" }} onClick={() => {
           if (!nf.name.trim() || !nf.assignee) { toast("Task name and assignee are required.", "error"); return; }
-          store.setTasks([{ id: `T-${Math.floor(500 + Math.random() * 400)}`, name: nf.name, district: nf.district || "देहरादून", priority: nf.priority, assignee: nf.assignee, unit: "Local Unit 01", deadline: nf.deadline || "31 Aug 2026", status: "Not Started", desc: "Newly created task. Assign, execute and report through the standard workflow.", comments: 0, evidence: "—" }, ...store.tasks]);
-          setCreateOpen(false); setNf({ name: "", district: user.district || "", priority: "Medium", assignee: "", deadline: "" }); toast("Task created and assigned.");
+          store.setTasks([{ id: `T-${Math.floor(500 + Math.random() * 400)}`, name: nf.name, district: nf.district || "देहरादून", priority: nf.priority, assignee: nf.assignee, unit: "Local Unit 01", deadline: nf.deadline || "31 Aug 2026", status: "शुरू नहीं", desc: "Newly created task. Assign, execute and report through the standard workflow.", comments: 0, evidence: "—" }, ...store.tasks]);
+          setCreateOpen(false); setNf({ name: "", district: user.district || "", priority: "मध्यम", assignee: "", deadline: "" }); toast("Task created and assigned.");
         }}>Create task</Btn>
       </Modal>
     </div>
@@ -2281,12 +2306,12 @@ function IssuesModule({ nav, id, query }) {
     };
     return (
       <DetailShell back={() => nav("issues")} backLabel="People's Issues" title={{ text: iss.category }} sub={`${iss.id} · ${iss.location} · submitted ${iss.date}`} badge={<Badge tone={iss.status}>{iss.status}</Badge>}
-        actions={<>{iss.status !== "Closed" && <Btn size="sm" onClick={advance}>{idx >= 3 ? "Close issue" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Internal note added (demo).")}>Add internal note</Btn></>}>
+        actions={<>{iss.status !== "बंद" && <Btn size="sm" onClick={advance}>{idx >= 3 ? "Close issue" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Internal note added (demo).")}>Add internal note</Btn></>}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
           <PCard>
             <PTitle>Issue information</PTitle>
             <p style={{ fontFamily: sans, fontSize: 14.5, lineHeight: 1.7, color: "#3C463E", marginTop: 0 }}>{iss.title}.</p>
-            <KV items={[["Citizen", iss.citizen], ["Contact", iss.phone], ["Priority", iss.priority], ["Age", `${iss.ageDays} days`], ["Assigned unit", iss.assignedUnit], ["Attachments", "1 photo (demo)"]]} />
+            <KV items={[["Citizen", iss.citizen], ["संपर्क", iss.phone], ["Priority", iss.priority], ["Age", `${iss.ageDays} days`], ["Assigned unit", iss.assignedUnit], ["Attachments", "1 photo (demo)"]]} />
           </PCard>
           <PCard>
             <PTitle>Status timeline</PTitle>
@@ -2307,31 +2332,31 @@ function IssuesModule({ nav, id, query }) {
       </DetailShell>
     );
   }
-  const rows = aged ? store.issues.filter((i) => i.ageDays > 15 && !["Resolved", "Closed"].includes(i.status)) : store.issues;
+  const rows = aged ? store.issues.filter((i) => i.ageDays > 15 && !["हल हुआ", "बंद"].includes(i.status)) : store.issues;
   return (
     <div className="ukd-fade">
       <PageTitle title="People's Issues" sub={aged ? "Filtered: unresolved issues older than 15 days" : "Every public issue submitted through the website, tracked to closure."} right={aged && <Btn size="sm" kind="subtle" onClick={() => nav("issues")}>Clear filter</Btn>} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 20 }}>
         <PCard><PTitle>Open vs resolved</PTitle>
           <Donut label={String(store.issues.length)} sub="TOTAL" segments={[
-            { k: "Open", v: store.issues.filter((i) => !["Resolved", "Closed"].includes(i.status)).length, c: C.gold },
-            { k: "Resolved", v: store.issues.filter((i) => ["Resolved", "Closed"].includes(i.status)).length, c: C.lime },
+            { k: "Open", v: store.issues.filter((i) => !["हल हुआ", "बंद"].includes(i.status)).length, c: C.gold },
+            { k: "हल हुआ", v: store.issues.filter((i) => ["हल हुआ", "बंद"].includes(i.status)).length, c: C.lime },
           ]} /></PCard>
         <PCard><PTitle>Issues by category</PTitle>
-          <Bars height={150} color={C.slate} data={["Road & Connectivity", "Water", "Transport", "Electricity", "Healthcare"].map((c) => ({ k: c.split(" ")[0], v: store.issues.filter((i) => i.category === c).length || 1 }))} /></PCard>
+          <Bars height={150} color={C.slate} data={["सड़क व संपर्क", "पानी", "परिवहन", "बिजली", "स्वास्थ्य"].map((c) => ({ k: c.split(" ")[0], v: store.issues.filter((i) => i.category === c).length || 1 }))} /></PCard>
         <PCard><PTitle>Issue ageing</PTitle>
           <Bars height={150} color={C.gold} data={[["0–7d", 0, 7], ["8–15d", 8, 15], ["16–25d", 16, 25], ["25d+", 26, 99]].map(([k, a, b]) => ({ k, v: store.issues.filter((i) => i.ageDays >= a && i.ageDays <= b).length, c: b > 15 ? C.red : C.gold }))} /></PCard>
       </div>
       <DataTable
         columns={[
-          { key: "id", label: "Issue ID", strong: true },
-          { key: "category", label: "Category" }, { key: "district", label: "District" },
-          { key: "assignedUnit", label: "Assigned Unit" }, { key: "date", label: "Date" },
+          { key: "id", label: "समस्या क्रमांक", strong: true },
+          { key: "category", label: "श्रेणी" }, { key: "district", label: "ज़िला" },
+          { key: "assignedUnit", label: "Assigned Unit" }, { key: "date", label: "दिनांक" },
           { key: "priority", label: "Priority", render: (r) => <Badge tone={r.priority}>{r.priority}</Badge> },
           { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
         ]}
         rows={rows} searchKeys={["id", "category", "district", "title"]} dense
-        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "category", label: "Category", options: ISSUE_CATEGORIES }, { key: "status", label: "Status", options: ISSUE_STAGES }]}
+        filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "category", label: "श्रेणी", options: ISSUE_CATEGORIES }, { key: "status", label: "Status", options: ISSUE_STAGES }]}
         onRow={(r) => nav(`issues/${r.id}`)}
         empty={<EmptyState title="No public issues found" sub="Issues submitted on the public website appear here automatically." />}
       />
@@ -2347,17 +2372,17 @@ function PEventsModule({ nav, id }) {
   if (id) {
     const e = SEED_EVENTS.find((x) => x.id === id) || SEED_EVENTS[0];
     return (
-      <DetailShell back={() => nav("pevents")} backLabel="Events" title={{ text: e.title }} sub={`${e.date} · ${e.time} · ${e.venue}`} badge={<Badge>{e.type}</Badge>}
+      <DetailShell back={() => nav("pevents")} backLabel="कार्यक्रम" title={{ text: e.title }} sub={`${e.date} · ${e.time} · ${e.venue}`} badge={<Badge>{e.type}</Badge>}
         actions={<Btn size="sm" onClick={() => toast("Attendance sheet opened (demo).")}>Record attendance</Btn>}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          {["Overview", "Attendance", "Tasks", "Documents", "Photos", "Follow-up"].map((t) => (
+          {["Overview", "Attendance", "Tasks", "दस्तावेज़", "Photos", "Follow-up"].map((t) => (
             <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "7px 15px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>
           ))}
         </div>
-        {tab === "Overview" && <><KV items={[["Organiser (demo)", e.organiser], ["Expected participants", e.participants], ["District", e.district], ["Type", e.type]]} /><PCard style={{ marginTop: 14 }}><PTitle>Meeting agenda</PTitle>{["Opening & attendance", "Organisational review of the district", "Public issue follow-ups", "Task assignments & minutes", "Decisions and next meeting"].map((a, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55`, color: C.ink }}><b style={{ color: C.gold, marginRight: 10 }}>{i + 1}.</b>{a}</div>)}</PCard></>}
-        {tab === "Attendance" && <PCard><PTitle>Attendance ({Math.floor(e.participants * 0.8)} / {e.participants} confirmed)</PTitle>{SEED_MEMBERS.slice(0, 6).map((m) => <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${C.line}55`, fontFamily: sans, fontSize: 13.5 }}><Avatar name={m.name} size={28} /><span style={{ flex: 1, color: C.ink, fontWeight: 600 }}>{m.name}</span><Badge tone="Active">Present</Badge></div>)}</PCard>}
+        {tab === "Overview" && <><KV items={[["आयोजक", e.organiser], ["Expected participants", e.participants], ["ज़िला", e.district], ["Type", e.type]]} /><PCard style={{ marginTop: 14 }}><PTitle>Meeting agenda</PTitle>{["Opening & attendance", "Organisational review of the district", "Public issue follow-ups", "Task assignments & minutes", "Decisions and next meeting"].map((a, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55`, color: C.ink }}><b style={{ color: C.gold, marginRight: 10 }}>{i + 1}.</b>{a}</div>)}</PCard></>}
+        {tab === "Attendance" && <PCard><PTitle>Attendance ({Math.floor(e.participants * 0.8)} / {e.participants} confirmed)</PTitle>{SEED_MEMBERS.slice(0, 6).map((m) => <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${C.line}55`, fontFamily: sans, fontSize: 13.5 }}><Avatar name={m.name} size={28} /><span style={{ flex: 1, color: C.ink, fontWeight: 600 }}>{m.name}</span><Badge tone="सक्रिय">Present</Badge></div>)}</PCard>}
         {tab === "Tasks" && <PCard><PTitle>Follow-up tasks</PTitle>{store.tasks.slice(0, 3).map((t) => <button key={t.id} onClick={() => nav(`tasks/${t.id}`)} className="rowhover" style={{ display: "flex", width: "100%", justifyContent: "space-between", padding: "10px", borderRadius: 8, background: "none", border: "none", fontFamily: sans, fontSize: 13.5, cursor: "pointer" }}><span style={{ fontWeight: 600, color: C.ink }}>{t.name}</span><Badge tone={t.status}>{t.status}</Badge></button>)}</PCard>}
-        {["Documents", "Photos", "Follow-up"].includes(tab) && <EmptyState title={`No ${tab.toLowerCase()} yet`} sub={`${tab} recorded for this event will appear here.`} cta={`Add ${tab.toLowerCase()} (demo)`} onCta={() => toast("Demo — upload simulated.")} />}
+        {["दस्तावेज़", "Photos", "Follow-up"].includes(tab) && <EmptyState title={`No ${tab.toLowerCase()} yet`} sub={`${tab} recorded for this event will appear here.`} cta={`Add ${tab.toLowerCase()} (demo)`} onCta={() => toast("Demo — upload simulated.")} />}
       </DetailShell>
     );
   }
@@ -2367,17 +2392,17 @@ function PEventsModule({ nav, id }) {
       <DataTable
         columns={[
           { key: "title", label: "Event", strong: true }, { key: "type", label: "Type", render: (r) => <Badge>{r.type}</Badge> },
-          { key: "date", label: "Date" }, { key: "time", label: "Time" }, { key: "district", label: "District" }, { key: "participants", label: "Participants" },
+          { key: "date", label: "दिनांक" }, { key: "time", label: "समय" }, { key: "district", label: "ज़िला" }, { key: "participants", label: "Participants" },
         ]}
         rows={SEED_EVENTS} searchKeys={["title", "district", "type"]} dense
-        filters={[{ key: "district", label: "District", options: DISTRICTS }, { key: "type", label: "Type", options: [...new Set(SEED_EVENTS.map((e) => e.type))] }]}
+        filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "type", label: "Type", options: [...new Set(SEED_EVENTS.map((e) => e.type))] }]}
         onRow={(r) => nav(`pevents/${r.id}`)}
       />
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create event (demo)">
         <Field label="Title" required><TextInput placeholder="Event title" /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Date"><TextInput placeholder="e.g. 28 Aug 2026" /></Field>
-          <Field label="District"><Select options={DISTRICTS} placeholder="District" /></Field>
+          <Field label="दिनांक"><TextInput placeholder="e.g. 28 Aug 2026" /></Field>
+          <Field label="ज़िला"><Select options={DISTRICTS} placeholder="ज़िला" /></Field>
         </div>
         <Btn style={{ width: "100%" }} onClick={() => { setCreateOpen(false); toast("Event created (demo)."); }}>Create event</Btn>
       </Modal>
@@ -2389,16 +2414,16 @@ function PDocsModule() {
   const toast = useToast();
   return (
     <div className="ukd-fade">
-      <PageTitle title="Documents" sub="The organisation's digital archive — searchable, filterable, tagged." right={<Btn size="sm" onClick={() => toast("Demo — upload simulated.")}>⇪ Upload</Btn>} />
+      <PageTitle title="दस्तावेज़" sub="The organisation's digital archive — searchable, filterable, tagged." right={<Btn size="sm" onClick={() => toast("Demo — upload simulated.")}>⇪ Upload</Btn>} />
       <DataTable
         columns={[
           { key: "title", label: "Document", strong: true },
-          { key: "category", label: "Category", render: (r) => <Badge>{r.category}</Badge> },
-          { key: "district", label: "District" }, { key: "date", label: "Added" }, { key: "size", label: "Size" },
+          { key: "category", label: "श्रेणी", render: (r) => <Badge>{r.category}</Badge> },
+          { key: "district", label: "ज़िला" }, { key: "date", label: "Added" }, { key: "size", label: "Size" },
           { key: "a", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview · ↓</span> },
         ]}
         rows={SEED_DOCS} searchKeys={["title", "category"]} dense
-        filters={[{ key: "category", label: "Category", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "year", label: "Year", options: ["2026", "2025"] }]}
+        filters={[{ key: "category", label: "श्रेणी", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "year", label: "Year", options: ["2026", "2025"] }]}
         onRow={() => toast("Document preview (demo).")}
         empty={<EmptyState title="No documents uploaded" sub="Upload the first document to start the archive." cta="⇪ Upload (demo)" onCta={() => toast("Demo — upload simulated.")} />}
       />
@@ -2410,7 +2435,7 @@ function NoticesModule({ user }) {
   const store = useStore(); const toast = useToast();
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState(null);
-  const [nf, setNf] = useState({ title: "", type: "Official Notice", audience: "All Units", priority: "Medium", content: "" });
+  const [nf, setNf] = useState({ title: "", type: "Official Notice", audience: "सभी इकाइयाँ", priority: "मध्यम", content: "" });
   const canPublish = ["central-admin", "central-leadership"].includes(user.key);
   return (
     <div className="ukd-fade">
@@ -2449,15 +2474,15 @@ function NoticesModule({ user }) {
       <Modal open={open} onClose={() => setOpen(false)} title="Publish notice">
         <Field label="Title" required><TextInput value={nf.title} onChange={(e) => setNf({ ...nf, title: e.target.value })} /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Type"><Select value={nf.type} onChange={(e) => setNf({ ...nf, type: e.target.value })} options={["Official Notice", "Circular", "Instruction", "Announcement", "Event Notice"]} /></Field>
-          <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["High", "Medium", "Low"]} /></Field>
+          <Field label="Type"><Select value={nf.type} onChange={(e) => setNf({ ...nf, type: e.target.value })} options={["Official Notice", "परिपत्र", "Instruction", "Announcement", "Event Notice"]} /></Field>
+          <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["उच्च", "मध्यम", "निम्न"]} /></Field>
         </div>
-        <Field label="Audience"><Select value={nf.audience} onChange={(e) => setNf({ ...nf, audience: e.target.value })} options={["All Units", "District Presidents", "District Admins", "Block Coordinators", "Karyakartas"]} /></Field>
+        <Field label="Audience"><Select value={nf.audience} onChange={(e) => setNf({ ...nf, audience: e.target.value })} options={["सभी इकाइयाँ", "District Presidents", "District Admins", "ब्लॉक संयोजक", "Karyakartas"]} /></Field>
         <Field label="Content" required><TextArea value={nf.content} onChange={(e) => setNf({ ...nf, content: e.target.value })} /></Field>
         <Btn style={{ width: "100%" }} onClick={() => {
           if (!nf.title.trim() || !nf.content.trim()) { toast("Title and content are required.", "error"); return; }
           store.setNotices([{ id: `NT-${Date.now()}`, title: nf.title, type: nf.type, audience: nf.audience, priority: nf.priority, date: "12 Aug 2026", read: [0, 47], ack: [0, 47], content: nf.content }, ...store.notices]);
-          setOpen(false); setNf({ title: "", type: "Official Notice", audience: "All Units", priority: "Medium", content: "" }); toast("Notice published to the organisation.");
+          setOpen(false); setNf({ title: "", type: "Official Notice", audience: "सभी इकाइयाँ", priority: "मध्यम", content: "" }); toast("Notice published to the organisation.");
         }}>Publish notice</Btn>
       </Modal>
     </div>
@@ -2469,9 +2494,9 @@ function ReportsModule() {
   const [sel, setSel] = useState(null);
   return (
     <div className="ukd-fade">
-      <PageTitle title="Reports" sub="Reporting line: Local Unit → Block → District → Mandal → Central. Week 32 shown." right={<Btn size="sm" onClick={() => toast("Weekly report form opened (demo).")}>+ Submit report</Btn>} />
+      <PageTitle title="रिपोर्ट" sub="Reporting line: Local Unit → Block → District → Mandal → Central. Week 32 shown." right={<Btn size="sm" onClick={() => toast("Weekly report form opened (demo).")}>+ Submit report</Btn>} />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, fontFamily: sans, fontSize: 12.5, fontWeight: 700 }}>
-        {["Local Unit", "Block", "District", "Mandal", "Central"].map((s, i, a) => (
+        {["स्थानीय इकाई", "ब्लॉक", "ज़िला", "मंडल", "केंद्र"].map((s, i, a) => (
           <React.Fragment key={s}>
             <span style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 99, padding: "7px 16px", color: C.ink }}>{s}</span>
             {i < a.length - 1 && <span style={{ alignSelf: "center", color: C.gold }}>→</span>}
@@ -2480,17 +2505,17 @@ function ReportsModule() {
       </div>
       <DataTable
         columns={[
-          { key: "district", label: "District", strong: true }, { key: "week", label: "Week" },
+          { key: "district", label: "ज़िला", strong: true }, { key: "week", label: "Week" },
           { key: "meetings", label: "Meetings" }, { key: "activities", label: "Activities" }, { key: "tasksDone", label: "Tasks done" },
           { key: "membersAdded", label: "Members added" }, { key: "issuesResolved", label: "Issues resolved" },
           { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
         ]}
         rows={SEED_REPORTS} searchKeys={["district"]} dense
-        filters={[{ key: "status", label: "Status", options: ["Submitted", "Missing", "Draft"] }]}
+        filters={[{ key: "status", label: "Status", options: ["जमा", "अप्राप्त", "प्रारूप"] }]}
         onRow={(r) => setSel(r)}
       />
       <Modal open={!!sel} onClose={() => setSel(null)} title={sel ? `${sel.district} — Weekly report (${sel.week})` : ""}>
-        {sel && (sel.status === "Missing" ? <EmptyState title="Report not submitted" sub="This district has not filed its weekly report. A reminder can be sent from here." cta="Send reminder (demo)" onCta={() => { toast("Reminder sent to district admin (demo)."); setSel(null); }} /> : (
+        {sel && (sel.status === "अप्राप्त" ? <EmptyState title="Report not submitted" sub="This district has not filed its weekly report. A reminder can be sent from here." cta="Send reminder (demo)" onCta={() => { toast("Reminder sent to district admin (demo)."); setSel(null); }} /> : (
           <div style={{ fontFamily: sans }}>
             <KV items={[["Meetings", sel.meetings], ["Activities", sel.activities], ["Tasks completed", sel.tasksDone], ["Members added", sel.membersAdded], ["Issues received", sel.issuesIn], ["Issues resolved", sel.issuesResolved]]} />
             <PCard style={{ marginTop: 14 }} pad={16}>
@@ -2518,19 +2543,19 @@ function FinanceModule() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 20 }}>
         <PCard><PTitle>Contributions — last 6 weeks (demo)</PTitle><Bars height={160} color={C.forest} data={["Wk27", "Wk28", "Wk29", "Wk30", "Wk31", "Wk32"].map((k, i) => ({ k, v: [31, 44, 38, 52, 47, 58][i] }))} /></PCard>
-        <PCard><PTitle>By purpose (demo)</PTitle><Donut label="100%" sub="ALLOCATED" segments={[{ k: "Organisation", v: 38, c: C.forest }, { k: "Public work", v: 27, c: C.gold }, { k: "Events", v: 20, c: C.slate }, { k: "Office", v: 15, c: "#B9B4A1" }]} /></PCard>
+        <PCard><PTitle>By purpose (demo)</PTitle><Donut label="100%" sub="ALLOCATED" segments={[{ k: "संगठन", v: 38, c: C.forest }, { k: "Public work", v: 27, c: C.gold }, { k: "कार्यक्रम", v: 20, c: C.slate }, { k: "Office", v: 15, c: "#B9B4A1" }]} /></PCard>
       </div>
       <PTitle>Transactions (demo)</PTitle>
       <DataTable
         columns={[
-          { key: "date", label: "Date" }, { key: "type", label: "Type", strong: true },
+          { key: "date", label: "दिनांक" }, { key: "type", label: "Type", strong: true },
           { key: "amount", label: "Amount", render: (r) => <b>₹{r.amount.toLocaleString("en-IN")}</b> },
-          { key: "district", label: "District" },
+          { key: "district", label: "ज़िला" },
           { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> },
           { key: "receipt", label: "Receipt", render: (r) => <span style={{ color: C.forest, fontWeight: 700 }}>{r.receipt} ↓</span> },
         ]}
         rows={SEED_TXNS} searchKeys={["type", "district", "receipt"]} dense
-        filters={[{ key: "type", label: "Type", options: ["Contribution", "District Allocation", "Expense"] }, { key: "status", label: "Status", options: ["Recorded", "Pending Approval"] }]}
+        filters={[{ key: "type", label: "Type", options: ["सहयोग राशि", "District Allocation", "Expense"] }, { key: "status", label: "Status", options: ["दर्ज", "Pending Approval"] }]}
         onRow={() => toast("Receipt preview (demo).")}
       />
     </div>
@@ -2546,8 +2571,8 @@ function AnalyticsModule() {
         <PCard><PTitle>Membership growth (6 months)</PTitle><Bars height={170} color={C.forest} data={["Mar", "Apr", "May", "Jun", "Jul", "Aug"].map((k, i) => ({ k, v: [18, 24, 29, 33, 38, store.members.length][i] }))} /></PCard>
         <PCard><PTitle>Karyakarta activity — tasks / week</PTitle><Bars height={170} color={C.slate} data={["Wk27", "Wk28", "Wk29", "Wk30", "Wk31", "Wk32"].map((k, i) => ({ k, v: [12, 15, 11, 18, 16, 21][i] }))} /></PCard>
         <PCard><PTitle>Organisation health by region</PTitle><Bars height={170} data={[{ k: "गढ़वाल", v: 81, c: C.forest }, { k: "कुमाऊँ", v: 76, c: C.gold }, { k: "तराई", v: 71, c: C.gold }]} /></PCard>
-        <PCard><PTitle>Task completion</PTitle><Donut label={`${Math.round(store.tasks.filter((t) => t.status === "Completed").length / store.tasks.length * 100)}%`} sub="COMPLETED" segments={[{ k: "Completed", v: store.tasks.filter((t) => t.status === "Completed").length, c: C.lime }, { k: "Active", v: store.tasks.filter((t) => !["Completed", "Overdue"].includes(t.status)).length, c: C.gold }, { k: "Overdue", v: store.tasks.filter((t) => t.status === "Overdue").length, c: C.red }]} /></PCard>
-        <PCard><PTitle>Issue resolution time (days, avg)</PTitle><Bars height={170} color={C.gold} data={["Road", "Water", "Elec.", "Health", "Transport"].map((k, i) => ({ k, v: [14, 9, 7, 12, 6][i] }))} /></PCard>
+        <PCard><PTitle>Task completion</PTitle><Donut label={`${Math.round(store.tasks.filter((t) => t.status === "पूर्ण").length / store.tasks.length * 100)}%`} sub="COMPLETED" segments={[{ k: "पूर्ण", v: store.tasks.filter((t) => t.status === "पूर्ण").length, c: C.lime }, { k: "सक्रिय", v: store.tasks.filter((t) => !["पूर्ण", "विलंबित"].includes(t.status)).length, c: C.gold }, { k: "विलंबित", v: store.tasks.filter((t) => t.status === "विलंबित").length, c: C.red }]} /></PCard>
+        <PCard><PTitle>Issue resolution time (days, avg)</PTitle><Bars height={170} color={C.gold} data={["Road", "पानी", "Elec.", "Health", "परिवहन"].map((k, i) => ({ k, v: [14, 9, 7, 12, 6][i] }))} /></PCard>
         <PCard><PTitle>Events by district (upcoming)</PTitle><Bars height={170} color={C.slateSoft} data={["देहरादून", "अल्मोड़ा", "पौड़ी", "हरिद्वार", "Others"].map((k) => ({ k, v: SEED_EVENTS.filter((e) => e.district.startsWith(k)).length || 1 }))} /></PCard>
       </div>
     </div>
@@ -2628,15 +2653,15 @@ function NotificationsModule() {
 
 function SettingsModule({ user }) {
   const toast = useToast();
-  const [tab, setTab] = useState("Profile");
-  const tabs = ["Profile", "Security", "Permissions", "Audit Log", "System"];
+  const [tab, setTab] = useState("प्रोफ़ाइल");
+  const tabs = ["प्रोफ़ाइल", "सुरक्षा", "Permissions", "Audit Log", "System"];
   return (
     <div className="ukd-fade">
-      <PageTitle title="Settings" sub="Profile, security, roles and the audit trail." />
+      <PageTitle title="सेटिंग्स" sub="Profile, security, roles and the audit trail." />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
         {tabs.map((t) => <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "8px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
       </div>
-      {tab === "Profile" && (
+      {tab === "प्रोफ़ाइल" && (
         <PCard style={{ maxWidth: 560 }}>
           <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 20 }}>
             <Avatar name={user.label} size={54} />
@@ -2646,11 +2671,11 @@ function SettingsModule({ user }) {
             </div>
           </div>
           <Field label="Display name"><TextInput defaultValue={user.label} /></Field>
-          <Field label="Email"><TextInput defaultValue="demo@ukd.org" /></Field>
+          <Field label="ईमेल"><TextInput defaultValue="demo@ukd.org" /></Field>
           <Btn onClick={() => toast("Profile saved (demo).")}>Save changes</Btn>
         </PCard>
       )}
-      {tab === "Security" && (
+      {tab === "सुरक्षा" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
           <PCard><PTitle>Password</PTitle><Field label="Current password"><TextInput type="password" /></Field><Field label="New password"><TextInput type="password" /></Field><Btn size="sm" onClick={() => toast("Password changed (demo).")}>Update password</Btn></PCard>
           <PCard><PTitle>Two-factor authentication</PTitle><p style={{ fontFamily: sans, fontSize: 13.5, color: "#4A554C", lineHeight: 1.6 }}>Protect the account with a one-time code at sign-in.</p><Btn size="sm" kind="ghost" onClick={() => toast("2FA enabled (demo).")}>Enable 2FA (demo)</Btn></PCard>
@@ -2662,7 +2687,7 @@ function SettingsModule({ user }) {
           <PTitle>Role permissions matrix (demo)</PTitle>
           <div style={{ overflowX: "auto" }}>
             <table style={{ borderCollapse: "collapse", fontFamily: sans, fontSize: 13, width: "100%" }}>
-              <thead><tr><th style={{ textAlign: "left", padding: 10, color: C.mute, fontSize: 11.5 }}>Module</th>{["Central Admin", "District Admin", "Block Coord.", "Karyakarta"].map((r) => <th key={r} style={{ padding: 10, color: C.mute, fontSize: 11.5 }}>{r}</th>)}</tr></thead>
+              <thead><tr><th style={{ textAlign: "left", padding: 10, color: C.mute, fontSize: 11.5 }}>Module</th>{["केंद्रीय प्रशासक", "ज़िला प्रशासक", "Block Coord.", "कार्यकर्ता"].map((r) => <th key={r} style={{ padding: 10, color: C.mute, fontSize: 11.5 }}>{r}</th>)}</tr></thead>
               <tbody>
                 {[["Members", 1, 1, 1, 0], ["Finance", 1, 1, 0, 0], ["Notices — publish", 1, 0, 0, 0], ["Tasks — assign", 1, 1, 1, 0], ["Issues — close", 1, 1, 0, 0], ["Settings — roles", 1, 0, 0, 0]].map(([m, ...cols]) => (
                   <tr key={m} style={{ borderTop: `1px solid ${C.line}66` }}>
@@ -2677,7 +2702,7 @@ function SettingsModule({ user }) {
       )}
       {tab === "Audit Log" && (
         <DataTable
-          columns={[{ key: "user", label: "User", strong: true }, { key: "action", label: "Action" }, { key: "module", label: "Module" }, { key: "time", label: "Timestamp" }, { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> }]}
+          columns={[{ key: "user", label: "User", strong: true }, { key: "action", label: "कार्रवाई" }, { key: "module", label: "Module" }, { key: "time", label: "Timestamp" }, { key: "status", label: "Status", render: (r) => <Badge tone={r.status}>{r.status}</Badge> }]}
           rows={SEED_AUDIT} searchKeys={["user", "action", "module"]} dense
           filters={[{ key: "module", label: "Module", options: [...new Set(SEED_AUDIT.map((a) => a.module))] }]}
         />
@@ -2706,7 +2731,7 @@ function CommandPalette({ open, onClose, nav }) {
   const hits = q.length < 2 ? PORTAL_NAV.slice(0, 6).map(([r, l]) => ({ t: "Go to", label: l, r })) : [
     ...PORTAL_NAV.filter(([r, l]) => l.toLowerCase().includes(ql)).map(([r, l]) => ({ t: "Module", label: l, r })),
     ...store.members.filter((m) => m.name.toLowerCase().includes(ql)).slice(0, 3).map((m) => ({ t: "Member", label: `${m.name} — ${m.district}`, r: `members/${m.id}` })),
-    ...SEED_KARYAKARTAS.filter((k) => k.name.toLowerCase().includes(ql)).slice(0, 2).map((k) => ({ t: "Karyakarta", label: k.name, r: `karyakartas/${k.id}` })),
+    ...SEED_KARYAKARTAS.filter((k) => k.name.toLowerCase().includes(ql)).slice(0, 2).map((k) => ({ t: "कार्यकर्ता", label: k.name, r: `karyakartas/${k.id}` })),
     ...store.tasks.filter((t) => t.name.toLowerCase().includes(ql)).slice(0, 3).map((t) => ({ t: "Task", label: t.name, r: `tasks/${t.id}` })),
     ...store.issues.filter((i) => (i.id + i.category + i.title).toLowerCase().includes(ql)).slice(0, 3).map((i) => ({ t: "Issue", label: `${i.id} — ${i.category}`, r: `issues/${i.id}` })),
     ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).slice(0, 2).map((e) => ({ t: "Event", label: e.title, r: `pevents/${e.id}` })),
@@ -2791,7 +2816,7 @@ function Portal({ toSite }) {
       <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
         {visibleNav.map(([r, l, ic]) => {
           const active = base === r;
-          const badge = r === "issues" ? store.issues.filter((i) => !["Resolved", "Closed"].includes(i.status)).length : r === "tasks" ? store.tasks.filter((t) => t.status === "Overdue").length : null;
+          const badge = r === "issues" ? store.issues.filter((i) => !["हल हुआ", "बंद"].includes(i.status)).length : r === "tasks" ? store.tasks.filter((t) => t.status === "विलंबित").length : null;
           return (
             <button key={r} onClick={() => nav(r)} style={{ display: "flex", width: "100%", gap: 11, alignItems: "center", padding: "10px 12px", borderRadius: 9, border: "none", background: active ? `${C.gold}26` : "transparent", color: active ? C.goldSoft : "#C6D1C1", fontFamily: sans, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: "pointer", marginBottom: 2, borderLeft: `3px solid ${active ? C.gold : "transparent"}` }}
               onMouseEnter={(e) => !active && (e.currentTarget.style.background = `${C.ivory}0d`)} onMouseLeave={(e) => !active && (e.currentTarget.style.background = "transparent")}>
