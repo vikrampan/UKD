@@ -49,6 +49,9 @@ const GlobalStyle = () => (
     @media (prefers-reduced-motion: reduce) { .ukd-fade, .ukd-pop, .ukd-skel, .ukd-skel-dark { animation: none; } .hoverlift:hover { transform:none } }
     @keyframes ukdBar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
     .baranim { transform-origin: bottom; animation: ukdBar .6s ease both; }
+    .ukd-ring { transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease; }
+    .ukd-portrait:hover .ukd-ring { transform: translateY(-6px) scale(1.03); box-shadow: 0 30px 62px -18px rgba(0,0,0,.8); }
+    @media (prefers-reduced-motion: reduce) { .ukd-portrait:hover .ukd-ring { transform: none; } }
     .navlink { position: relative; }
     .navlink:after { content:""; position:absolute; left:0; right:100%; bottom:-4px; height:2px; background:${C.gold}; transition: right .2s ease; }
     .navlink:hover:after, .navlink.active:after { right:0; }
@@ -659,22 +662,25 @@ function HeroFaces({ nav }) {
   const mobile = useIsMobile(760);
   const faces = [LEADERS[0], LEADERS[1], LEADERS[2]];
   return (
-    <div className="ukd-fade" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)", gap: mobile ? 16 : 22, animationDelay: "160ms" }}>
+    <div className="ukd-fade" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)", gap: mobile ? 34 : 26, animationDelay: "160ms" }}>
       {faces.map((p, i) => (
-        <button key={p.name} onClick={() => nav("organisation")} className="hoverlift"
-          style={{
-            display: "block", padding: 0, cursor: "pointer", textAlign: "left",
-            background: "#fff", borderRadius: 14, overflow: "hidden", border: "none",
-            borderTop: `4px solid ${i < 2 ? C.red : C.forest}`,
-            boxShadow: "0 26px 56px -26px rgba(0,0,0,.7)",
+        <button key={p.name} onClick={() => nav("organisation")} className="ukd-portrait"
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          {/* Ring carries the emblem's own green-to-red diagonal */}
+          <div className="ukd-ring" style={{
+            width: "clamp(148px, 17vw, 206px)", aspectRatio: "1", borderRadius: "50%", padding: 4,
+            background: `linear-gradient(135deg, ${C.green} 0%, ${C.green} 47%, ${C.red} 53%, ${C.red} 100%)`,
+            boxShadow: "0 22px 50px -18px rgba(0,0,0,.7)", flexShrink: 0,
           }}>
-          <div style={{ position: "relative", aspectRatio: "4 / 5", background: C.forestDeep }}>
-            <img src={p.img} alt={p.name} loading="eager"
-              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 22%", display: "block" }} />
+            <div style={{ width: "100%", height: "100%", borderRadius: "50%", padding: 3, background: C.forestDark }}>
+              <img src={p.img} alt={p.name} loading="eager"
+                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", objectPosition: "center 18%", display: "block" }} />
+            </div>
           </div>
-          <div style={{ padding: "16px 18px 18px", borderTop: `1px solid ${C.line}` }}>
-            <div style={{ fontFamily: serif, fontSize: "clamp(19px, 2vw, 23px)", fontWeight: 700, color: C.ink, lineHeight: 1.3 }}>{p.name}</div>
-            <div style={{ fontFamily: sans, fontSize: 14.5, color: i < 2 ? C.red : C.mute, fontWeight: 600, marginTop: 5 }}>{p.note || p.role}</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: serif, fontSize: "clamp(19px, 2vw, 24px)", fontWeight: 700, color: "#fff", lineHeight: 1.35 }}>{p.name}</div>
+            <div style={{ width: 26, height: 2, background: C.red, margin: "9px auto" }} />
+            <div style={{ fontFamily: sans, fontSize: 14.5, color: "#B9D2BF", fontWeight: 500 }}>{p.note || p.role}</div>
           </div>
         </button>
       ))}
@@ -688,7 +694,7 @@ function Hero({ nav }) {
     <div style={{ background: C.forestDeep, position: "relative", overflow: "hidden", minHeight: stack ? "auto" : "min(74vh, 640px)", display: "flex", alignItems: "center" }}>
       {/* The photograph sits behind everything, anchored right so she survives every crop */}
       <img src="/hero-woman.jpg" alt="पौड़ी की एक महिला अपने मोबाइल पर समाधान की सूचना दिखाती हुई"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: stack ? "72% center" : "right center" }} />
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: stack ? "72% 12%" : "right 15%" }} />
       {/* Green scrim from the left keeps the Devanagari legible over the hillside */}
       <div aria-hidden="true" style={{
         position: "absolute", inset: 0,
@@ -872,16 +878,22 @@ function LeadershipSection({ nav }) {
       <Lead>राज्य आंदोलन से लेकर आज तक — दल का नेतृत्व जिन्होंने संभाला।</Lead>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 18 }}>
         {LEADERS.slice(3).map((p, i) => (
-          <div key={p.name} className="hoverlift ukd-fade"
-            style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: C.forestDeep, aspectRatio: "3 / 4", animationDelay: `${i * 70}ms`, boxShadow: "0 14px 34px -20px rgba(4,45,24,.5)" }}>
-            <img src={p.img} alt={p.name} loading="lazy"
-              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
-            {/* Green scrim so the caption stays legible over any photograph */}
-            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 40%, ${C.forestDeep}E6 88%)` }} />
-            <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "16px 16px 15px", borderBottom: `3px solid ${C.red}` }}>
-              <div style={{ fontFamily: serif, fontSize: 18.5, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
-              <div style={{ fontFamily: sans, fontSize: 13, color: "#B9D2BF", marginTop: 3 }}>{p.role}</div>
-              {p.note && <div style={{ fontFamily: sans, fontSize: 12.5, color: "#FF8A85", marginTop: 3, fontWeight: 600 }}>{p.note}</div>}
+          <div key={p.name} className="ukd-portrait ukd-fade"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, animationDelay: `${i * 70}ms` }}>
+            <div className="ukd-ring" style={{
+              width: "clamp(132px, 14vw, 170px)", aspectRatio: "1", borderRadius: "50%", padding: 4,
+              background: `linear-gradient(135deg, ${C.green} 0%, ${C.green} 47%, ${C.red} 53%, ${C.red} 100%)`,
+              boxShadow: "0 16px 38px -16px rgba(4,45,24,.55)",
+            }}>
+              <div style={{ width: "100%", height: "100%", borderRadius: "50%", padding: 3, background: C.ivory }}>
+                <img src={p.img} alt={p.name} loading="lazy"
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", objectPosition: "center 18%", display: "block" }} />
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: serif, fontSize: 19.5, fontWeight: 700, color: C.ink, lineHeight: 1.35 }}>{p.name}</div>
+              <div style={{ width: 24, height: 2, background: C.red, margin: "8px auto" }} />
+              <div style={{ fontFamily: sans, fontSize: 14, color: C.mute }}>{p.note || p.role}</div>
             </div>
           </div>
         ))}
@@ -916,7 +928,6 @@ function HomePage({ nav }) {
         <div style={{ marginTop: 26 }}><Btn kind="ghost" onClick={() => nav("about")}>दल को जानें</Btn></div>
       </Section>
       <div style={{ background: C.ivory }}><LeadershipSection nav={nav} /></div>
-      <div style={{ background: "#EDF2EE" }}><OrgPreview nav={nav} /></div>
       <Section>
         <Eyebrow>उत्तराखंड भर में</Eyebrow>
         <H2>प्रदेश के तेरहों ज़िलों में उपस्थिति।</H2>
