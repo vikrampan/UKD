@@ -25,8 +25,13 @@ const GlobalStyle = () => (
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { margin: 0; font-family: ${deva}; }
-    /* Devanagari sits lower and needs more line-height than Latin */
-    h1, h2, h3, h4, p, span, div, button, a, td, th, li { font-feature-settings: "kern" 1; }
+    /* Devanagari conjuncts and matras must stay tight — positive letter-spacing
+       splits them into disconnected glyphs, and uppercasing does nothing.
+       Guard both globally so Latin-era styles can't creep back in. */
+    * { letter-spacing: normal; text-transform: none; }
+    h1, h2, h3, h4 { letter-spacing: -0.015em; text-wrap: balance; line-height: 1.28; }
+    p, li { line-height: 1.85; }
+    body { -webkit-font-smoothing: antialiased; }
     ::selection { background: ${C.gold}44; }
     .ukd-fade { animation: ukdFade .45s ease both; }
     @keyframes ukdFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -265,7 +270,7 @@ function ToastHost({ toasts }) {
 }
 
 const Btn = ({ children, kind = "primary", size = "md", onClick, style = {}, disabled }) => {
-  const base = { fontFamily: sans, fontWeight: 600, border: "none", cursor: disabled ? "not-allowed" : "pointer", borderRadius: 8, transition: "all .15s ease", letterSpacing: ".01em", display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center", opacity: disabled ? 0.55 : 1 };
+  const base = { fontFamily: sans, fontWeight: 600, border: "none", cursor: disabled ? "not-allowed" : "pointer", borderRadius: 8, transition: "all .15s ease", display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center", opacity: disabled ? 0.55 : 1 };
   const sizes = { sm: { padding: "7px 14px", fontSize: 13 }, md: { padding: "11px 22px", fontSize: 14.5 }, lg: { padding: "15px 30px", fontSize: 16 } };
   const kinds = {
     primary: { background: C.forest, color: "#fff", boxShadow: "0 6px 16px -6px rgba(47,82,51,.5)" },
@@ -299,11 +304,11 @@ const STATUS_COLORS = {
 };
 const Badge = ({ children, tone }) => {
   const c = STATUS_COLORS[tone || children] || { bg: "#E8EDF1", fg: C.slate };
-  return <span style={{ background: c.bg, color: c.fg, fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".04em", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap", textTransform: "uppercase" }}>{children}</span>;
+  return <span style={{ background: c.bg, color: c.fg, fontFamily: sans, fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap" }}>{children}</span>;
 };
 
 const Eyebrow = ({ children, light }) => (
-  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, letterSpacing: ".22em", textTransform: "uppercase", color: light ? C.goldSoft : C.gold, marginBottom: 14 }}>{children}</div>
+  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: light ? C.goldSoft : C.gold, marginBottom: 14 }}>{children}</div>
 );
 
 const Modal = ({ open, onClose, title, children, wide }) => {
@@ -474,7 +479,7 @@ function DataTable({ columns, rows, onRow, searchKeys = [], filters = [], empty,
         <div style={{ overflowX: "auto", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: dense ? 13 : 14 }}>
             <thead>
-              <tr>{columns.map((c) => <th key={c.key} style={{ textAlign: "left", padding: dense ? "10px 14px" : "13px 16px", fontSize: 11.5, letterSpacing: ".08em", textTransform: "uppercase", color: C.mute, borderBottom: `1px solid ${C.line}`, whiteSpace: "nowrap" }}>{c.label}</th>)}</tr>
+              <tr>{columns.map((c) => <th key={c.key} style={{ textAlign: "left", padding: dense ? "10px 14px" : "13px 16px", fontSize: 11.5, color: C.mute, borderBottom: `1px solid ${C.line}`, whiteSpace: "nowrap" }}>{c.label}</th>)}</tr>
             </thead>
             <tbody>
               {filtered.map((r, i) => (
@@ -504,17 +509,13 @@ function SiteHeader({ route, nav, openSearch }) {
     <>
       {/* Flag bar — the emblem's green/red split, carried across the top */}
       <div style={{ height: 3, background: `linear-gradient(90deg, ${C.green} 0%, ${C.green} 50%, ${C.red} 50%, ${C.red} 100%)` }} />
-      <div style={{ background: C.forestDeep, color: C.ivory, fontFamily: sans, fontSize: 12.5, padding: "8px 20px", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <span>उत्तराखंड क्रांति दल का आधिकारिक डिजिटल मंच</span>
-        <span style={{ opacity: .75 }}>उत्तराखंड • भारत</span>
-      </div>
       <header style={{ position: "sticky", top: 0, zIndex: 100, background: `${C.ivory}F2`, backdropFilter: "blur(10px)", borderBottom: `1px solid ${C.line}` }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", gap: 26 }}>
           <button onClick={() => go("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, padding: 0 }}>
             <Logo size={40} />
             <div style={{ textAlign: "left" }}>
               <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 19, color: C.ink, lineHeight: 1.2, letterSpacing: "-.01em" }}>उत्तराखंड क्रांति दल</div>
-              <div style={{ fontFamily: sans, fontSize: 11.5, letterSpacing: ".12em", color: C.red, fontWeight: 600, marginTop: 1 }}>उत्तराखंड की अपनी आवाज़</div>
+              <div style={{ fontFamily: sans, fontSize: 11.5, color: C.red, fontWeight: 600, marginTop: 1 }}>उत्तराखंड की अपनी आवाज़</div>
             </div>
           </button>
           {!mobile && (
@@ -583,14 +584,14 @@ function SiteFooter({ nav }) {
             <Logo size={44} light />
             <div>
               <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700 }}>उत्तराखंड क्रांति दल</div>
-              <div style={{ fontFamily: sans, fontSize: 11.5, letterSpacing: ".1em", color: "#FF8A85", fontWeight: 600 }}>आधिकारिक वेबसाइट</div>
+              <div style={{ fontFamily: sans, fontSize: 11.5, color: "#FF8A85", fontWeight: 600 }}>आधिकारिक वेबसाइट</div>
             </div>
           </div>
           <p style={{ fontFamily: sans, fontSize: 14, lineHeight: 1.85, color: "#C9D5CB", maxWidth: 320 }}>उत्तराखंड की अपनी आवाज़। एक संगठन, एक नेटवर्क, एक डिजिटल घर।</p>
         </div>
         {cols.map(([h, links]) => (
           <div key={h}>
-            <div style={{ fontFamily: sans, fontSize: 13, letterSpacing: ".08em", fontWeight: 700, color: "#FF8A85", marginBottom: 14 }}>{h}</div>
+            <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: "#FF8A85", marginBottom: 14 }}>{h}</div>
             {links.map(([r, l], i) => (
               <button key={i} onClick={() => nav(r)} style={{ display: "block", background: "none", border: "none", color: "#DCE7DC", fontFamily: sans, fontSize: 14.5, padding: "5px 0", cursor: "pointer", textAlign: "left" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#FF8A85")} onMouseLeave={(e) => (e.currentTarget.style.color = "#DCE7DC")}>{l}</button>
@@ -628,7 +629,7 @@ function SearchOverlay({ open, onClose, nav }) {
           {q.length >= 2 && hits.length === 0 && <div style={{ padding: 28, fontFamily: sans, color: C.mute, fontSize: 14 }}>No results for “{q}”. Try a district name, an event or a document title.</div>}
           {hits.map((h, i) => (
             <button key={i} onClick={() => { onClose(); nav(h.r); }} className="rowhover" style={{ display: "flex", width: "100%", gap: 14, alignItems: "center", padding: "13px 24px", background: "none", border: "none", cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${C.line}66` }}>
-              <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".1em", color: C.gold, width: 92, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
+              <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, color: C.gold, width: 92, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
               <span style={{ fontFamily: sans, fontSize: 14.5, color: C.ink }}>{h.label}</span>
             </button>
           ))}
@@ -651,22 +652,58 @@ const Lead = ({ children, light, style = {} }) => (
   <p style={{ fontFamily: sans, fontSize: 16.5, lineHeight: 1.7, color: light ? "#C9D2C4" : "#4A554C", maxWidth: 640, margin: "0 0 24px", ...style }}>{children}</p>
 );
 
-function Hero({ nav }) {
+/* Three founding faces as compact horizontal cards. Badoni and Airy lead, and
+   carry the red rule. LEADERS is declared further down and only read at render
+   time, which is after module evaluation. */
+function HeroFaces({ nav }) {
+  const mobile = useIsMobile(700);
+  const faces = [LEADERS[0], LEADERS[1], LEADERS[2]];
   return (
-    <div style={{ background: `linear-gradient(180deg, ${C.forestDeep} 0%, ${C.forestDark} 62%, ${C.forest} 100%)`, position: "relative", overflow: "hidden" }}>
-      {/* Emblem's diagonal split, enlarged as a background motif */}
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `linear-gradient(115deg, transparent 0%, transparent 58%, ${C.red}22 58%, ${C.red}22 100%)` }} />
-      <img aria-hidden="true" src="/ukd-logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-6%", transform: "translateY(-50%)", width: "clamp(280px, 38vw, 560px)", opacity: .13, pointerEvents: "none" }} />
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(70px, 10vw, 130px) 20px 30px", position: "relative" }}>
-        <div className="ukd-fade" style={{ maxWidth: 780 }}>
+    <div className="ukd-fade" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)", gap: 12, animationDelay: "160ms" }}>
+      {faces.map((p, i) => (
+        <button key={p.name} onClick={() => nav("organisation")} className="hoverlift"
+          style={{
+            display: "flex", alignItems: "center", gap: 13, padding: 10, cursor: "pointer", textAlign: "left",
+            background: "rgba(255,255,255,.05)", borderRadius: 12,
+            border: "1px solid rgba(255,255,255,.12)",
+            borderLeft: `3px solid ${i < 2 ? C.red : "rgba(255,255,255,.2)"}`,
+          }}>
+          <img src={p.img} alt={p.name} loading="eager"
+            style={{ width: 58, height: 58, borderRadius: "50%", objectFit: "cover", objectPosition: "top center", flexShrink: 0, border: "2px solid rgba(255,255,255,.2)" }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: serif, fontSize: 16, fontWeight: 700, color: "#fff" }}>{p.name}</div>
+            <div style={{ fontFamily: sans, fontSize: 12.5, color: i < 2 ? "#FF8A85" : "#A9C4B0", fontWeight: 600, marginTop: 2 }}>{p.note || p.role}</div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Hero({ nav }) {
+  const stack = useIsMobile(880);
+  return (
+    <div style={{ background: C.forestDeep, position: "relative", overflow: "hidden", minHeight: stack ? "auto" : "min(74vh, 640px)", display: "flex", alignItems: "center" }}>
+      {/* The photograph sits behind everything, anchored right so she survives every crop */}
+      <img src="/hero-woman.jpg" alt="पौड़ी की एक महिला अपने मोबाइल पर समाधान की सूचना दिखाती हुई"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: stack ? "72% center" : "right center" }} />
+      {/* Green scrim from the left keeps the Devanagari legible over the hillside */}
+      <div aria-hidden="true" style={{
+        position: "absolute", inset: 0,
+        background: stack
+          ? `linear-gradient(180deg, ${C.forestDeep}D9 0%, ${C.forestDeep}B0 42%, ${C.forestDeep}F2 100%)`
+          : `linear-gradient(90deg, ${C.forestDeep}F2 0%, ${C.forestDeep}E0 34%, ${C.forestDeep}99 52%, transparent 74%)`,
+      }} />
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(56px, 8vw, 96px) 20px", position: "relative", width: "100%" }}>
+        <div className="ukd-fade" style={{ maxWidth: stack ? "100%" : 620 }}>
           <Eyebrow light>उत्तराखंड क्रांति दल · आधिकारिक डिजिटल मंच</Eyebrow>
-          <h1 style={{ fontFamily: serif, fontWeight: 700, fontSize: "clamp(38px, 6vw, 72px)", lineHeight: 1.22, color: C.ivory, margin: "0 0 24px", letterSpacing: "-0.02em" }}>
-            उत्तराखंड की अपनी आवाज़।<br />
-            <span style={{ color: "#FF8A85" }}>जनता से जुड़ी, जनता के लिए।</span>
+          <h1 style={{ fontFamily: serif, fontWeight: 700, fontSize: "clamp(34px, 4.6vw, 58px)", color: "#fff", margin: "0 0 22px", textShadow: "0 2px 24px rgba(0,0,0,.35)" }}>
+            जहाँ क्रांति दल है,<br />
+            <span style={{ color: "#FF8A85" }}>वहाँ जवाब है।</span>
           </h1>
-          <p style={{ fontFamily: sans, fontSize: "clamp(16px, 1.6vw, 19px)", lineHeight: 1.85, color: "#CBD9CC", maxWidth: 620, marginBottom: 36 }}>
-            राज्य आंदोलन की विरासत से जन्मा दल — अपने संगठन, अपने कार्यकर्ताओं और
-            उत्तराखंड की जनता के लिए एक पारदर्शी डिजिटल घर।
+          <p style={{ fontFamily: sans, fontSize: "clamp(16px, 1.6vw, 19px)", color: "#DCE7DC", maxWidth: 540, marginBottom: 34, textShadow: "0 1px 12px rgba(0,0,0,.35)" }}>
+            शिकायत दर्ज कीजिए, और उसका हिसाब पाइए। उत्तराखंड क्रांति दल का
+            जन पोर्टल — हर समस्या, हर ज़िले में, समाधान तक दर्ज।
           </p>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>समस्या दर्ज करें →</Btn>
@@ -674,7 +711,20 @@ function Hero({ nav }) {
           </div>
         </div>
       </div>
-      <Ridges h={170} tones={[C.forest, C.forestDark, C.ivory]} style={{ marginTop: 30 }} />
+    </div>
+  );
+}
+
+/* The three founding faces, as a band directly under the hero. */
+function LeadershipBand({ nav }) {
+  return (
+    <div style={{ background: C.forestDark, borderBottom: `3px solid ${C.red}` }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "26px 20px 30px" }}>
+        <div style={{ fontFamily: sans, fontSize: 13.5, color: "#9FBCA6", fontWeight: 600, marginBottom: 16 }}>
+          जिन्होंने पहाड़ की आवाज़ बुलंद की
+        </div>
+        <HeroFaces nav={nav} />
+      </div>
     </div>
   );
 }
@@ -682,7 +732,7 @@ function Hero({ nav }) {
 function StatStrip() {
   const stats = [["13", "ज़िलों में उपस्थिति"], ["24×7", "डिजिटल पहुँच"], ["1979", "स्थापना वर्ष"], ["एक", "आधिकारिक डिजिटल मंच"]];
   return (
-    <div style={{ maxWidth: 1280, margin: "-40px auto 0", padding: "0 20px", position: "relative", zIndex: 5 }}>
+    <div style={{ maxWidth: 1280, margin: "40px auto 0", padding: "0 20px", position: "relative", zIndex: 5 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         {stats.map(([n, l], i) => (
           <div key={i} className="hoverlift ukd-fade" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "26px 24px", boxShadow: "0 12px 32px -18px rgba(24,43,28,.25)", animationDelay: `${i * 90}ms` }}>
@@ -782,7 +832,7 @@ function NewsCard({ n, nav, big }) {
     <article className="hoverlift" onClick={() => nav(`news/${n.id}`)} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
       <div style={{ height: big ? 150 : 110, background: `linear-gradient(135deg, ${C.forest}, ${C.slate})`, position: "relative" }}>
         <Ridges h={big ? 60 : 44} tones={[`${C.ivory}30`, `${C.ivory}18`, `${C.ivory}0c`]} style={{ position: "absolute", bottom: 0 }} />
-        <span style={{ position: "absolute", top: 14, left: 14, background: C.gold, color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".1em", padding: "4px 10px", borderRadius: 99 }}>{n.tag.toUpperCase()}</span>
+        <span style={{ position: "absolute", top: 14, left: 14, background: C.gold, color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>{n.tag.toUpperCase()}</span>
       </div>
       <div style={{ padding: 20, display: "flex", flexDirection: "column", flex: 1 }}>
         <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginBottom: 8 }}>{n.date}</div>
@@ -838,6 +888,7 @@ function HomePage({ nav }) {
   return (
     <>
       <Hero nav={nav} />
+      <LeadershipBand nav={nav} />
       <StatStrip />
       <Section>
         <Eyebrow>दल परिचय</Eyebrow>
@@ -907,7 +958,7 @@ function HomePage({ nav }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 0, borderLeft: `2px solid ${C.gold}`, paddingLeft: 0 }}>
             {TIMELINE_HISTORY.slice(0, 3).map((t, i) => (
               <div key={i} style={{ padding: "0 26px 8px", borderLeft: i > 0 ? `1px dashed ${C.line}` : "none" }}>
-                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".14em", color: C.gold, marginBottom: 8 }}>{t[2].toUpperCase()}</div>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.gold, marginBottom: 8 }}>{t[2].toUpperCase()}</div>
                 <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 600, color: C.ink, marginBottom: 8, lineHeight: 1.3 }}>{t[0]}</div>
                 <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C" }}>{t[1]}</p>
               </div>
@@ -927,7 +978,7 @@ function HomePage({ nav }) {
               <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <div style={{ background: C.forest, color: C.ivory, borderRadius: 10, padding: "8px 12px", textAlign: "center", fontFamily: sans, flexShrink: 0 }}>
                   <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}>{e.date.split(" ")[0]}</div>
-                  <div style={{ fontSize: 10.5, letterSpacing: ".08em" }}>{e.date.split(" ")[1].toUpperCase()}</div>
+                  <div style={{ fontSize: 10.5 }}>{e.date.split(" ")[1].toUpperCase()}</div>
                 </div>
                 <div>
                   <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink, lineHeight: 1.35 }}>{e.title}</div>
@@ -992,7 +1043,7 @@ function GalleryGrid({ preview, nav }) {
         {shown.map((t, i) => (
           <div key={t.id} className="hoverlift" style={{ height: i % 4 === 0 ? 240 : 190, borderRadius: 14, background: t.g, position: "relative", overflow: "hidden" }}>
             <Ridges h={70} tones={[`${C.ivory}2a`, `${C.ivory}18`, `${C.ivory}0e`]} style={{ position: "absolute", bottom: 0 }} />
-            <span style={{ position: "absolute", top: 12, left: 12, background: "#00000038", color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", padding: "4px 10px", borderRadius: 99 }}>{t.cat.toUpperCase()}</span>
+            <span style={{ position: "absolute", top: 12, left: 12, background: "#00000038", color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>{t.cat.toUpperCase()}</span>
             <span style={{ position: "absolute", bottom: 10, left: 12, color: `${C.ivory}CC`, fontFamily: sans, fontSize: 11 }}>Placeholder visual · demo</span>
           </div>
         ))}
@@ -1028,23 +1079,23 @@ function PageHead({ eyebrow, title, sub, crumbs, nav }) {
 function AboutPage({ nav }) {
   return (
     <>
-      <PageHead eyebrow="About UKD" title="Who we are, and why we exist." sub="Uttarakhand Kranti Dal is the regional political voice born from the statehood movement — a party of the mountains, for the mountains." crumbs={[["Home", "home"], ["About"]]} nav={nav} />
+      <PageHead eyebrow="दल परिचय" title="हम कौन हैं, और क्यों हैं।" sub="उत्तराखंड क्रांति दल राज्य आंदोलन से जन्मी क्षेत्रीय राजनीतिक आवाज़ है — पहाड़ का दल, पहाड़ के लिए।" crumbs={[["मुख्य पृष्ठ", "home"], ["दल परिचय"]]} nav={nav} />
       <Section>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 50 }}>
           <div>
-            <H2>What UKD stands for.</H2>
-            <Lead>The dignity of mountain life. Employment that doesn't require leaving home. Land, water and forests governed for the people who live among them. An administration that answers to the village, not the other way around.</Lead>
-            <Lead>This platform is UKD's single verified source of information — its history, its organisation, its public work, and its open channel to every citizen of Uttarakhand.</Lead>
+            <H2>दल किसके लिए खड़ा है।</H2>
+            <Lead>पहाड़ी जीवन का सम्मान। ऐसा रोज़गार जिसके लिए घर छोड़ना न पड़े। ज़मीन, पानी और जंगल पर उनका हक़ जो उनके बीच रहते हैं। और एक ऐसा प्रशासन जो गाँव को जवाब दे — न कि गाँव प्रशासन को।</Lead>
+            <Lead>यह मंच दल की एकमात्र प्रामाणिक जानकारी का स्रोत है — इतिहास, संगठन, जन कार्य, और उत्तराखंड के हर नागरिक से जुड़ा एक खुला रास्ता।</Lead>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Btn onClick={() => nav("history")}>Our journey</Btn>
-              <Btn kind="ghost" onClick={() => nav("join")}>Join the organisation</Btn>
+              <Btn onClick={() => nav("history")}>हमारी यात्रा</Btn>
+              <Btn kind="ghost" onClick={() => nav("join")}>संगठन से जुड़ें</Btn>
             </div>
           </div>
           <div style={{ display: "grid", gap: 14 }}>
-            {[["Identity", "A party rooted in the culture, language and struggle of the hill people."],
-              ["Accountability", "Public issues tracked openly from receipt to resolution."],
-              ["Organisation", "A disciplined structure from central leadership to local units."],
-              ["Openness", "Documents, statements and disclosures published in one place."]].map(([t, d], i) => (
+            {[["पहचान", "पहाड़ के लोगों की संस्कृति, भाषा और संघर्ष में जड़ें जमाए एक दल।"],
+              ["जवाबदेही", "जन समस्याएँ — दर्ज होने से समाधान तक, खुले तौर पर दर्ज।"],
+              ["संगठन", "केंद्रीय नेतृत्व से लेकर स्थानीय इकाई तक एक अनुशासित ढाँचा।"],
+              ["पारदर्शिता", "दस्तावेज़, वक्तव्य और घोषणाएँ — सब एक ही जगह।"]].map(([t, d], i) => (
               <div key={t} style={{ background: "#fff", border: `1px solid ${C.line}`, borderLeft: `4px solid ${[C.forest, C.gold, C.slate, C.lime][i]}`, borderRadius: 12, padding: "18px 22px" }}>
                 <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 600, color: C.ink, marginBottom: 6 }}>{t}</div>
                 <div style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C" }}>{d}</div>
@@ -1067,28 +1118,28 @@ function OrganisationPage({ nav, sub }) {
     const evts = SEED_EVENTS.filter((e) => e.district === d);
     return (
       <>
-        <PageHead eyebrow={`${regionOf(d)} Region`} title={`${d} District`} sub="District organisation, active units, local activity and public issues. Demo data." crumbs={[["Home", "home"], ["Organisation", "organisation"], [d]]} nav={nav} />
+        <PageHead eyebrow={`${regionOf(d)} क्षेत्र`} title={`${d} ज़िला`} sub="ज़िला संगठन, सक्रिय इकाइयाँ, स्थानीय गतिविधि और जन समस्याएँ।" crumbs={[["मुख्य पृष्ठ", "home"], ["संगठन", "organisation"], [d]]} nav={nav} />
         <Section>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 44 }}>
-            {[["Active units", units.length || 1], ["Public issues", issues.length], ["Upcoming events", evts.length], ["District team", "Demo"]].map(([l, v]) => (
+            {[["सक्रिय इकाइयाँ", units.length || 1], ["जन समस्याएँ", issues.length], ["आगामी कार्यक्रम", evts.length], ["ज़िला टीम", "—"]].map(([l, v]) => (
               <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ fontFamily: serif, fontSize: 32, color: C.forest }}>{v}</div>
-                <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, letterSpacing: ".06em", color: C.mute, textTransform: "uppercase", marginTop: 4 }}>{l}</div>
+                <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.mute, marginTop: 4 }}>{l}</div>
               </div>
             ))}
           </div>
-          <H2 style={{ fontSize: 28 }}>Local units</H2>
+          <H2 style={{ fontSize: 28 }}>स्थानीय इकाइयाँ</H2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14, marginBottom: 44 }}>
             {(units.length ? units : SEED_UNITS.slice(0, 2)).map((u) => (
               <div key={u.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
                 <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{u.name}</div>
-                <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, margin: "6px 0 10px" }}>Leader: {u.leader} (demo) · {u.members} members</div>
-                <Badge tone="Active">Active</Badge>
+                <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, margin: "6px 0 10px" }}>संयोजक: {u.leader} · {u.members} सदस्य</div>
+                <Badge tone="Active">सक्रिय</Badge>
               </div>
             ))}
           </div>
-          <H2 style={{ fontSize: 28 }}>Public issues in {d}</H2>
-          {issues.length === 0 ? <EmptyState title="No public issues found" sub="Issues submitted through the People's Portal for this district will appear here." cta="Submit an issue" onCta={() => nav("people/report")} /> : (
+          <H2 style={{ fontSize: 28 }}>{d} की जन समस्याएँ</H2>
+          {issues.length === 0 ? <EmptyState title="कोई जन समस्या दर्ज नहीं" sub="इस ज़िले के लिए जन पोर्टल पर दर्ज समस्याएँ यहाँ दिखेंगी।" cta="समस्या दर्ज करें" onCta={() => nav("people/report")} /> : (
             <div style={{ display: "grid", gap: 10 }}>
               {issues.map((i) => (
                 <div key={i.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px 18px", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -1107,14 +1158,14 @@ function OrganisationPage({ nav, sub }) {
   }
   return (
     <>
-      <PageHead eyebrow="Organisation" title="One network, from centre to village." sub="Explore UKD's structure across गढ़वाल, कुमाऊँ and the तराई — down to every district." crumbs={[["Home", "home"], ["Organisation"]]} nav={nav} />
+      <PageHead eyebrow="संगठन" title="केंद्र से गाँव तक, एक ही नेटवर्क।" sub="गढ़वाल, कुमाऊँ और तराई — हर ज़िले तक फैला दल का ढाँचा देखें।" crumbs={[["मुख्य पृष्ठ", "home"], ["संगठन"]]} nav={nav} />
       <Section><OrgPreviewInner /><div style={{ height: 40 }} /><RegionMap nav={nav} /></Section>
     </>
   );
 }
 const OrgPreviewInner = () => (
   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-    {["Central Leadership", "Mandal", "District", "Block", "Local Unit"].map((c, i, a) => (
+    {["केंद्रीय नेतृत्व", "मंडल", "ज़िला", "ब्लॉक", "स्थानीय इकाई"].map((c, i, a) => (
       <React.Fragment key={c}>
         <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 99, padding: "10px 22px", fontFamily: sans, fontWeight: 700, fontSize: 13.5, color: C.ink }}>{c}</div>
         {i < a.length - 1 && <div style={{ alignSelf: "center", color: C.gold, fontWeight: 700 }}>→</div>}
@@ -1134,7 +1185,7 @@ function HistoryPage({ nav }) {
             <div key={i} className="ukd-fade" style={{ display: "flex", gap: 26, marginBottom: 44, animationDelay: `${i * 70}ms` }}>
               <div style={{ width: 40, height: 40, borderRadius: "50%", background: i === TIMELINE_HISTORY.length - 1 ? C.gold : C.forest, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, fontSize: 13, flexShrink: 0, zIndex: 2, border: `4px solid ${C.ivory}` }}>{i + 1}</div>
               <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "22px 26px", flex: 1 }}>
-                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".16em", color: C.gold, marginBottom: 8 }}>{t[2].toUpperCase()}</div>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.gold, marginBottom: 8 }}>{t[2].toUpperCase()}</div>
                 <div style={{ fontFamily: serif, fontSize: 23, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{t[0]}</div>
                 <p style={{ fontFamily: sans, fontSize: 14.5, lineHeight: 1.7, color: "#4A554C", margin: 0 }}>{t[1]}</p>
               </div>
@@ -1191,7 +1242,7 @@ function EventsPage({ nav, id }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 30 }}>
             {[["Date", e.date], ["Time", e.time], ["District", e.district], ["Organiser (demo)", e.organiser]].map(([l, v]) => (
               <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16 }}>
-                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", color: C.mute, textTransform: "uppercase" }}>{l}</div>
+                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute }}>{l}</div>
                 <div style={{ fontFamily: sans, fontSize: 15, fontWeight: 700, color: C.ink, marginTop: 6 }}>{v}</div>
               </div>
             ))}
@@ -1210,7 +1261,7 @@ function EventsPage({ nav, id }) {
           {SEED_EVENTS.map((e) => (
             <button key={e.id} className="hoverlift" onClick={() => nav(`events/${e.id}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22, cursor: "pointer" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: ".1em", color: C.gold }}>{e.type.toUpperCase()}</span>
+                <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.gold }}>{e.type.toUpperCase()}</span>
                 <span style={{ fontFamily: sans, fontSize: 12.5, color: C.mute }}>{e.date}</span>
               </div>
               <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, lineHeight: 1.3, marginBottom: 8 }}>{e.title}</div>
@@ -1304,7 +1355,7 @@ function ReportIssuePage({ nav }) {
         <H2 style={{ fontSize: 30 }}>Issue received.</H2>
         <Lead style={{ margin: "0 auto 22px", textAlign: "center" }}>Your issue has been registered with the People's Portal and will be assigned to the responsible district unit.</Lead>
         <div style={{ background: C.ivory, border: `1.5px dashed ${C.gold}`, borderRadius: 12, padding: 18, fontFamily: sans, marginBottom: 22 }}>
-          <div style={{ fontSize: 12, color: C.mute, letterSpacing: ".08em", fontWeight: 700 }}>YOUR TRACKING ID</div>
+          <div style={{ fontSize: 12, color: C.mute, fontWeight: 700 }}>YOUR TRACKING ID</div>
           <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 600, color: C.forest, margin: "6px 0" }}>{done}</div>
           <div style={{ fontSize: 12.5, color: C.mute }}>Status: Received · Submitted 12 Aug 2026</div>
         </div>
@@ -1434,7 +1485,7 @@ function JoinPage({ nav }) {
           {steps.map((s, i) => (
             <div key={s} style={{ flex: 1, fontFamily: sans }}>
               <div style={{ height: 5, borderRadius: 99, background: i <= step ? C.gold : "#E4E0D0", marginBottom: 8, transition: "background .3s" }} />
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: i <= step ? C.ink : C.mute, letterSpacing: ".03em" }}>{i + 1}. {s}</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: i <= step ? C.ink : C.mute }}>{i + 1}. {s}</div>
             </div>
           ))}
         </div>
@@ -1500,7 +1551,7 @@ function MembershipCard({ name, district, id }) {
             <Logo size={34} light />
             <div>
               <div style={{ fontFamily: serif, color: C.ivory, fontSize: 15, fontWeight: 600 }}>Uttarakhand Kranti Dal</div>
-              <div style={{ fontFamily: sans, color: C.goldSoft, fontSize: 9, letterSpacing: ".22em", fontWeight: 700 }}>DEMO DIGITAL MEMBERSHIP ID</div>
+              <div style={{ fontFamily: sans, color: C.goldSoft, fontSize: 9, fontWeight: 700 }}>DEMO DIGITAL MEMBERSHIP ID</div>
             </div>
           </div>
         </div>
@@ -1508,7 +1559,7 @@ function MembershipCard({ name, district, id }) {
           <div style={{ fontFamily: sans }}>
             <div style={{ color: C.ivory, fontSize: 19, fontWeight: 700 }}>{name || "Member Name"}</div>
             <div style={{ color: "#B9C6B2", fontSize: 12.5, marginTop: 3 }}>{district || "District"} · Joined Aug 2026</div>
-            <div style={{ color: C.goldSoft, fontSize: 13.5, fontWeight: 700, marginTop: 12, letterSpacing: ".06em" }}>{id}</div>
+            <div style={{ color: C.goldSoft, fontSize: 13.5, fontWeight: 700, marginTop: 12 }}>{id}</div>
           </div>
           <svg width="62" height="62" viewBox="0 0 62 62" aria-label="Demo QR visual" style={{ background: C.ivory, borderRadius: 8, padding: 5 }}>
             {Array.from({ length: 49 }).map((_, i) => {
@@ -1703,7 +1754,7 @@ function PortalLogin({ onLogin, toSite }) {
           <Logo size={44} />
           <div>
             <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink }}>UKD Digital Command Portal</div>
-            <div style={{ fontFamily: sans, fontSize: 10.5, letterSpacing: ".2em", color: C.gold, fontWeight: 700 }}>INTERNAL · AUTHORISED ACCESS</div>
+            <div style={{ fontFamily: sans, fontSize: 10.5, color: C.gold, fontWeight: 700 }}>INTERNAL · AUTHORISED ACCESS</div>
           </div>
         </div>
         <p style={{ fontFamily: sans, fontSize: 13, color: C.mute, margin: "10px 0 22px" }}>From leadership to the ground — everything connected. Demo sign-in: choose a role to explore its view.</p>
@@ -1755,7 +1806,7 @@ const PCard = ({ children, style = {}, onClick, pad = 20 }) => (
 );
 const PTitle = ({ children, right }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
-    <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, letterSpacing: ".12em", color: C.mute, textTransform: "uppercase" }}>{children}</div>
+    <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.mute }}>{children}</div>
     {right}
   </div>
 );
@@ -1795,7 +1846,7 @@ function CommandCentre({ nav, user }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14, marginBottom: 22 }}>
         {kpis.map(([l, v, r, spark], i) => (
           <PCard key={l} onClick={() => nav(r)} pad={18}>
-            <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", color: C.mute, textTransform: "uppercase" }}>{l}</div>
+            <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute }}>{l}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 8 }}>
               <div style={{ fontFamily: serif, fontSize: 38, fontWeight: 500, color: [C.forest, C.forest, C.slate, C.red, C.gold, C.slate][i], lineHeight: 1 }}>{v}</div>
               <Spark points={spark} w={70} h={30} color={[C.lime, C.lime, C.slateSoft, C.red, C.gold, C.slateSoft][i]} />
@@ -1959,7 +2010,7 @@ const KV = ({ items }) => (
   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
     {items.map(([l, v]) => (
       <PCard key={l} pad={14}>
-        <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: C.mute, textTransform: "uppercase" }}>{l}</div>
+        <div style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.mute }}>{l}</div>
         <div style={{ fontFamily: sans, fontSize: 14.5, fontWeight: 700, color: C.ink, marginTop: 5 }}>{v}</div>
       </PCard>
     ))}
@@ -2051,7 +2102,7 @@ function KaryakartaModule({ nav, id }) {
       <PageTitle title="Karyakartas" sub="The organisation's working strength — separate from general membership." />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
         {[["Active Karyakartas", active, C.forest], ["New this month", 3, C.slate], ["Training completed", SEED_KARYAKARTAS.filter((k) => k.training === "Completed").length, C.gold], ["Tasks completed", SEED_KARYAKARTAS.reduce((a, k) => a + k.tasksDone, 0), C.slateSoft]].map(([l, v, c]) => (
-          <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 32, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".07em", color: C.mute, textTransform: "uppercase", marginTop: 4 }}>{l}</div></PCard>
+          <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 32, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute, marginTop: 4 }}>{l}</div></PCard>
         ))}
       </div>
       <DataTable
@@ -2104,7 +2155,7 @@ function UnitsModule({ nav, query }) {
           <div style={{ fontFamily: sans }}>
             <KV items={[["Leader (demo)", sel.leader], ["Committee", `${sel.committee} members`], ["Active Karyakartas", sel.karyakartas], ["Last activity", sel.lastActivity], ["Open issues", sel.openIssues], ["Latest report", sel.lastReport]]} />
             <div style={{ marginTop: 16, background: C.ivory, borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: C.mute, marginBottom: 10 }}>UNIT HEALTH CHECKS</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.mute, marginBottom: 10 }}>UNIT HEALTH CHECKS</div>
               {[["Leadership assigned", sel.checks.leadership], ["Committee formed", sel.checks.committee], ["Recent activity", sel.checks.activity], ["Reporting up to date", sel.checks.reporting], [`Tasks — ${sel.pendingTasks} pending`, sel.pendingTasks === 0]].map(([l, ok]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "6px 0" }}>
                   <span style={{ color: C.ink }}>{l}</span><span style={{ color: ok ? "#4A6B1D" : C.red, fontWeight: 700 }}>{ok ? "✓" : "✕"}</span>
@@ -2424,9 +2475,9 @@ function ReportsModule() {
           <div style={{ fontFamily: sans }}>
             <KV items={[["Meetings", sel.meetings], ["Activities", sel.activities], ["Tasks completed", sel.tasksDone], ["Members added", sel.membersAdded], ["Issues received", sel.issuesIn], ["Issues resolved", sel.issuesResolved]]} />
             <PCard style={{ marginTop: 14 }} pad={16}>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: C.mute, marginBottom: 8 }}>CHALLENGES</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.mute, marginBottom: 8 }}>CHALLENGES</div>
               <div style={{ fontSize: 13.5, color: C.ink }}>{sel.challenges}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: C.mute, margin: "14px 0 8px" }}>SUPPORT REQUIRED</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.mute, margin: "14px 0 8px" }}>SUPPORT REQUIRED</div>
               <div style={{ fontSize: 13.5, color: C.ink }}>{sel.support}</div>
             </PCard>
           </div>
@@ -2443,7 +2494,7 @@ function FinanceModule() {
       <PageTitle title="Finance" sub="Demo financial dashboard — all figures are fictional and no payments are processed." />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
         {[["Total Contributions", "₹4.6 L", C.forest], ["This Month", "₹58,300", C.slate], ["District Allocation", "₹1.9 L", C.slateSoft], ["Expenses", "₹1.2 L", C.gold], ["Pending Approvals", "3", C.red]].map(([l, v, c]) => (
-          <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 28, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, letterSpacing: ".07em", color: C.mute, textTransform: "uppercase", marginTop: 4 }}>{l}</div></PCard>
+          <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 28, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute, marginTop: 4 }}>{l}</div></PCard>
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 20 }}>
@@ -2592,7 +2643,7 @@ function SettingsModule({ user }) {
           <PTitle>Role permissions matrix (demo)</PTitle>
           <div style={{ overflowX: "auto" }}>
             <table style={{ borderCollapse: "collapse", fontFamily: sans, fontSize: 13, width: "100%" }}>
-              <thead><tr><th style={{ textAlign: "left", padding: 10, color: C.mute, fontSize: 11.5, textTransform: "uppercase", letterSpacing: ".07em" }}>Module</th>{["Central Admin", "District Admin", "Block Coord.", "Karyakarta"].map((r) => <th key={r} style={{ padding: 10, color: C.mute, fontSize: 11.5, textTransform: "uppercase", letterSpacing: ".07em" }}>{r}</th>)}</tr></thead>
+              <thead><tr><th style={{ textAlign: "left", padding: 10, color: C.mute, fontSize: 11.5 }}>Module</th>{["Central Admin", "District Admin", "Block Coord.", "Karyakarta"].map((r) => <th key={r} style={{ padding: 10, color: C.mute, fontSize: 11.5 }}>{r}</th>)}</tr></thead>
               <tbody>
                 {[["Members", 1, 1, 1, 0], ["Finance", 1, 1, 0, 0], ["Notices — publish", 1, 0, 0, 0], ["Tasks — assign", 1, 1, 1, 0], ["Issues — close", 1, 1, 0, 0], ["Settings — roles", 1, 0, 0, 0]].map(([m, ...cols]) => (
                   <tr key={m} style={{ borderTop: `1px solid ${C.line}66` }}>
@@ -2655,7 +2706,7 @@ function CommandPalette({ open, onClose, nav }) {
           {hits.length === 0 && <div style={{ padding: 24, fontFamily: sans, fontSize: 14, color: C.mute }}>No matches for “{q}”.</div>}
           {hits.map((h, i) => (
             <button key={i} onClick={() => { onClose(); nav(h.r); }} className="rowhover" style={{ display: "flex", width: "100%", gap: 14, alignItems: "center", padding: "12px 20px", background: "none", border: "none", cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${C.line}55` }}>
-              <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", color: C.gold, width: 86, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
+              <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, color: C.gold, width: 86, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
               <span style={{ fontFamily: sans, fontSize: 14, color: C.ink }}>{h.label}</span>
             </button>
           ))}
@@ -2715,7 +2766,7 @@ function Portal({ toSite }) {
         <Logo size={36} light />
         <div>
           <div style={{ fontFamily: serif, fontSize: 15.5, fontWeight: 600, lineHeight: 1.1 }}>UKD Command</div>
-          <div style={{ fontFamily: sans, fontSize: 9.5, letterSpacing: ".2em", color: C.goldSoft, fontWeight: 700 }}>ONE ORGANISATION</div>
+          <div style={{ fontFamily: sans, fontSize: 9.5, color: C.goldSoft, fontWeight: 700 }}>ONE ORGANISATION</div>
         </div>
       </div>
       <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
