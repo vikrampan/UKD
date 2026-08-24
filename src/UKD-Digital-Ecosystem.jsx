@@ -3,35 +3,43 @@ import React, { useState, useEffect, useMemo, useRef, createContext, useContext 
 /* ================= UKD DIGITAL ECOSYSTEM — FRONTEND PROTOTYPE =================
    Public website + private organisational portal. All data is demo data. */
 
+/* Brand palette derived from the official UKD emblem:
+   deep green / red diagonal split with white chair mark. */
 const C = {
-  forest: "#2F5233", forestDark: "#22402A", forestDeep: "#182B1C",
-  gold: "#C98A2B", goldSoft: "#E8C588", slate: "#1F4B5F", slateSoft: "#3A6B82",
-  lime: "#9BC53D", ivory: "#F4F1E8", paper: "#FBFAF4", ink: "#1B261D",
-  mute: "#6B7568", line: "#E3DECE", lineDark: "#2E4433",
-  red: "#B4452F", amber: "#C98A2B",
+  forest: "#0A5A2E", forestDark: "#064022", forestDeep: "#042D18",
+  gold: "#D21F26", goldSoft: "#F0A6A2", slate: "#0A5A2E", slateSoft: "#2E7D4F",
+  lime: "#3E9C5C", ivory: "#F7F6F3", paper: "#FFFFFF", ink: "#14201A",
+  mute: "#5F6B62", line: "#E2E6E1", lineDark: "#12482A",
+  red: "#D21F26", redDark: "#A8161C", amber: "#D21F26",
+  green: "#0A5A2E", white: "#FFFFFF",
 };
-const serif = "'Fraunces', Georgia, 'Times New Roman', serif";
-const sans = "'Public Sans', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+/* Kohinoor Devanagari ships natively on macOS/iOS. Hind (Indian Type Foundry,
+   same lineage as Kohinoor) is the web fallback so Windows/Android match. */
+const deva = "'Kohinoor Devanagari', 'Hind', 'Noto Sans Devanagari', 'Mukta', -apple-system, sans-serif";
+const serif = deva;
+const sans = deva;
 
 const GlobalStyle = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Hind:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; }
+    body { margin: 0; font-family: ${deva}; }
+    /* Devanagari sits lower and needs more line-height than Latin */
+    h1, h2, h3, h4, p, span, div, button, a, td, th, li { font-feature-settings: "kern" 1; }
     ::selection { background: ${C.gold}44; }
     .ukd-fade { animation: ukdFade .45s ease both; }
     @keyframes ukdFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     .ukd-pop { animation: ukdPop .28s cubic-bezier(.2,.9,.3,1.2) both; }
     @keyframes ukdPop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
     @keyframes ukdShimmer { 0% { background-position: -400px 0 } 100% { background-position: 400px 0 } }
-    .ukd-skel { background: linear-gradient(90deg,#eae6d8 25%,#f3efe2 50%,#eae6d8 75%); background-size: 400px 100%; animation: ukdShimmer 1.2s infinite linear; border-radius: 6px; }
-    .ukd-skel-dark { background: linear-gradient(90deg,#243b29 25%,#2c4832 50%,#243b29 75%); background-size: 400px 100%; animation: ukdShimmer 1.2s infinite linear; border-radius: 6px; }
+    .ukd-skel { background: linear-gradient(90deg,#e8ebe7 25%,#f3f5f2 50%,#e8ebe7 75%); background-size: 400px 100%; animation: ukdShimmer 1.2s infinite linear; border-radius: 6px; }
+    .ukd-skel-dark { background: linear-gradient(90deg,#0d4526 25%,#12583080 50%,#0d4526 75%); background-size: 400px 100%; animation: ukdShimmer 1.2s infinite linear; border-radius: 6px; }
     .hoverlift { transition: transform .18s ease, box-shadow .18s ease; }
     .hoverlift:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -14px rgba(24,43,28,.35); }
     .rowhover { transition: background .12s ease; }
-    .rowhover:hover { background: #f2eedf; cursor: pointer; }
-    .rowhover-dark:hover { background: #22402a22; cursor: pointer; }
+    .rowhover:hover { background: #eef2ee; cursor: pointer; }
+    .rowhover-dark:hover { background: #0a5a2e22; cursor: pointer; }
     input:focus, textarea:focus, select:focus, button:focus-visible, a:focus-visible { outline: 2px solid ${C.gold}; outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) { .ukd-fade, .ukd-pop, .ukd-skel, .ukd-skel-dark { animation: none; } .hoverlift:hover { transform:none } }
     @keyframes ukdBar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
@@ -44,9 +52,9 @@ const GlobalStyle = () => (
 
 /* ============================== MOCK DATA ============================== */
 const REGIONS = {
-  Garhwal: ["Dehradun", "Pauri Garhwal", "Tehri Garhwal", "Uttarkashi", "Chamoli", "Rudraprayag"],
-  Kumaon: ["Almora", "Nainital", "Pithoragarh", "Bageshwar", "Champawat"],
-  Tarai: ["Haridwar", "Udham Singh Nagar"],
+  गढ़वाल: ["देहरादून", "पौड़ी गढ़वाल", "टिहरी गढ़वाल", "उत्तरकाशी", "चमोली", "रुद्रप्रयाग"],
+  कुमाऊँ: ["अल्मोड़ा", "नैनीताल", "पिथौरागढ़", "बागेश्वर", "चम्पावत"],
+  तराई: ["हरिद्वार", "ऊधम सिंह नगर"],
 };
 const DISTRICTS = Object.values(REGIONS).flat();
 const regionOf = (d) => Object.keys(REGIONS).find((r) => REGIONS[r].includes(d));
@@ -95,13 +103,13 @@ const SEED_UNITS = Array.from({ length: 14 }, (_, i) => {
 });
 
 const SEED_TASKS = [
-  ["Booth committee verification drive","Pauri Garhwal","High"],["Weekly unit report collection","Almora","Medium"],
-  ["Membership form digitisation","Dehradun","Medium"],["Village outreach — road issue follow-up","Chamoli","High"],
-  ["District office document archive","Nainital","Low"],["Karyakarta training session prep","Tehri Garhwal","High"],
-  ["Event logistics — Haridwar meet","Haridwar","High"],["Issue verification — water supply","Almora","Medium"],
-  ["New unit formation survey","Bageshwar","Medium"],["Notice acknowledgement follow-up","Pithoragarh","Low"],
-  ["Photo documentation of public work","Rudraprayag","Low"],["Local grievance camp setup","Champawat","High"],
-  ["Member data cleanup — Block B","Udham Singh Nagar","Medium"],["Transparency ledger upload prep","Dehradun","Medium"],
+  ["Booth committee verification drive","पौड़ी गढ़वाल","High"],["Weekly unit report collection","अल्मोड़ा","Medium"],
+  ["Membership form digitisation","देहरादून","Medium"],["Village outreach — road issue follow-up","चमोली","High"],
+  ["District office document archive","नैनीताल","Low"],["Karyakarta training session prep","टिहरी गढ़वाल","High"],
+  ["Event logistics — हरिद्वार meet","हरिद्वार","High"],["Issue verification — water supply","अल्मोड़ा","Medium"],
+  ["New unit formation survey","बागेश्वर","Medium"],["Notice acknowledgement follow-up","पिथौरागढ़","Low"],
+  ["Photo documentation of public work","रुद्रप्रयाग","Low"],["Local grievance camp setup","चम्पावत","High"],
+  ["Member data cleanup — Block B","ऊधम सिंह नगर","Medium"],["Transparency ledger upload prep","देहरादून","Medium"],
 ].map((t, i) => ({
   id: `T-${400 + i}`, name: t[0], district: t[1], priority: t[2],
   assignee: seededName(i + 5), unit: `Local Unit ${String((i % 6) + 1).padStart(2, "0")}`,
@@ -112,18 +120,18 @@ const SEED_TASKS = [
 }));
 
 const SEED_ISSUES = [
-  ["Road & Connectivity","Pauri Garhwal","Received","Kotdwar–Satpuli stretch badly damaged after monsoon"],
-  ["Water","Almora","In Progress","Irregular drinking water supply in ward 6 for three weeks"],
-  ["Transport","Dehradun","Resolved","No evening bus service on Rajpur route"],
-  ["Electricity","Tehri Garhwal","Assigned","Frequent outages affecting school examinations"],
-  ["Healthcare","Chamoli","In Progress","PHC has no attending doctor on weekends"],
-  ["Education","Bageshwar","Received","Primary school building needs urgent roof repair"],
-  ["Employment","Haridwar","Assigned","Request for skill-training camp for local youth"],
-  ["Disaster-related","Rudraprayag","In Progress","Landslide debris blocking village footpath"],
-  ["Environment","Nainital","Received","Unregulated waste dumping near lake inlet"],
-  ["Local Administration","Pithoragarh","Resolved","Delay in issuing residence certificates"],
-  ["Water","Champawat","Received","Hand-pump repair pending since June"],
-  ["Road & Connectivity","Uttarkashi","Assigned","Bridge approach road washed out near Bhatwari"],
+  ["Road & Connectivity","पौड़ी गढ़वाल","Received","कोटद्वार–सतपुली stretch badly damaged after monsoon"],
+  ["Water","अल्मोड़ा","In Progress","Irregular drinking water supply in ward 6 for three weeks"],
+  ["Transport","देहरादून","Resolved","No evening bus service on Rajpur route"],
+  ["Electricity","टिहरी गढ़वाल","Assigned","Frequent outages affecting school examinations"],
+  ["Healthcare","चमोली","In Progress","PHC has no attending doctor on weekends"],
+  ["Education","बागेश्वर","Received","Primary school building needs urgent roof repair"],
+  ["Employment","हरिद्वार","Assigned","Request for skill-training camp for local youth"],
+  ["Disaster-related","रुद्रप्रयाग","In Progress","Landslide debris blocking village footpath"],
+  ["Environment","नैनीताल","Received","Unregulated waste dumping near lake inlet"],
+  ["Local Administration","पिथौरागढ़","Resolved","Delay in issuing residence certificates"],
+  ["Water","चम्पावत","Received","Hand-pump repair pending since June"],
+  ["Road & Connectivity","उत्तरकाशी","Assigned","Bridge approach road washed out near Bhatwari"],
 ].map((x, i) => ({
   id: `UKD-ISSUE-2026-${String(400 + i * 7).padStart(5, "0")}`,
   category: x[0], district: x[1], status: x[2], title: x[3],
@@ -136,14 +144,14 @@ const SEED_ISSUES = [
 }));
 
 const SEED_EVENTS = [
-  ["District Organisational Meeting","Dehradun","18 Aug 2026","Organisation"],
-  ["Karyakarta Training Camp","Almora","21 Aug 2026","Training"],
-  ["Public Issue Resolution Camp","Pauri Garhwal","24 Aug 2026","Public Work"],
-  ["Statehood Movement Remembrance","Dehradun","1 Sep 2026","Commemoration"],
-  ["Block Coordinators Review","Haridwar","5 Sep 2026","Organisation"],
-  ["Village Outreach Yatra — Phase II","Chamoli","9 Sep 2026","Outreach"],
-  ["Youth Dialogue on Mountain Employment","Nainital","14 Sep 2026","Public Work"],
-  ["Central Committee Session","Dehradun","20 Sep 2026","Organisation"],
+  ["District Organisational Meeting","देहरादून","18 Aug 2026","Organisation"],
+  ["Karyakarta Training Camp","अल्मोड़ा","21 Aug 2026","Training"],
+  ["Public Issue Resolution Camp","पौड़ी गढ़वाल","24 Aug 2026","Public Work"],
+  ["Statehood Movement Remembrance","देहरादून","1 Sep 2026","Commemoration"],
+  ["Block Coordinators Review","हरिद्वार","5 Sep 2026","Organisation"],
+  ["Village Outreach Yatra — Phase II","चमोली","9 Sep 2026","Outreach"],
+  ["Youth Dialogue on Mountain Employment","नैनीताल","14 Sep 2026","Public Work"],
+  ["Central Committee Session","देहरादून","20 Sep 2026","Organisation"],
 ].map((e, i) => ({
   id: `E-${70 + i}`, title: e[0], district: e[1], date: e[2], type: e[3],
   time: ["10:00 AM","9:30 AM","11:00 AM","8:00 AM","10:30 AM","7:30 AM","3:00 PM","10:00 AM"][i],
@@ -154,11 +162,11 @@ const SEED_EVENTS = [
 
 const SEED_NEWS = [
   ["Official Update","UKD launches its official digital home","A single verified source for the organisation's news, documents and public engagement across all 13 districts.","10 Aug 2026"],
-  ["Public Work","Issue resolution camps announced for hill blocks","Camps in Pauri, Almora and Chamoli will take citizen grievances directly and track them to closure.","8 Aug 2026"],
+  ["Public Work","Issue resolution camps announced for hill blocks","Camps in पौड़ी, अल्मोड़ा and चमोली will take citizen grievances directly and track them to closure.","8 Aug 2026"],
   ["Organisation","District units complete weekly reporting cycle","A structured reporting line from local units to the centre is now in regular operation.","6 Aug 2026"],
   ["Press","Statement on hill road connectivity","UKD placed a formal representation on monsoon-damaged routes and demanded time-bound restoration.","4 Aug 2026"],
-  ["Public Work","Water supply follow-up in Almora ward 6","The assigned unit met the local administration; restoration work has been scheduled.","2 Aug 2026"],
-  ["Organisation","New local units under formation in Bageshwar","Survey and committee formation is underway in three development blocks.","30 Jul 2026"],
+  ["Public Work","Water supply follow-up in अल्मोड़ा ward 6","The assigned unit met the local administration; restoration work has been scheduled.","2 Aug 2026"],
+  ["Organisation","New local units under formation in बागेश्वर","Survey and committee formation is underway in three development blocks.","30 Jul 2026"],
 ].map((n, i) => ({ id: `N-${i + 1}`, tag: n[0], title: n[1], excerpt: n[2], date: n[3],
   body: "This is demonstration editorial content for the UKD digital prototype. The full article layout supports rich text, photographs, official quotes and linked documents. Real published material will replace this text when the organisation supplies it.\n\nEvery article is categorised, dated and searchable, and appears in the global search and the news archive automatically." }));
 
@@ -166,12 +174,12 @@ const SEED_DOCS = [
   ["Party Constitution (Demo Copy)","Party Documents","2026","Central"],
   ["Resolution — Hill Employment Policy","Resolutions","2026","Central"],
   ["Central Committee Meeting Minutes — July","Meeting Minutes","2026","Central"],
-  ["District Weekly Report — Pauri, Wk 31","District Reports","2026","Pauri Garhwal"],
+  ["District Weekly Report — पौड़ी, Wk 31","District Reports","2026","पौड़ी गढ़वाल"],
   ["Press Release — Road Connectivity","Press Releases","2026","Central"],
   ["Notice — Membership Drive Guidelines","Official Notices","2026","Central"],
   ["Statehood Movement Archive Note","Historical Documents","2025","Central"],
-  ["Public Representation — Water Supply","Public Representations","2026","Almora"],
-  ["Organisational Appointment Letter (Demo)","Appointments","2026","Nainital"],
+  ["Public Representation — Water Supply","Public Representations","2026","अल्मोड़ा"],
+  ["Organisational Appointment Letter (Demo)","Appointments","2026","नैनीताल"],
   ["Annual Disclosure Statement (Demo)","Disclosures","2025","Central"],
 ].map((d, i) => ({ id: `D-${i + 1}`, title: d[0], category: d[1], year: d[2], district: d[3], size: `${120 + i * 34} KB`, date: `${2 + i * 2} Aug 2026` }));
 
@@ -199,11 +207,11 @@ const SEED_REPORTS = DISTRICTS.map((d, i) => ({
 
 const SEED_NOTIFS = [
   ["task","Task assigned — Booth committee verification drive","5m ago"],
-  ["issue","New public issue — Hand-pump repair, Champawat","32m ago"],
+  ["issue","New public issue — Hand-pump repair, चम्पावत","32m ago"],
   ["notice","New notice — Weekly reporting deadline","1h ago"],
-  ["report","Report missing — Tehri Garhwal, Wk 32","3h ago"],
+  ["report","Report missing — टिहरी गढ़वाल, Wk 32","3h ago"],
   ["task","Task overdue — Notice acknowledgement follow-up","5h ago"],
-  ["issue","Issue resolved — Evening bus service, Dehradun","1d ago"],
+  ["issue","Issue resolved — Evening bus service, देहरादून","1d ago"],
   ["event","Event reminder — District Organisational Meeting, 18 Aug","1d ago"],
   ["doc","Document published — Press Release on road connectivity","2d ago"],
 ].map((n, i) => ({ id: i, kind: n[0], text: n[1], time: n[2], unread: i < 4 }));
@@ -221,7 +229,7 @@ const SEED_AUDIT = [
 const TIMELINE_HISTORY = [
   ["The demand for a hill state","Decades of civic movements argued that the Himalayan districts needed a state of their own — its own priorities, its own voice.","Movement era"],
   ["A party born from the movement","UKD emerged as a regional political voice dedicated to statehood and to the identity of the mountain people.","Founding"],
-  ["The statehood struggle intensifies","Mass mobilisation across Garhwal and Kumaon carried the demand from village squares to the national stage.","Struggle"],
+  ["The statehood struggle intensifies","Mass mobilisation across गढ़वाल and कुमाऊँ carried the demand from village squares to the national stage.","Struggle"],
   ["Uttarakhand becomes a state","The long-sought state was created in November 2000 — a defining moment for the movement and the region.","2000"],
   ["Serving the new state","UKD's focus turned to the promises of statehood: mountain employment, migration, land, water, and dignity.","Statehood years"],
   ["A modern digital organisation","One digital home now connects the organisation, its Karyakartas and the public — this platform.","2026"],
@@ -231,10 +239,10 @@ const ISSUE_CATEGORIES = ["Road & Connectivity","Water","Electricity","Healthcar
 const ROLES = [
   { key: "central-admin", label: "Central Admin", scope: "Statewide control", district: null },
   { key: "central-leadership", label: "Central Leadership", scope: "Statewide overview", district: null },
-  { key: "district-admin", label: "District Admin", scope: "Pauri Garhwal district", district: "Pauri Garhwal" },
-  { key: "block-coordinator", label: "Block Coordinator", scope: "Pauri Garhwal • Block A", district: "Pauri Garhwal" },
-  { key: "unit-coordinator", label: "Local Unit Coordinator", scope: "Pauri Local Unit 01", district: "Pauri Garhwal" },
-  { key: "karyakarta", label: "Karyakarta", scope: "Assigned work only", district: "Pauri Garhwal" },
+  { key: "district-admin", label: "District Admin", scope: "पौड़ी गढ़वाल district", district: "पौड़ी गढ़वाल" },
+  { key: "block-coordinator", label: "Block Coordinator", scope: "पौड़ी गढ़वाल • Block A", district: "पौड़ी गढ़वाल" },
+  { key: "unit-coordinator", label: "Local Unit Coordinator", scope: "पौड़ी Local Unit 01", district: "पौड़ी गढ़वाल" },
+  { key: "karyakarta", label: "Karyakarta", scope: "Assigned work only", district: "पौड़ी गढ़वाल" },
 ];
 
 /* ============================== PRIMITIVES ============================== */
@@ -414,7 +422,7 @@ const HealthRing = ({ pct, size = 54, stroke = 6, color }) => {
 
 const Avatar = ({ name, size = 40, dark }) => {
   const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("");
-  const hues = [C.forest, C.slate, C.gold, "#7A5C3A", "#4E5F7A"];
+  const hues = [C.forest, C.red, C.slateSoft, C.forestDark, C.redDark];
   const bg = hues[(name.charCodeAt(0) + name.length) % hues.length];
   return <div aria-hidden="true" style={{ width: size, height: size, borderRadius: "50%", background: bg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, fontSize: size / 2.6, flexShrink: 0, border: dark ? `2px solid ${C.ivory}33` : "none" }}>{initials}</div>;
 };
@@ -484,8 +492,8 @@ function DataTable({ columns, rows, onRow, searchKeys = [], filters = [], empty,
 
 /* ============================== PUBLIC WEBSITE ============================== */
 const SITE_NAV = [
-  ["home", "Home"], ["about", "About UKD"], ["organisation", "Organisation"], ["history", "History & Legacy"],
-  ["news", "News"], ["people", "People's Portal"], ["events", "Events"], ["gallery", "Gallery"], ["documents", "Documents"],
+  ["home", "मुख्य पृष्ठ"], ["about", "दल परिचय"], ["organisation", "संगठन"], ["history", "इतिहास व विरासत"],
+  ["news", "समाचार"], ["people", "जन पोर्टल"], ["events", "कार्यक्रम"], ["gallery", "चित्र दीर्घा"], ["documents", "दस्तावेज़"],
 ];
 
 function SiteHeader({ route, nav, openSearch }) {
@@ -494,17 +502,19 @@ function SiteHeader({ route, nav, openSearch }) {
   const go = (r) => { nav(r); setDrawer(false); };
   return (
     <>
-      <div style={{ background: C.forestDeep, color: C.ivory, fontFamily: sans, fontSize: 12, padding: "7px 20px", display: "flex", justifyContent: "space-between", letterSpacing: ".05em" }}>
-        <span>Official Digital Home of Uttarakhand Kranti Dal <span style={{ opacity: .55 }}>· Prototype — demo data</span></span>
-        <span style={{ opacity: .75 }}>Uttarakhand • India</span>
+      {/* Flag bar — the emblem's green/red split, carried across the top */}
+      <div style={{ height: 3, background: `linear-gradient(90deg, ${C.green} 0%, ${C.green} 50%, ${C.red} 50%, ${C.red} 100%)` }} />
+      <div style={{ background: C.forestDeep, color: C.ivory, fontFamily: sans, fontSize: 12.5, padding: "8px 20px", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <span>उत्तराखंड क्रांति दल का आधिकारिक डिजिटल मंच</span>
+        <span style={{ opacity: .75 }}>उत्तराखंड • भारत</span>
       </div>
       <header style={{ position: "sticky", top: 0, zIndex: 100, background: `${C.ivory}F2`, backdropFilter: "blur(10px)", borderBottom: `1px solid ${C.line}` }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", gap: 26 }}>
           <button onClick={() => go("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, padding: 0 }}>
             <Logo size={40} />
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontFamily: serif, fontWeight: 600, fontSize: 18, color: C.ink, lineHeight: 1.05 }}>Uttarakhand Kranti Dal</div>
-              <div style={{ fontFamily: sans, fontSize: 10.5, letterSpacing: ".24em", color: C.gold, fontWeight: 700 }}>UTTARAKHAND'S VOICE</div>
+              <div style={{ fontFamily: serif, fontWeight: 700, fontSize: 19, color: C.ink, lineHeight: 1.2, letterSpacing: "-.01em" }}>उत्तराखंड क्रांति दल</div>
+              <div style={{ fontFamily: sans, fontSize: 11.5, letterSpacing: ".12em", color: C.red, fontWeight: 600, marginTop: 1 }}>उत्तराखंड की अपनी आवाज़</div>
             </div>
           </button>
           {!mobile && (
@@ -515,9 +525,9 @@ function SiteHeader({ route, nav, openSearch }) {
             </nav>
           )}
           <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-            <button onClick={openSearch} aria-label="Search" style={{ background: "none", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", color: C.mute, fontFamily: sans, fontSize: 13 }}>⌕ Search</button>
-            {!mobile && <Btn size="sm" kind="ghost" onClick={() => go("people/report")}>Raise an Issue</Btn>}
-            {!mobile && <Btn size="sm" kind="gold" onClick={() => go("join")}>Join UKD</Btn>}
+            <button onClick={openSearch} aria-label="खोजें" style={{ background: "none", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", color: C.mute, fontFamily: sans, fontSize: 13.5 }}>⌕ खोजें</button>
+            {!mobile && <Btn size="sm" kind="ghost" onClick={() => go("people/report")}>समस्या दर्ज करें</Btn>}
+            {!mobile && <Btn size="sm" kind="gold" onClick={() => go("join")}>सदस्य बनें</Btn>}
             {mobile && <button aria-label="Menu" onClick={() => setDrawer(true)} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: C.ink }}>☰</button>}
           </div>
         </div>
@@ -528,14 +538,14 @@ function SiteHeader({ route, nav, openSearch }) {
           <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 300, background: C.ivory, padding: 24, display: "flex", flexDirection: "column", gap: 4, overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
               <Logo size={36} />
-              <button onClick={() => setDrawer(false)} aria-label="Close menu" style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer" }}>×</button>
+              <button onClick={() => setDrawer(false)} aria-label="मेनू बंद करें" style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer" }}>×</button>
             </div>
             {SITE_NAV.map(([r, l]) => (
-              <button key={r} onClick={() => go(r)} style={{ background: route === r ? "#EDE8D8" : "none", border: "none", textAlign: "left", padding: "12px 14px", borderRadius: 8, fontFamily: sans, fontSize: 15, fontWeight: 600, color: C.ink, cursor: "pointer" }}>{l}</button>
+              <button key={r} onClick={() => go(r)} style={{ background: route === r ? "#EEF3EF" : "none", border: "none", textAlign: "left", padding: "12px 14px", borderRadius: 8, fontFamily: sans, fontSize: 15.5, fontWeight: 600, color: C.ink, cursor: "pointer" }}>{l}</button>
             ))}
             <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-              <Btn kind="gold" onClick={() => go("join")}>Join UKD</Btn>
-              <Btn kind="ghost" onClick={() => go("people/report")}>Raise an Issue</Btn>
+              <Btn kind="gold" onClick={() => go("join")}>सदस्य बनें</Btn>
+              <Btn kind="ghost" onClick={() => go("people/report")}>समस्या दर्ज करें</Btn>
             </div>
           </div>
         </div>
@@ -545,46 +555,52 @@ function SiteHeader({ route, nav, openSearch }) {
 }
 
 const Logo = ({ size = 40, light }) => (
-  <svg width={size} height={size} viewBox="0 0 48 48" aria-label="UKD logo">
-    <rect width="48" height="48" rx="11" fill={light ? C.ivory : C.forest} />
-    <path d="M8 34 L18 18 L24 27 L31 14 L40 34 Z" fill={light ? C.forest : C.ivory} />
-    <circle cx="33.5" cy="12.5" r="3.4" fill={C.gold} />
-  </svg>
+  <img
+    src="/ukd-logo.png"
+    width={size}
+    height={size}
+    alt="उत्तराखंड क्रांति दल का आधिकारिक चिन्ह"
+    style={{
+      display: "block", width: size, height: size, objectFit: "contain",
+      borderRadius: "50%",
+      boxShadow: light ? "0 0 0 2px rgba(255,255,255,.9)" : "none",
+    }}
+  />
 );
 
 function SiteFooter({ nav }) {
   const cols = [
-    ["Explore", [["about","About UKD"],["organisation","Organisation"],["history","History & Legacy"],["news","News"]]],
-    ["People", [["people","People's Portal"],["events","Events"],["join","Join UKD"],["support","Support UKD"]]],
-    ["Official", [["documents","Documents"],["transparency","Transparency"],["contact","Contact"],["contact","Privacy"]]],
+    ["जानें", [["about","दल परिचय"],["organisation","संगठन"],["history","इतिहास व विरासत"],["news","समाचार"]]],
+    ["जनता", [["people","जन पोर्टल"],["events","कार्यक्रम"],["join","सदस्य बनें"],["support","सहयोग करें"]]],
+    ["आधिकारिक", [["documents","दस्तावेज़"],["transparency","पारदर्शिता"],["contact","संपर्क"],["contact","गोपनीयता नीति"]]],
   ];
   return (
     <footer style={{ background: C.forestDeep, color: C.ivory, marginTop: 0 }}>
-      <Ridges h={90} tones={["#26402B", "#1F3524", C.forestDeep]} style={{ background: C.ivory }} />
+      <Ridges h={90} tones={[C.forestDark, "#0A3D20", C.forestDeep]} style={{ background: C.ivory }} />
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "44px 20px 30px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 34 }}>
         <div>
           <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
             <Logo size={44} light />
             <div>
-              <div style={{ fontFamily: serif, fontSize: 19, fontWeight: 600 }}>Uttarakhand Kranti Dal</div>
-              <div style={{ fontFamily: sans, fontSize: 10.5, letterSpacing: ".2em", color: C.goldSoft, fontWeight: 700 }}>OFFICIAL WEBSITE</div>
+              <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700 }}>उत्तराखंड क्रांति दल</div>
+              <div style={{ fontFamily: sans, fontSize: 11.5, letterSpacing: ".1em", color: "#FF8A85", fontWeight: 600 }}>आधिकारिक वेबसाइट</div>
             </div>
           </div>
-          <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.7, color: "#C9D2C4", maxWidth: 300 }}>Uttarakhand's voice. Connected to its people. One organisation, one network, one digital home.</p>
+          <p style={{ fontFamily: sans, fontSize: 14, lineHeight: 1.85, color: "#C9D5CB", maxWidth: 320 }}>उत्तराखंड की अपनी आवाज़। एक संगठन, एक नेटवर्क, एक डिजिटल घर।</p>
         </div>
         {cols.map(([h, links]) => (
           <div key={h}>
-            <div style={{ fontFamily: sans, fontSize: 12, letterSpacing: ".18em", fontWeight: 700, color: C.goldSoft, marginBottom: 14 }}>{h.toUpperCase()}</div>
+            <div style={{ fontFamily: sans, fontSize: 13, letterSpacing: ".08em", fontWeight: 700, color: "#FF8A85", marginBottom: 14 }}>{h}</div>
             {links.map(([r, l], i) => (
-              <button key={i} onClick={() => nav(r)} style={{ display: "block", background: "none", border: "none", color: "#DCE3D6", fontFamily: sans, fontSize: 14, padding: "5px 0", cursor: "pointer", textAlign: "left" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = C.goldSoft)} onMouseLeave={(e) => (e.currentTarget.style.color = "#DCE3D6")}>{l}</button>
+              <button key={i} onClick={() => nav(r)} style={{ display: "block", background: "none", border: "none", color: "#DCE7DC", fontFamily: sans, fontSize: 14.5, padding: "5px 0", cursor: "pointer", textAlign: "left" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#FF8A85")} onMouseLeave={(e) => (e.currentTarget.style.color = "#DCE7DC")}>{l}</button>
             ))}
           </div>
         ))}
       </div>
       <div style={{ borderTop: `1px solid ${C.ivory}1c`, padding: "16px 20px", fontFamily: sans, fontSize: 12.5, color: "#9DAA97", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, maxWidth: 1280, margin: "0 auto" }}>
-        <span>© 2026 Uttarakhand Kranti Dal · Official Website</span>
-        <span>Frontend prototype · All content is demo data</span>
+        <span>© 2026 उत्तराखंड क्रांति दल · आधिकारिक वेबसाइट</span>
+        <span>प्रारूप संस्करण · सामग्री प्रदर्शन हेतु</span>
       </div>
     </footer>
   );
@@ -638,41 +654,44 @@ const Lead = ({ children, light, style = {} }) => (
 function Hero({ nav }) {
   return (
     <div style={{ background: `linear-gradient(180deg, ${C.forestDeep} 0%, ${C.forestDark} 62%, ${C.forest} 100%)`, position: "relative", overflow: "hidden" }}>
-      <div aria-hidden="true" style={{ position: "absolute", top: -120, right: -120, width: 420, height: 420, borderRadius: "50%", background: `radial-gradient(circle, ${C.gold}30, transparent 65%)` }} />
+      {/* Emblem's diagonal split, enlarged as a background motif */}
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `linear-gradient(115deg, transparent 0%, transparent 58%, ${C.red}22 58%, ${C.red}22 100%)` }} />
+      <img aria-hidden="true" src="/ukd-logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-6%", transform: "translateY(-50%)", width: "clamp(280px, 38vw, 560px)", opacity: .13, pointerEvents: "none" }} />
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(70px, 10vw, 130px) 20px 30px", position: "relative" }}>
-        <div className="ukd-fade" style={{ maxWidth: 760 }}>
-          <Eyebrow light>Uttarakhand Kranti Dal · Official Digital Home</Eyebrow>
-          <h1 style={{ fontFamily: serif, fontWeight: 500, fontSize: "clamp(40px, 6.4vw, 76px)", lineHeight: 1.06, color: C.ivory, margin: "0 0 22px", letterSpacing: "-0.015em" }}>
-            Uttarakhand's voice.<br />
-            <span style={{ color: C.goldSoft, fontStyle: "italic" }}>Connected to its people.</span>
+        <div className="ukd-fade" style={{ maxWidth: 780 }}>
+          <Eyebrow light>उत्तराखंड क्रांति दल · आधिकारिक डिजिटल मंच</Eyebrow>
+          <h1 style={{ fontFamily: serif, fontWeight: 700, fontSize: "clamp(38px, 6vw, 72px)", lineHeight: 1.22, color: C.ivory, margin: "0 0 24px", letterSpacing: "-0.02em" }}>
+            उत्तराखंड की अपनी आवाज़।<br />
+            <span style={{ color: "#FF8A85" }}>जनता से जुड़ी, जनता के लिए।</span>
           </h1>
-          <p style={{ fontFamily: sans, fontSize: "clamp(15px, 1.6vw, 18px)", lineHeight: 1.7, color: "#CBD5C6", maxWidth: 560, marginBottom: 34 }}>
-            A modern digital home for UKD's vision, leadership, history, public work and connection with the people of Uttarakhand.
+          <p style={{ fontFamily: sans, fontSize: "clamp(16px, 1.6vw, 19px)", lineHeight: 1.85, color: "#CBD9CC", maxWidth: 620, marginBottom: 36 }}>
+            राज्य आंदोलन की विरासत से जन्मा दल — अपने संगठन, अपने कार्यकर्ताओं और
+            उत्तराखंड की जनता के लिए एक पारदर्शी डिजिटल घर।
           </p>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>Raise an Issue →</Btn>
-            <Btn kind="ghostLight" size="lg" onClick={() => nav("about")}>Explore UKD</Btn>
+            <Btn kind="gold" size="lg" onClick={() => nav("people/report")}>समस्या दर्ज करें →</Btn>
+            <Btn kind="ghostLight" size="lg" onClick={() => nav("about")}>दल को जानें</Btn>
           </div>
         </div>
       </div>
-      <Ridges h={170} tones={["#3A6B82", "#33593A", C.ivory]} style={{ marginTop: 30 }} />
+      <Ridges h={170} tones={[C.forest, C.forestDark, C.ivory]} style={{ marginTop: 30 }} />
     </div>
   );
 }
 
 function StatStrip() {
-  const stats = [["13", "District presence"], ["24×7", "Digital access"], ["1", "Official digital home"], ["∞", "Stories & legacy"]];
+  const stats = [["13", "ज़िलों में उपस्थिति"], ["24×7", "डिजिटल पहुँच"], ["1979", "स्थापना वर्ष"], ["एक", "आधिकारिक डिजिटल मंच"]];
   return (
     <div style={{ maxWidth: 1280, margin: "-40px auto 0", padding: "0 20px", position: "relative", zIndex: 5 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         {stats.map(([n, l], i) => (
           <div key={i} className="hoverlift ukd-fade" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "26px 24px", boxShadow: "0 12px 32px -18px rgba(24,43,28,.25)", animationDelay: `${i * 90}ms` }}>
             <div style={{ fontFamily: serif, fontSize: 42, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{n}</div>
-            <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, letterSpacing: ".06em", color: C.mute, marginTop: 8, textTransform: "uppercase" }}>{l}</div>
+            <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 600, color: C.mute, marginTop: 8 }}>{l}</div>
           </div>
         ))}
       </div>
-      <div style={{ fontFamily: sans, fontSize: 11.5, color: C.mute, marginTop: 8, textAlign: "right" }}>Interface concepts — not official organisational statistics.</div>
+      <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 8, textAlign: "right" }}>प्रदर्शन हेतु प्रस्तुत — आधिकारिक संगठनात्मक आँकड़े नहीं।</div>
     </div>
   );
 }
@@ -713,17 +732,17 @@ function OrgPreview({ nav }) {
 }
 
 function RegionMap({ nav, compact }) {
-  const [open, setOpen] = useState("Garhwal");
+  const [open, setOpen] = useState("गढ़वाल");
   const store = useStore();
-  const tones = { Garhwal: C.forest, Kumaon: C.slate, Tarai: "#7A5C3A" };
+  const tones = { गढ़वाल: C.forest, कुमाऊँ: C.red, तराई: C.slateSoft };
   return (
     <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 40, alignItems: "start" }}>
       <div>
         <svg viewBox="0 0 400 300" style={{ width: "100%", maxWidth: 480 }} role="img" aria-label="Stylised map of Uttarakhand regions">
           {[
-            ["Garhwal", "M30,180 L70,80 L150,40 L210,90 L190,170 L120,220 Z"],
-            ["Kumaon", "M210,90 L300,50 L370,110 L330,200 L240,210 L190,170 Z"],
-            ["Tarai", "M120,220 L190,170 L240,210 L330,200 L310,262 L100,262 Z"],
+            ["गढ़वाल", "M30,180 L70,80 L150,40 L210,90 L190,170 L120,220 Z"],
+            ["कुमाऊँ", "M210,90 L300,50 L370,110 L330,200 L240,210 L190,170 Z"],
+            ["तराई", "M120,220 L190,170 L240,210 L330,200 L310,262 L100,262 Z"],
           ].map(([r, d]) => (
             <path key={r} d={d} fill={tones[r]} opacity={open === r ? 1 : 0.45} stroke={C.ivory} strokeWidth="4" style={{ cursor: "pointer", transition: "opacity .2s" }} onClick={() => setOpen(r)} />
           ))}
@@ -775,6 +794,45 @@ function NewsCard({ n, nav, big }) {
   );
 }
 
+/* Photographs of real UKD figures.
+   TODO — confirm every designation with the party office before publishing.
+   Descriptions are intentionally minimal; do not invent biographical detail. */
+const LEADERS = [
+  { name: "इन्द्रमणि बडोनी", img: "/leaders/Indra-Mani-Badoni.webp", role: "राज्य आंदोलन के प्रणेता", note: "उत्तराखंड के गांधी" },
+  { name: "काशी सिंह ऐरी", img: "/leaders/Kashi-Singh-Airy.webp", role: "वरिष्ठ नेता", note: "" },
+  { name: "दिवाकर भट्ट", img: "/leaders/Diwakar-Bhatt.jpeg", role: "वरिष्ठ नेता", note: "" },
+  { name: "पुष्पेश त्रिपाठी", img: "/leaders/Pushpesh-Tripathi.jpg", role: "वरिष्ठ नेता", note: "" },
+  { name: "नारायण सिंह जंतवाल", img: "/leaders/narayana-singh-jantwal.jpeg", role: "वरिष्ठ नेता", note: "" },
+  { name: "आशीष सिंह नेगी", img: "/leaders/Ashish-Singh-Negi.jpeg", role: "वरिष्ठ नेता", note: "" },
+];
+
+function LeadershipSection({ nav }) {
+  return (
+    <Section>
+      <Eyebrow>नेतृत्व</Eyebrow>
+      <H2>जिन्होंने पहाड़ की आवाज़ बुलंद की।</H2>
+      <Lead>राज्य आंदोलन से लेकर आज तक — दल का नेतृत्व जिन्होंने संभाला।</Lead>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 18 }}>
+        {LEADERS.map((p, i) => (
+          <div key={p.name} className="hoverlift ukd-fade"
+            style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: C.forestDeep, aspectRatio: "3 / 4", animationDelay: `${i * 70}ms`, boxShadow: "0 14px 34px -20px rgba(4,45,24,.5)" }}>
+            <img src={p.img} alt={p.name} loading="lazy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+            {/* Green scrim so the caption stays legible over any photograph */}
+            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 40%, ${C.forestDeep}E6 88%)` }} />
+            <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "16px 16px 15px", borderBottom: `3px solid ${C.red}` }}>
+              <div style={{ fontFamily: serif, fontSize: 18.5, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
+              <div style={{ fontFamily: sans, fontSize: 13, color: "#B9D2BF", marginTop: 3 }}>{p.role}</div>
+              {p.note && <div style={{ fontFamily: sans, fontSize: 12.5, color: "#FF8A85", marginTop: 3, fontWeight: 600 }}>{p.note}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 26 }}><Btn kind="ghost" onClick={() => nav("organisation")}>पूरा संगठन देखें</Btn></div>
+    </Section>
+  );
+}
+
 function HomePage({ nav }) {
   const store = useStore();
   return (
@@ -782,27 +840,28 @@ function HomePage({ nav }) {
       <Hero nav={nav} />
       <StatStrip />
       <Section>
-        <Eyebrow>About UKD</Eyebrow>
-        <H2>A movement with a story worth knowing.</H2>
-        <Lead>Born from the struggle for statehood, rooted in the mountains, and organised for the work still ahead.</Lead>
+        <Eyebrow>दल परिचय</Eyebrow>
+        <H2>एक आंदोलन, जिसकी कहानी जाननी ज़रूरी है।</H2>
+        <Lead>राज्य आंदोलन की कोख से जन्मा, पहाड़ में जड़ें जमाए, और आगे के काम के लिए संगठित।</Lead>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 16 }}>
-          {[["Our Vision", "A dignified, self-reliant mountain state where policy is written from the hills, not for them.", "about"],
-            ["Our Leadership", "An organised leadership line from the centre to every local unit.", "organisation"],
-            ["Our Journey", "From the statehood movement to a modern digital organisation.", "history"],
-            ["Our Work", "Public issues, ground organisation and accountable follow-through.", "people"]].map(([t, d, r], i) => (
+          {[["हमारी दृष्टि", "एक स्वाभिमानी, आत्मनिर्भर पर्वतीय राज्य — जहाँ नीति पहाड़ से लिखी जाए, पहाड़ पर थोपी न जाए।", "about"],
+            ["हमारा नेतृत्व", "केंद्र से लेकर हर स्थानीय इकाई तक एक संगठित नेतृत्व श्रृंखला।", "organisation"],
+            ["हमारी यात्रा", "राज्य आंदोलन से लेकर एक आधुनिक डिजिटल संगठन तक।", "history"],
+            ["हमारा कार्य", "जन समस्याएँ, ज़मीनी संगठन और जवाबदेह अनुवर्ती कार्रवाई।", "people"]].map(([t, d, r], i) => (
             <button key={t} className="hoverlift" onClick={() => nav(r)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderTop: `3px solid ${[C.forest, C.gold, C.slate, C.lime][i]}`, borderRadius: 12, padding: 22, cursor: "pointer" }}>
               <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, marginBottom: 8 }}>{t}</div>
               <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C", margin: 0 }}>{d}</p>
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 26 }}><Btn kind="ghost" onClick={() => nav("about")}>Discover UKD</Btn></div>
+        <div style={{ marginTop: 26 }}><Btn kind="ghost" onClick={() => nav("about")}>दल को जानें</Btn></div>
       </Section>
-      <div style={{ background: "#EFEBDD" }}><OrgPreview nav={nav} /></div>
+      <div style={{ background: C.ivory }}><LeadershipSection nav={nav} /></div>
+      <div style={{ background: "#EDF2EE" }}><OrgPreview nav={nav} /></div>
       <Section>
-        <Eyebrow>UKD Across Uttarakhand</Eyebrow>
-        <H2>Present across all thirteen districts.</H2>
-        <Lead>Explore the organisation region by region — Garhwal, Kumaon and the Tarai belt.</Lead>
+        <Eyebrow>उत्तराखंड भर में</Eyebrow>
+        <H2>प्रदेश के तेरहों ज़िलों में उपस्थिति।</H2>
+        <Lead>क्षेत्रवार संगठन देखें — गढ़वाल, कुमाऊँ और तराई।</Lead>
         <RegionMap nav={nav} />
       </Section>
       <div style={{ background: C.forestDark, position: "relative", overflow: "hidden" }}>
@@ -1048,7 +1107,7 @@ function OrganisationPage({ nav, sub }) {
   }
   return (
     <>
-      <PageHead eyebrow="Organisation" title="One network, from centre to village." sub="Explore UKD's structure across Garhwal, Kumaon and the Tarai — down to every district." crumbs={[["Home", "home"], ["Organisation"]]} nav={nav} />
+      <PageHead eyebrow="Organisation" title="One network, from centre to village." sub="Explore UKD's structure across गढ़वाल, कुमाऊँ and the तराई — down to every district." crumbs={[["Home", "home"], ["Organisation"]]} nav={nav} />
       <Section><OrgPreviewInner /><div style={{ height: 40 }} /><RegionMap nav={nav} /></Section>
     </>
   );
@@ -1786,7 +1845,7 @@ function CommandCentre({ nav, user }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: 14 }}>
         <PCard>
           <PTitle right={<button onClick={() => nav("analytics")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Analytics →</button>}>District Performance — Health</PTitle>
-          <Bars height={170} data={["Dehradun", "Pauri Garhwal", "Almora", "Nainital", "Chamoli", "Haridwar"].map((d, i) => ({ k: d.split(" ")[0], v: [88, 82, 77, 74, 69, 64][i], c: [C.forest, C.forest, C.gold, C.gold, C.gold, C.red][i] }))} />
+          <Bars height={170} data={["देहरादून", "पौड़ी गढ़वाल", "अल्मोड़ा", "नैनीताल", "चमोली", "हरिद्वार"].map((d, i) => ({ k: d.split(" ")[0], v: [88, 82, 77, 74, 69, 64][i], c: [C.forest, C.forest, C.gold, C.gold, C.gold, C.red][i] }))} />
         </PCard>
         <PCard>
           <PTitle right={<button onClick={() => nav("issues")} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, cursor: "pointer" }}>Issues →</button>}>Issue Overview</PTitle>
@@ -1813,7 +1872,7 @@ function CommandCentre({ nav, user }) {
 }
 
 function OrgModule({ nav }) {
-  const [open, setOpen] = useState({ Central: true, Garhwal: true });
+  const [open, setOpen] = useState({ Central: true, गढ़वाल: true });
   const toggle = (k) => setOpen({ ...open, [k]: !open[k] });
   const Row = ({ label, meta, depth, k, children, onOpen }) => (
     <div style={{ marginLeft: depth * 22 }}>
@@ -2130,7 +2189,7 @@ function TasksModule({ nav, id, query, user }) {
         <Field label="Deadline"><TextInput value={nf.deadline} onChange={(e) => setNf({ ...nf, deadline: e.target.value })} placeholder="e.g. 25 Aug 2026" /></Field>
         <Btn style={{ width: "100%" }} onClick={() => {
           if (!nf.name.trim() || !nf.assignee) { toast("Task name and assignee are required.", "error"); return; }
-          store.setTasks([{ id: `T-${Math.floor(500 + Math.random() * 400)}`, name: nf.name, district: nf.district || "Dehradun", priority: nf.priority, assignee: nf.assignee, unit: "Local Unit 01", deadline: nf.deadline || "31 Aug 2026", status: "Not Started", desc: "Newly created task. Assign, execute and report through the standard workflow.", comments: 0, evidence: "—" }, ...store.tasks]);
+          store.setTasks([{ id: `T-${Math.floor(500 + Math.random() * 400)}`, name: nf.name, district: nf.district || "देहरादून", priority: nf.priority, assignee: nf.assignee, unit: "Local Unit 01", deadline: nf.deadline || "31 Aug 2026", status: "Not Started", desc: "Newly created task. Assign, execute and report through the standard workflow.", comments: 0, evidence: "—" }, ...store.tasks]);
           setCreateOpen(false); setNf({ name: "", district: user.district || "", priority: "Medium", assignee: "", deadline: "" }); toast("Task created and assigned.");
         }}>Create task</Btn>
       </Modal>
@@ -2416,21 +2475,21 @@ function AnalyticsModule() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: 14 }}>
         <PCard><PTitle>Membership growth (6 months)</PTitle><Bars height={170} color={C.forest} data={["Mar", "Apr", "May", "Jun", "Jul", "Aug"].map((k, i) => ({ k, v: [18, 24, 29, 33, 38, store.members.length][i] }))} /></PCard>
         <PCard><PTitle>Karyakarta activity — tasks / week</PTitle><Bars height={170} color={C.slate} data={["Wk27", "Wk28", "Wk29", "Wk30", "Wk31", "Wk32"].map((k, i) => ({ k, v: [12, 15, 11, 18, 16, 21][i] }))} /></PCard>
-        <PCard><PTitle>Organisation health by region</PTitle><Bars height={170} data={[{ k: "Garhwal", v: 81, c: C.forest }, { k: "Kumaon", v: 76, c: C.gold }, { k: "Tarai", v: 71, c: C.gold }]} /></PCard>
+        <PCard><PTitle>Organisation health by region</PTitle><Bars height={170} data={[{ k: "गढ़वाल", v: 81, c: C.forest }, { k: "कुमाऊँ", v: 76, c: C.gold }, { k: "तराई", v: 71, c: C.gold }]} /></PCard>
         <PCard><PTitle>Task completion</PTitle><Donut label={`${Math.round(store.tasks.filter((t) => t.status === "Completed").length / store.tasks.length * 100)}%`} sub="COMPLETED" segments={[{ k: "Completed", v: store.tasks.filter((t) => t.status === "Completed").length, c: C.lime }, { k: "Active", v: store.tasks.filter((t) => !["Completed", "Overdue"].includes(t.status)).length, c: C.gold }, { k: "Overdue", v: store.tasks.filter((t) => t.status === "Overdue").length, c: C.red }]} /></PCard>
         <PCard><PTitle>Issue resolution time (days, avg)</PTitle><Bars height={170} color={C.gold} data={["Road", "Water", "Elec.", "Health", "Transport"].map((k, i) => ({ k, v: [14, 9, 7, 12, 6][i] }))} /></PCard>
-        <PCard><PTitle>Events by district (upcoming)</PTitle><Bars height={170} color={C.slateSoft} data={["Dehradun", "Almora", "Pauri", "Haridwar", "Others"].map((k) => ({ k, v: SEED_EVENTS.filter((e) => e.district.startsWith(k)).length || 1 }))} /></PCard>
+        <PCard><PTitle>Events by district (upcoming)</PTitle><Bars height={170} color={C.slateSoft} data={["देहरादून", "अल्मोड़ा", "पौड़ी", "हरिद्वार", "Others"].map((k) => ({ k, v: SEED_EVENTS.filter((e) => e.district.startsWith(k)).length || 1 }))} /></PCard>
       </div>
     </div>
   );
 }
 
 const AI_ANSWERS = {
-  "summarise this week's organisation report": "Week 32 summary (demo): 11 of 13 districts submitted reports. 27 meetings were held, 41 tasks completed, 19 members added statewide. Tehri Garhwal and Nainital have missing reports. Issue resolution improved — 6 resolved vs 4 last week. Recommended focus: overdue tasks in Pauri Garhwal and Pithoragarh.",
-  "which districts have overdue tasks": "Demo answer: 2 tasks are currently overdue — 'Booth committee verification drive' (Pauri Garhwal) and 'Notice acknowledgement follow-up' (Pithoragarh). Both are assigned and older than their deadlines. Open the Tasks module with the Overdue filter to act on them.",
-  "show unresolved issues older than 15 days": "Demo answer: several unresolved public issues have crossed 15 days, led by road & connectivity complaints in Pauri Garhwal and Uttarkashi, and a healthcare staffing issue in Chamoli. The Issues module has an aged-issues filter linked from the Command Centre.",
-  "which units haven't submitted reports": "Demo answer: 3 units have not filed their Week 32 report — including units in Tehri Garhwal and Nainital. Their district admins were flagged in 'Attention Required'. You can send reminders from the Reports module.",
-  "what changed this week": "Demo answer since last Monday: +4 members, 1 new local unit under survey (Bageshwar), 2 issues resolved, 1 high-priority notice published (reporting deadline), and district health for Dehradun rose from 85% to 88%.",
+  "summarise this week's organisation report": "Week 32 summary (demo): 11 of 13 districts submitted reports. 27 meetings were held, 41 tasks completed, 19 members added statewide. टिहरी गढ़वाल and नैनीताल have missing reports. Issue resolution improved — 6 resolved vs 4 last week. Recommended focus: overdue tasks in पौड़ी गढ़वाल and पिथौरागढ़.",
+  "which districts have overdue tasks": "Demo answer: 2 tasks are currently overdue — 'Booth committee verification drive' (पौड़ी गढ़वाल) and 'Notice acknowledgement follow-up' (पिथौरागढ़). Both are assigned and older than their deadlines. Open the Tasks module with the Overdue filter to act on them.",
+  "show unresolved issues older than 15 days": "Demo answer: several unresolved public issues have crossed 15 days, led by road & connectivity complaints in पौड़ी गढ़वाल and उत्तरकाशी, and a healthcare staffing issue in चमोली. The Issues module has an aged-issues filter linked from the Command Centre.",
+  "which units haven't submitted reports": "Demo answer: 3 units have not filed their Week 32 report — including units in टिहरी गढ़वाल and नैनीताल. Their district admins were flagged in 'Attention Required'. You can send reminders from the Reports module.",
+  "what changed this week": "Demo answer since last Monday: +4 members, 1 new local unit under survey (बागेश्वर), 2 issues resolved, 1 high-priority notice published (reporting deadline), and district health for देहरादून rose from 85% to 88%.",
 };
 function AIModule() {
   const [msgs, setMsgs] = useState([{ role: "ai", text: "Namaste. I'm the UKD organisation assistant (demo). Ask me about reports, tasks, issues or units — or tap a suggestion below." }]);
@@ -2525,7 +2584,7 @@ function SettingsModule({ user }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
           <PCard><PTitle>Password</PTitle><Field label="Current password"><TextInput type="password" /></Field><Field label="New password"><TextInput type="password" /></Field><Btn size="sm" onClick={() => toast("Password changed (demo).")}>Update password</Btn></PCard>
           <PCard><PTitle>Two-factor authentication</PTitle><p style={{ fontFamily: sans, fontSize: 13.5, color: "#4A554C", lineHeight: 1.6 }}>Protect the account with a one-time code at sign-in.</p><Btn size="sm" kind="ghost" onClick={() => toast("2FA enabled (demo).")}>Enable 2FA (demo)</Btn></PCard>
-          <PCard><PTitle>Active sessions</PTitle>{[["This device — Dehradun", "Now"], ["Android app — Pauri", "2 d ago"]].map(([d, t]) => <div key={d} style={{ display: "flex", justifyContent: "space-between", fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55` }}><span style={{ color: C.ink }}>{d}</span><span style={{ color: C.mute }}>{t}</span></div>)}<Btn size="sm" kind="danger" style={{ marginTop: 12 }} onClick={() => toast("Other sessions signed out (demo).")}>Sign out other sessions</Btn></PCard>
+          <PCard><PTitle>Active sessions</PTitle>{[["This device — देहरादून", "Now"], ["Android app — पौड़ी", "2 d ago"]].map(([d, t]) => <div key={d} style={{ display: "flex", justifyContent: "space-between", fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55` }}><span style={{ color: C.ink }}>{d}</span><span style={{ color: C.mute }}>{t}</span></div>)}<Btn size="sm" kind="danger" style={{ marginTop: 12 }} onClick={() => toast("Other sessions signed out (demo).")}>Sign out other sessions</Btn></PCard>
         </div>
       )}
       {tab === "Permissions" && (
