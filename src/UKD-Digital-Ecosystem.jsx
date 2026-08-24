@@ -656,23 +656,25 @@ const Lead = ({ children, light, style = {} }) => (
    carry the red rule. LEADERS is declared further down and only read at render
    time, which is after module evaluation. */
 function HeroFaces({ nav }) {
-  const mobile = useIsMobile(700);
+  const mobile = useIsMobile(760);
   const faces = [LEADERS[0], LEADERS[1], LEADERS[2]];
   return (
-    <div className="ukd-fade" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)", gap: 12, animationDelay: "160ms" }}>
+    <div className="ukd-fade" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)", gap: mobile ? 16 : 22, animationDelay: "160ms" }}>
       {faces.map((p, i) => (
         <button key={p.name} onClick={() => nav("organisation")} className="hoverlift"
           style={{
-            display: "flex", alignItems: "center", gap: 13, padding: 10, cursor: "pointer", textAlign: "left",
-            background: "rgba(255,255,255,.05)", borderRadius: 12,
-            border: "1px solid rgba(255,255,255,.12)",
-            borderLeft: `3px solid ${i < 2 ? C.red : "rgba(255,255,255,.2)"}`,
+            display: "block", padding: 0, cursor: "pointer", textAlign: "left",
+            background: "#fff", borderRadius: 14, overflow: "hidden", border: "none",
+            borderTop: `4px solid ${i < 2 ? C.red : C.forest}`,
+            boxShadow: "0 26px 56px -26px rgba(0,0,0,.7)",
           }}>
-          <img src={p.img} alt={p.name} loading="eager"
-            style={{ width: 58, height: 58, borderRadius: "50%", objectFit: "cover", objectPosition: "top center", flexShrink: 0, border: "2px solid rgba(255,255,255,.2)" }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: serif, fontSize: 16, fontWeight: 700, color: "#fff" }}>{p.name}</div>
-            <div style={{ fontFamily: sans, fontSize: 12.5, color: i < 2 ? "#FF8A85" : "#A9C4B0", fontWeight: 600, marginTop: 2 }}>{p.note || p.role}</div>
+          <div style={{ position: "relative", aspectRatio: "4 / 5", background: C.forestDeep }}>
+            <img src={p.img} alt={p.name} loading="eager"
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 22%", display: "block" }} />
+          </div>
+          <div style={{ padding: "16px 18px 18px", borderTop: `1px solid ${C.line}` }}>
+            <div style={{ fontFamily: serif, fontSize: "clamp(19px, 2vw, 23px)", fontWeight: 700, color: C.ink, lineHeight: 1.3 }}>{p.name}</div>
+            <div style={{ fontFamily: sans, fontSize: 14.5, color: i < 2 ? C.red : C.mute, fontWeight: 600, marginTop: 5 }}>{p.note || p.role}</div>
           </div>
         </button>
       ))}
@@ -718,12 +720,18 @@ function Hero({ nav }) {
 /* The three founding faces, as a band directly under the hero. */
 function LeadershipBand({ nav }) {
   return (
-    <div style={{ background: C.forestDark, borderBottom: `3px solid ${C.red}` }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "26px 20px 30px" }}>
-        <div style={{ fontFamily: sans, fontSize: 13.5, color: "#9FBCA6", fontWeight: 600, marginBottom: 16 }}>
-          जिन्होंने पहाड़ की आवाज़ बुलंद की
+    <div style={{ background: C.forestDark }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(40px, 5vw, 62px) 20px clamp(44px, 5vw, 66px)" }}>
+        <div style={{ marginBottom: 30 }}>
+          <div style={{ fontFamily: sans, fontSize: 13.5, color: "#FF8A85", fontWeight: 700, marginBottom: 8 }}>वरिष्ठ नेतृत्व</div>
+          <h2 style={{ fontFamily: serif, fontSize: "clamp(26px, 3.2vw, 38px)", fontWeight: 700, color: "#fff", margin: 0 }}>
+            जिन्होंने पहाड़ की आवाज़ बुलंद की।
+          </h2>
         </div>
         <HeroFaces nav={nav} />
+        <div style={{ marginTop: 26 }}>
+          <Btn kind="ghostLight" onClick={() => nav("organisation")}>पूरा संगठन देखें</Btn>
+        </div>
       </div>
     </div>
   );
@@ -860,10 +868,10 @@ function LeadershipSection({ nav }) {
   return (
     <Section>
       <Eyebrow>नेतृत्व</Eyebrow>
-      <H2>जिन्होंने पहाड़ की आवाज़ बुलंद की।</H2>
+      <H2>संगठन के अन्य वरिष्ठ नेता।</H2>
       <Lead>राज्य आंदोलन से लेकर आज तक — दल का नेतृत्व जिन्होंने संभाला।</Lead>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 18 }}>
-        {LEADERS.map((p, i) => (
+        {LEADERS.slice(3).map((p, i) => (
           <div key={p.name} className="hoverlift ukd-fade"
             style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: C.forestDeep, aspectRatio: "3 / 4", animationDelay: `${i * 70}ms`, boxShadow: "0 14px 34px -20px rgba(4,45,24,.5)" }}>
             <img src={p.img} alt={p.name} loading="lazy"
