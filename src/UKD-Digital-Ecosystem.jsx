@@ -114,11 +114,11 @@ const SEED_KARYAKARTAS = Array.from({ length: 18 }, (_, i) => ({
   name: seededName(i + 9),
   district: DISTRICTS[(i * 3) % 13],
   unit: `Local Unit ${String(1 + (i % 6)).padStart(2, "0")}`,
-  role: ["Field Karyakarta","बूथ कार्यकर्ता","प्रशिक्षण प्रभारी","Field Karyakarta","Outreach Karyakarta"][i % 5],
-  skills: [["Outreach","Hindi comms"],["Logistics","परिवहन"],["प्रशिक्षण","Documentation"],["Media liaison","Photography"],["डेटा प्रविष्टि","रिपोर्टिंग"]][i % 5],
-  availability: ["सप्ताहांत","Full-time","Evenings","Full-time"][i % 4],
+  role: ["क्षेत्रीय कार्यकर्ता","बूथ कार्यकर्ता","प्रशिक्षण प्रभारी","क्षेत्रीय कार्यकर्ता","जन संपर्क कार्यकर्ता"][i % 5],
+  skills: [["जन संपर्क","Hindi comms"],["व्यवस्था","परिवहन"],["प्रशिक्षण","दस्तावेज़ीकरण"],["मीडिया संपर्क","फोटोग्राफ़ी"],["डेटा प्रविष्टि","रिपोर्टिंग"]][i % 5],
+  availability: ["सप्ताहांत","पूर्णकालिक","सायंकाल","पूर्णकालिक"][i % 4],
   tasksDone: 4 + (i * 5) % 23,
-  training: i % 3 === 0 ? "पूर्ण" : i % 3 === 1 ? "In progress" : "निर्धारित",
+  training: i % 3 === 0 ? "पूर्ण" : i % 3 === 1 ? "प्रगति पर" : "निर्धारित",
   active: i % 7 !== 0,
 }));
 
@@ -129,7 +129,7 @@ const SEED_UNITS = Array.from({ length: 14 }, (_, i) => {
     district: d, block: `Block ${"ABCD"[i % 4]}`,
     leader: seededName(i + 3), committee: 5 + (i % 4), karyakartas: 6 + (i * 3) % 15,
     members: 24 + (i * 17) % 90, lastActivity: `${(i % 9) + 1} d ago`,
-    openIssues: i % 5, pendingTasks: i % 4, lastReport: i % 6 === 0 ? "अप्राप्त" : "Wk 32",
+    openIssues: i % 5, pendingTasks: i % 4, lastReport: i % 6 === 0 ? "अप्राप्त" : "सप्ताह 32",
     health: 58 + (i * 7) % 40,
     checks: { leadership: true, committee: i % 6 !== 2, activity: i % 5 !== 4, reporting: i % 6 !== 0 },
   };
@@ -138,10 +138,10 @@ const SEED_UNITS = Array.from({ length: 14 }, (_, i) => {
 const SEED_TASKS = [
   ["बूथ समिति सत्यापन अभियान","पौड़ी गढ़वाल","उच्च"],["साप्ताहिक इकाई रिपोर्ट संकलन","अल्मोड़ा","मध्यम"],
   ["Membership form digitisation","देहरादून","मध्यम"],["ग्राम संपर्क — सड़क समस्या अनुवर्ती","चमोली","उच्च"],
-  ["District office document archive","नैनीताल","निम्न"],["Karyakarta training session prep","टिहरी गढ़वाल","उच्च"],
-  ["Event logistics — हरिद्वार meet","हरिद्वार","उच्च"],["Issue verification — water supply","अल्मोड़ा","मध्यम"],
-  ["New unit formation survey","बागेश्वर","मध्यम"],["Notice acknowledgement follow-up","पिथौरागढ़","निम्न"],
-  ["Photo documentation of public work","रुद्रप्रयाग","निम्न"],["Local grievance camp setup","चम्पावत","उच्च"],
+  ["ज़िला कार्यालय दस्तावेज़ संग्रह","नैनीताल","निम्न"],["कार्यकर्ता प्रशिक्षण सत्र तैयारी","टिहरी गढ़वाल","उच्च"],
+  ["Event logistics — हरिद्वार meet","हरिद्वार","उच्च"],["समस्या सत्यापन — पेयजल आपूर्ति","अल्मोड़ा","मध्यम"],
+  ["नई इकाई गठन सर्वेक्षण","बागेश्वर","मध्यम"],["Notice acknowledgement follow-up","पिथौरागढ़","निम्न"],
+  ["जन कार्य का फोटो दस्तावेज़ीकरण","रुद्रप्रयाग","निम्न"],["स्थानीय शिकायत शिविर व्यवस्था","चम्पावत","उच्च"],
   ["Member data cleanup — Block B","ऊधम सिंह नगर","मध्यम"],["पारदर्शिता लेखा अपलोड तैयारी","देहरादून","मध्यम"],
 ].map((t, i) => ({
   id: `T-${400 + i}`, name: t[0], district: t[1], priority: t[2],
@@ -154,17 +154,17 @@ const SEED_TASKS = [
 
 const SEED_ISSUES = [
   ["सड़क व संपर्क","पौड़ी गढ़वाल","प्राप्त","कोटद्वार–सतपुली stretch badly damaged after monsoon"],
-  ["पानी","अल्मोड़ा","प्रगति पर","Irregular drinking water supply in ward 6 for three weeks"],
-  ["परिवहन","देहरादून","हल हुआ","No evening bus service on Rajpur route"],
-  ["बिजली","टिहरी गढ़वाल","सौंपा गया","Frequent outages affecting school examinations"],
-  ["स्वास्थ्य","चमोली","प्रगति पर","PHC has no attending doctor on weekends"],
-  ["शिक्षा","बागेश्वर","प्राप्त","Primary school building needs urgent roof repair"],
+  ["पानी","अल्मोड़ा","प्रगति पर","वार्ड 6 में तीन सप्ताह से अनियमित पेयजल आपूर्ति"],
+  ["परिवहन","देहरादून","हल हुआ","राजपुर मार्ग पर शाम की बस सेवा नहीं"],
+  ["बिजली","टिहरी गढ़वाल","सौंपा गया","बार-बार बिजली कटौती से परीक्षाएँ प्रभावित"],
+  ["स्वास्थ्य","चमोली","प्रगति पर","सप्ताहांत पर पीएचसी में कोई चिकित्सक नहीं"],
+  ["शिक्षा","बागेश्वर","प्राप्त","प्राथमिक विद्यालय की छत की तत्काल मरम्मत आवश्यक"],
   ["रोज़गार","हरिद्वार","सौंपा गया","स्थानीय युवाओं हेतु कौशल प्रशिक्षण शिविर की माँग"],
   ["आपदा संबंधी","रुद्रप्रयाग","प्रगति पर","Landslide debris blocking village footpath"],
   ["पर्यावरण","नैनीताल","प्राप्त","झील के मुहाने पर अनियंत्रित कूड़ा निस्तारण"],
   ["स्थानीय प्रशासन","पिथौरागढ़","हल हुआ","निवास प्रमाण पत्र जारी होने में देरी"],
-  ["पानी","चम्पावत","प्राप्त","Hand-pump repair pending since June"],
-  ["सड़क व संपर्क","उत्तरकाशी","सौंपा गया","Bridge approach road washed out near Bhatwari"],
+  ["पानी","चम्पावत","प्राप्त","जून से हैंडपंप मरम्मत लंबित"],
+  ["सड़क व संपर्क","उत्तरकाशी","सौंपा गया","भटवाड़ी के पास पुल की पहुँच सड़क बह गई"],
 ].map((x, i) => ({
   id: `UKD-ISSUE-2026-${String(400 + i * 7).padStart(5, "0")}`,
   category: x[0], district: x[1], status: x[2], title: x[3],
@@ -177,12 +177,12 @@ const SEED_ISSUES = [
 }));
 
 const SEED_EVENTS = [
-  ["District Organisational Meeting","देहरादून","18 Aug 2026","संगठन"],
-  ["Karyakarta Training Camp","अल्मोड़ा","21 Aug 2026","प्रशिक्षण"],
+  ["ज़िला संगठनात्मक बैठक","देहरादून","18 Aug 2026","संगठन"],
+  ["कार्यकर्ता प्रशिक्षण शिविर","अल्मोड़ा","21 Aug 2026","प्रशिक्षण"],
   ["जन समस्या समाधान शिविर","पौड़ी गढ़वाल","24 Aug 2026","जन कार्य"],
   ["राज्य आंदोलन स्मरण दिवस","देहरादून","1 Sep 2026","स्मरण"],
-  ["Block Coordinators Review","हरिद्वार","5 Sep 2026","संगठन"],
-  ["ग्राम संपर्क यात्रा — द्वितीय चरण","चमोली","9 Sep 2026","Outreach"],
+  ["ब्लॉक संयोजक समीक्षा","हरिद्वार","5 Sep 2026","संगठन"],
+  ["ग्राम संपर्क यात्रा — द्वितीय चरण","चमोली","9 Sep 2026","जन संपर्क"],
   ["पर्वतीय रोज़गार पर युवा संवाद","नैनीताल","14 Sep 2026","जन कार्य"],
   ["केंद्रीय समिति सत्र","देहरादून","20 Sep 2026","संगठन"],
 ].map((e, i) => ({
@@ -196,7 +196,7 @@ const SEED_EVENTS = [
 const SEED_NEWS = [
   ["आधिकारिक सूचना","दल ने अपना आधिकारिक डिजिटल मंच शुरू किया","A single verified source for the organisation's news, documents and public engagement across all 13 districts.","10 Aug 2026"],
   ["जन कार्य","Issue resolution camps announced for hill blocks","Camps in पौड़ी, अल्मोड़ा and चमोली will take citizen grievances directly and track them to closure.","8 Aug 2026"],
-  ["संगठन","District units complete weekly reporting cycle","A structured reporting line from local units to the centre is now in regular operation.","6 Aug 2026"],
+  ["संगठन","ज़िला इकाइयों ने साप्ताहिक रिपोर्ट चक्र पूरा किया","A structured reporting line from local units to the centre is now in regular operation.","6 Aug 2026"],
   ["प्रेस","पर्वतीय सड़क संपर्क पर वक्तव्य","UKD placed a formal representation on monsoon-damaged routes and demanded time-bound restoration.","4 Aug 2026"],
   ["जन कार्य","Water supply follow-up in अल्मोड़ा ward 6","The assigned unit met the local administration; restoration work has been scheduled.","2 Aug 2026"],
   ["संगठन","New local units under formation in बागेश्वर","तीन विकासखंडों में सर्वेक्षण और समिति गठन जारी है।","30 Jul 2026"],
@@ -204,64 +204,64 @@ const SEED_NEWS = [
   body: "This is demonstration editorial content for the UKD digital prototype. The full article layout supports rich text, photographs, official quotes and linked documents. Real published material will replace this text when the organisation supplies it.\n\nEvery article is categorised, dated and searchable, and appears in the global search and the news archive automatically." }));
 
 const SEED_DOCS = [
-  ["Party Constitution (Demo Copy)","Party Documents","2026","केंद्र"],
+  ["Party Constitution (Demo Copy)","दल के दस्तावेज़","2026","केंद्र"],
   ["प्रस्ताव — पर्वतीय रोज़गार नीति","प्रस्ताव","2026","केंद्र"],
-  ["केंद्रीय समिति बैठक कार्यवृत्त — जुलाई","Meeting Minutes","2026","केंद्र"],
-  ["District Weekly Report — पौड़ी, Wk 31","District Reports","2026","पौड़ी गढ़वाल"],
-  ["Press Release — Road Connectivity","Press Releases","2026","केंद्र"],
-  ["Notice — Membership Drive Guidelines","Official Notices","2026","केंद्र"],
-  ["राज्य आंदोलन अभिलेख टिप्पणी","Historical Documents","2025","केंद्र"],
+  ["केंद्रीय समिति बैठक कार्यवृत्त — जुलाई","बैठक कार्यवृत्त","2026","केंद्र"],
+  ["District Weekly Report — पौड़ी, Wk 31","ज़िला रिपोर्ट","2026","पौड़ी गढ़वाल"],
+  ["प्रेस विज्ञप्ति — सड़क संपर्क","प्रेस विज्ञप्ति","2026","केंद्र"],
+  ["Notice — Membership Drive Guidelines","आधिकारिक सूचनाएँ","2026","केंद्र"],
+  ["राज्य आंदोलन अभिलेख टिप्पणी","ऐतिहासिक दस्तावेज़","2025","केंद्र"],
   ["जन प्रतिनिधित्व — पेयजल आपूर्ति","जन प्रतिनिधित्व","2026","अल्मोड़ा"],
   ["Organisational Appointment Letter (Demo)","नियुक्तियाँ","2026","नैनीताल"],
   ["वार्षिक घोषणा विवरण","घोषणाएँ","2025","केंद्र"],
 ].map((d, i) => ({ id: `D-${i + 1}`, title: d[0], category: d[1], year: d[2], district: d[3], size: `${120 + i * 34} KB`, date: `${2 + i * 2} Aug 2026` }));
 
 const SEED_NOTICES = [
-  { id: "NT-1", title: "Weekly reporting deadline — every Sunday 6 PM", type: "Instruction", audience: "District Presidents", priority: "उच्च", date: "9 Aug 2026", read: [41, 47], ack: [38, 47], content: "All district teams must submit the weekly organisational report by Sunday evening. Units with missing reports will be flagged on the command centre." },
-  { id: "NT-2", title: "Statehood remembrance programme — 1 September", type: "Event Notice", audience: "सभी इकाइयाँ", priority: "उच्च", date: "7 Aug 2026", read: [122, 140], ack: [98, 140], content: "All units are requested to organise local remembrance programmes and record attendance in the portal." },
+  { id: "NT-1", title: "साप्ताहिक रिपोर्ट समय-सीमा — हर रविवार शाम 6 बजे", type: "निर्देश", audience: "ज़िला अध्यक्ष", priority: "उच्च", date: "9 Aug 2026", read: [41, 47], ack: [38, 47], content: "All district teams must submit the weekly organisational report by Sunday evening. Units with missing reports will be flagged on the command centre." },
+  { id: "NT-2", title: "Statehood remembrance programme — 1 September", type: "कार्यक्रम सूचना", audience: "सभी इकाइयाँ", priority: "उच्च", date: "7 Aug 2026", read: [122, 140], ack: [98, 140], content: "All units are requested to organise local remembrance programmes and record attendance in the portal." },
   { id: "NT-3", title: "Membership form digitisation circular", type: "परिपत्र", audience: "ब्लॉक संयोजक", priority: "मध्यम", date: "4 Aug 2026", read: [51, 56], ack: [44, 56], content: "Paper membership records collected before July must be digitised through the member module by 25 August." },
-  { id: "NT-4", title: "Issue camp conduct guidelines", type: "Official Notice", audience: "District Admins", priority: "मध्यम", date: "1 Aug 2026", read: [13, 13], ack: [13, 13], content: "Guidelines for conducting public issue resolution camps, including registration, verification and closure reporting." },
+  { id: "NT-4", title: "शिकायत शिविर संचालन दिशानिर्देश", type: "आधिकारिक सूचना", audience: "ज़िला प्रशासक", priority: "मध्यम", date: "1 Aug 2026", read: [13, 13], ack: [13, 13], content: "Guidelines for conducting public issue resolution camps, including registration, verification and closure reporting." },
 ];
 
 const SEED_TXNS = Array.from({ length: 12 }, (_, i) => ({
   id: `TX-${900 + i}`, date: `${1 + i * 2} Aug 2026`,
-  type: ["सहयोग राशि","सहयोग राशि","District Allocation","Expense","सहयोग राशि","Expense"][i % 6],
+  type: ["सहयोग राशि","सहयोग राशि","ज़िला आवंटन","व्यय","सहयोग राशि","व्यय"][i % 6],
   amount: [2100, 5000, 15000, 3200, 1100, 4800, 2500, 7500, 12000, 900, 5100, 2200][i],
   district: DISTRICTS[(i * 5) % 13],
-  status: i % 5 === 3 ? "Pending Approval" : "दर्ज", receipt: `RCPT-${2600 + i}`,
+  status: i % 5 === 3 ? "स्वीकृति लंबित" : "दर्ज", receipt: `RCPT-${2600 + i}`,
 }));
 
 const SEED_REPORTS = DISTRICTS.map((d, i) => ({
-  id: `R-${i}`, district: d, week: "Wk 32", meetings: 1 + (i % 4), activities: 2 + (i % 5),
+  id: `R-${i}`, district: d, week: "सप्ताह 32", meetings: 1 + (i % 4), activities: 2 + (i % 5),
   tasksDone: 3 + (i * 2) % 11, membersAdded: (i * 3) % 14, issuesIn: (i % 6), issuesResolved: (i % 4),
   status: i % 5 === 2 ? "अप्राप्त" : i % 5 === 4 ? "प्रारूप" : "जमा",
   challenges: "दूरस्थ ब्लॉकों में परिवहन और नेटवर्क संपर्क।", support: "जन संपर्क हेतु मुद्रित सामग्री।",
 }));
 
 const SEED_NOTIFS = [
-  ["task","Task assigned — Booth committee verification drive","5m ago"],
+  ["task","कार्य सौंपा गया — बूथ समिति सत्यापन अभियान","5m ago"],
   ["issue","New public issue — Hand-pump repair, चम्पावत","32m ago"],
-  ["notice","New notice — Weekly reporting deadline","1h ago"],
+  ["notice","नई सूचना — साप्ताहिक रिपोर्ट समय-सीमा","1h ago"],
   ["report","Report missing — टिहरी गढ़वाल, Wk 32","3h ago"],
   ["task","Task overdue — Notice acknowledgement follow-up","5h ago"],
   ["issue","Issue resolved — Evening bus service, देहरादून","1d ago"],
   ["event","Event reminder — District Organisational Meeting, 18 Aug","1d ago"],
-  ["doc","Document published — Press Release on road connectivity","2d ago"],
+  ["doc","दस्तावेज़ प्रकाशित — सड़क संपर्क पर प्रेस विज्ञप्ति","2d ago"],
 ].map((n, i) => ({ id: i, kind: n[0], text: n[1], time: n[2], unread: i < 4 }));
 
 const SEED_AUDIT = [
   ["ज़िला प्रशासक","Updated member profile","Members","Today 11:42","सफल"],
-  ["केंद्रीय प्रशासक","Published notice — reporting deadline","Notices","Today 10:05","सफल"],
-  ["ब्लॉक संयोजक","Completed task — form digitisation","Tasks","Today 09:18","सफल"],
-  ["ज़िला प्रशासक","Exported district report","रिपोर्ट","Yesterday 18:22","सफल"],
-  ["केंद्रीय नेतृत्व","Viewed finance dashboard","Finance","Yesterday 16:10","सफल"],
+  ["केंद्रीय प्रशासक","सूचना प्रकाशित — रिपोर्ट समय-सीमा","सूचनाएँ","Today 10:05","सफल"],
+  ["ब्लॉक संयोजक","कार्य पूर्ण — फॉर्म डिजिटलीकरण","कार्य","Today 09:18","सफल"],
+  ["ज़िला प्रशासक","ज़िला रिपोर्ट निर्यात की","रिपोर्ट","Yesterday 18:22","सफल"],
+  ["केंद्रीय नेतृत्व","वित्त डैशबोर्ड देखा","वित्त","Yesterday 16:10","सफल"],
   ["स्थानीय इकाई संयोजक","Failed login attempt","सुरक्षा","Yesterday 08:47","चेतावनी"],
-  ["केंद्रीय प्रशासक","Changed role permissions — District Admin","सेटिंग्स","11 Aug 14:35","सफल"],
+  ["केंद्रीय प्रशासक","भूमिका अनुमति बदली — ज़िला प्रशासक","सेटिंग्स","11 Aug 14:35","सफल"],
 ].map((a, i) => ({ id: i, user: a[0], action: a[1], module: a[2], time: a[3], status: a[4] }));
 
 const TIMELINE_HISTORY = [
   ["पर्वतीय राज्य की माँग","Decades of civic movements argued that the Himalayan districts needed a state of their own — its own priorities, its own voice.","Movement era"],
-  ["A party born from the movement","UKD emerged as a regional political voice dedicated to statehood and to the identity of the mountain people.","Founding"],
+  ["A party born from the movement","UKD emerged as a regional political voice dedicated to statehood and to the identity of the mountain people.","स्थापना"],
   ["राज्य आंदोलन तेज़ हुआ","Mass mobilisation across गढ़वाल and कुमाऊँ carried the demand from village squares to the national stage.","संघर्ष"],
   ["उत्तराखंड राज्य बना","The long-sought state was created in November 2000 — a defining moment for the movement and the region.","2000"],
   ["नए राज्य की सेवा में","UKD's focus turned to the promises of statehood: mountain employment, migration, land, water, and dignity.","राज्य निर्माण के वर्ष"],
@@ -327,7 +327,7 @@ const STATUS_COLORS = {
   Active: { bg: "#E7F0DA", fg: "#4A6B1D" }, Pending: { bg: "#F3E9D6", fg: "#8A5D14" },
   Missing: { bg: "#F5E3DE", fg: C.red }, Draft: { bg: "#E6E4DC", fg: C.mute },
   High: { bg: "#F5E3DE", fg: C.red }, Medium: { bg: "#F3E9D6", fg: "#8A5D14" }, Low: { bg: "#E6E4DC", fg: C.mute },
-  Recorded: { bg: "#E7F0DA", fg: "#4A6B1D" }, "Pending Approval": { bg: "#F3E9D6", fg: "#8A5D14" },
+  Recorded: { bg: "#E7F0DA", fg: "#4A6B1D" }, "स्वीकृति लंबित": { bg: "#F3E9D6", fg: "#8A5D14" },
   Success: { bg: "#E7F0DA", fg: "#4A6B1D" }, Warning: { bg: "#F5E3DE", fg: C.red },
 };
 const Badge = ({ children, tone }) => {
@@ -644,8 +644,8 @@ function SearchOverlay({ open, onClose, nav }) {
   const ql = q.toLowerCase();
   const hits = q.length < 2 ? [] : [
     ...SEED_NEWS.filter((n) => n.title.toLowerCase().includes(ql)).map((n) => ({ t: "समाचार", label: n.title, r: `news/${n.id}` })),
-    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).map((d) => ({ t: "Document", label: d.title, r: "documents" })),
-    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).map((e) => ({ t: "Event", label: e.title, r: `events/${e.id}` })),
+    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).map((d) => ({ t: "दस्तावेज़", label: d.title, r: "documents" })),
+    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).map((e) => ({ t: "कार्यक्रम", label: e.title, r: `events/${e.id}` })),
     ...DISTRICTS.filter((d) => d.toLowerCase().includes(ql)).map((d) => ({ t: "संगठन", label: `${d} district`, r: `organisation/district/${d}` })),
     ...TIMELINE_HISTORY.filter((h) => h[0].toLowerCase().includes(ql)).map((h) => ({ t: "इतिहास", label: h[0], r: "history" })),
   ].slice(0, 9);
@@ -1053,7 +1053,7 @@ function HomePage({ nav }) {
         <Eyebrow>पारदर्शिता</Eyebrow>
         <H2>पारदर्शिता, शुरुआत से।</H2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 10 }}>
-          {["सार्वजनिक घोषणाएँ", "Official Documents", "रिपोर्ट", "जन वक्तव्य", "Organisational Updates"].map((t) => (
+          {["सार्वजनिक घोषणाएँ", "आधिकारिक दस्तावेज़", "रिपोर्ट", "जन वक्तव्य", "संगठनात्मक सूचनाएँ"].map((t) => (
             <button key={t} className="hoverlift" onClick={() => nav("transparency")} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "22px 18px", cursor: "pointer", textAlign: "left" }}>
               <div style={{ width: 34, height: 34, borderRadius: 9, background: `${C.slate}18`, color: C.slate, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, marginBottom: 12 }}>◫</div>
               <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink }}>{t}</div>
@@ -1067,7 +1067,7 @@ function HomePage({ nav }) {
 }
 
 function GalleryGrid({ preview, nav }) {
-  const cats = ["कार्यक्रम", "Leadership", "जन संवाद", "संगठन", "Uttarakhand"];
+  const cats = ["कार्यक्रम", "नेतृत्व", "जन संवाद", "संगठन", "उत्तराखंड"];
   const [cat, setCat] = useState("सभी");
   const tiles = Array.from({ length: preview ? 6 : 12 }, (_, i) => ({
     id: i, cat: cats[i % 5],
@@ -1343,7 +1343,7 @@ function PeopleLanding({ nav }) {
           {[["दर्ज करें", "समस्या, स्थान और यदि तस्वीरें हों तो उन्हें संलग्न करें।"],
             ["क्रमांक प्राप्त करें", "आपको तुरंत एक क्रमांक मिलेगा — उसे सुरक्षित रखें।"],
             ["हम इसे सौंपते हैं", "समस्या संबंधित ज़िला इकाई को भेज दी जाती है।"],
-            ["समाधान तक देखें", "Follow the status timeline until the issue is resolved."]].map(([t, d], i) => (
+            ["समाधान तक देखें", "समाधान होने तक स्थिति देखते रहें।"]].map(([t, d], i) => (
             <div key={t} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22 }}>
               <div style={{ width: 34, height: 34, borderRadius: 99, background: C.forest, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, marginBottom: 14 }}>{i + 1}</div>
               <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 6 }}>{t}</div>
@@ -1378,18 +1378,18 @@ function ReportIssuePage({ nav }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const submit = () => {
     const e = {};
-    if (!f.name.trim()) e.name = "Please enter your name.";
-    if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
+    if (!f.name.trim()) e.name = "कृपया अपना नाम लिखें।";
+    if (!/^\d{10}$/.test(f.mobile)) e.mobile = "10 अंकों का मोबाइल नंबर लिखें।";
     if (!f.district) e.district = "अपना ज़िला चुनें।";
     if (!f.category) e.category = "समस्या की श्रेणी चुनें।";
-    if (f.desc.trim().length < 20) e.desc = "Describe the issue in at least 20 characters.";
+    if (f.desc.trim().length < 20) e.desc = "समस्या कम से कम 20 अक्षरों में लिखें।";
     setErrs(e);
-    if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
+    if (Object.keys(e).length) { toast("कृपया चिह्नित जानकारी ठीक करें।", "error"); return; }
     setBusy(true);
     setTimeout(() => {
       const id = `UKD-ISSUE-2026-${String(Math.floor(480 + Math.random() * 400)).padStart(5, "0")}`;
-      store.setIssues([{ id, category: f.category, district: f.district, status: "प्राप्त", title: f.desc.slice(0, 70), location: `${f.district}${f.block ? " • " + f.block : ""}`, date: "12 Aug 2026", citizen: f.name, phone: f.mobile, priority: "मध्यम", assignedUnit: "Pending assignment", ageDays: 0, notes: 0 }, ...store.issues]);
-      setDone(id); setBusy(false); toast("Issue submitted successfully.");
+      store.setIssues([{ id, category: f.category, district: f.district, status: "प्राप्त", title: f.desc.slice(0, 70), location: `${f.district}${f.block ? " • " + f.block : ""}`, date: "12 Aug 2026", citizen: f.name, phone: f.mobile, priority: "मध्यम", assignedUnit: "सौंपा जाना शेष", ageDays: 0, notes: 0 }, ...store.issues]);
+      setDone(id); setBusy(false); toast("समस्या सफलतापूर्वक दर्ज हो गई।");
     }, 900);
   };
   if (done) return (
@@ -1426,7 +1426,7 @@ function ReportIssuePage({ nav }) {
           <Field label="समस्या की श्रेणी" required error={errs.category}><Select value={f.category} onChange={set("category")} error={errs.category} options={ISSUE_CATEGORIES} placeholder="श्रेणी चुनें" /></Field>
           <Field label="विवरण" required error={errs.desc}><TextArea value={f.desc} onChange={set("desc")} error={errs.desc} placeholder="समस्या स्पष्ट रूप से लिखें — क्या, कहाँ, कब से।" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-            {["Photo upload", "Document upload"].map((l) => (
+            {["फोटो अपलोड", "दस्तावेज़ अपलोड"].map((l) => (
               <button key={l} onClick={() => toast("Demo prototype — uploads are simulated.")} style={{ border: `1.5px dashed ${C.line}`, background: C.paper, borderRadius: 10, padding: "18px 12px", fontFamily: sans, fontSize: 13, color: C.mute, cursor: "pointer" }}>⇪ {l} (demo)</button>
             ))}
           </div>
@@ -1443,7 +1443,7 @@ function TrackIssuePage({ nav }) {
   const [id, setId] = useState(""); const [ref, setRef] = useState("");
   const [found, setFound] = useState(null); const [busy, setBusy] = useState(false); const [notFound, setNotFound] = useState(false);
   const track = () => {
-    if (!id.trim()) { toast("Enter an issue ID to track.", "error"); return; }
+    if (!id.trim()) { toast("स्थिति देखने हेतु समस्या क्रमांक लिखें।", "error"); return; }
     setBusy(true); setNotFound(false); setFound(null);
     setTimeout(() => {
       const hit = store.issues.find((i) => i.id.toLowerCase() === id.trim().toLowerCase());
@@ -1454,7 +1454,7 @@ function TrackIssuePage({ nav }) {
   const stageIdx = found ? Math.max(0, ISSUE_STAGES.indexOf(found.status === "बंद" ? "बंद" : found.status)) : 0;
   return (
     <>
-      <PageHead eyebrow="जन पोर्टल" title="समस्या की स्थिति देखें।" sub="स्थिति देखने के लिए अपना समस्या क्रमांक दर्ज करें।" crumbs={[["मुख्य पृष्ठ", "home"], ["जन पोर्टल", "people"], ["Track"]]} nav={nav} />
+      <PageHead eyebrow="जन पोर्टल" title="समस्या की स्थिति देखें।" sub="स्थिति देखने के लिए अपना समस्या क्रमांक दर्ज करें।" crumbs={[["मुख्य पृष्ठ", "home"], ["जन पोर्टल", "people"], ["स्थिति"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 680, paddingTop: 50 } }}>
         <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: 28 }}>
           <Field label="समस्या क्रमांक" required hint={`Try one from the homepage, e.g. ${store.issues[0].id}`}><TextInput value={id} onChange={(e) => setId(e.target.value)} placeholder="UKD-ISSUE-2026-00482" /></Field>
@@ -1507,15 +1507,15 @@ function JoinPage({ nav }) {
   const next = () => {
     if (step === 0) {
       const e = {};
-      if (!f.name.trim()) e.name = "Enter your full name.";
-      if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
+      if (!f.name.trim()) e.name = "अपना पूरा नाम लिखें।";
+      if (!/^\d{10}$/.test(f.mobile)) e.mobile = "10 अंकों का मोबाइल नंबर लिखें।";
       if (f.email && !/.+@.+\..+/.test(f.email)) e.email = "Enter a valid email or leave blank.";
       if (!f.district) e.district = "अपना ज़िला चुनें।";
       setErrs(e);
-      if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
+      if (Object.keys(e).length) { toast("कृपया चिह्नित जानकारी ठीक करें।", "error"); return; }
     }
     if (step === 2) {
-      store.setMembers([{ id: memberId.current, name: f.name, district: f.district, unit: f.unit || "सौंपा जाना शेष", block: f.block || "—", role: "Member", joined: "Aug 2026", status: "लंबित", lastActivity: "Just now", phone: `+91 ${f.mobile.slice(0, 5)}XXXXX` }, ...store.members]);
+      store.setMembers([{ id: memberId.current, name: f.name, district: f.district, unit: f.unit || "सौंपा जाना शेष", block: f.block || "—", role: "Member", joined: "Aug 2026", status: "लंबित", lastActivity: "अभी", phone: `+91 ${f.mobile.slice(0, 5)}XXXXX` }, ...store.members]);
       toast("Membership request submitted.");
     }
     setStep(step + 1);
@@ -1554,7 +1554,7 @@ function JoinPage({ nav }) {
           {step === 2 && (
             <div style={{ fontFamily: sans }}>
               <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 600, color: C.ink, marginBottom: 16 }}>अपना विवरण जाँचें</div>
-              {[["Name", f.name], ["मोबाइल नंबर", f.mobile], ["ईमेल", f.email || "—"], ["ज़िला", f.district], ["ब्लॉक", f.block || "—"], ["Local unit", f.unit || "सौंपा जाना शेष"], ["पता", f.address || "—"]].map(([l, v]) => (
+              {[["Name", f.name], ["मोबाइल नंबर", f.mobile], ["ईमेल", f.email || "—"], ["ज़िला", f.district], ["ब्लॉक", f.block || "—"], ["स्थानीय इकाई", f.unit || "सौंपा जाना शेष"], ["पता", f.address || "—"]].map(([l, v]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "9px 0", borderBottom: `1px solid ${C.line}66`, fontSize: 14 }}>
                   <span style={{ color: C.mute }}>{l}</span><span style={{ fontWeight: 600, color: C.ink, textAlign: "right" }}>{v}</span>
                 </div>
@@ -1627,17 +1627,17 @@ function SupportPage({ nav }) {
   const next = () => {
     if (step === 0) {
       const e = {};
-      if (!f.name.trim()) e.name = "Enter your name.";
-      if (!/^\d{10}$/.test(f.mobile)) e.mobile = "Enter a 10-digit mobile number.";
+      if (!f.name.trim()) e.name = "अपना नाम लिखें।";
+      if (!/^\d{10}$/.test(f.mobile)) e.mobile = "10 अंकों का मोबाइल नंबर लिखें।";
       setErrs(e);
-      if (Object.keys(e).length) { toast("Please fix the highlighted fields.", "error"); return; }
+      if (Object.keys(e).length) { toast("कृपया चिह्नित जानकारी ठीक करें।", "error"); return; }
     }
     if (step === 1) toast("Demo contribution recorded — no real payment was made.");
     setStep(step + 1);
   };
   return (
     <>
-      <PageHead eyebrow="सहयोग करें" title="आंदोलन में सहयोग करें।" sub="A demonstration contribution flow. No real money is processed anywhere in this prototype." crumbs={[["मुख्य पृष्ठ", "home"], ["Support"]]} nav={nav} />
+      <PageHead eyebrow="सहयोग करें" title="आंदोलन में सहयोग करें।" sub="A demonstration contribution flow. No real money is processed anywhere in this prototype." crumbs={[["मुख्य पृष्ठ", "home"], ["सहयोग"]]} nav={nav} />
       <Section style={{ inner: { maxWidth: 640, paddingTop: 50 } }}>
         <div style={{ background: "#FDF6E7", border: `1px solid ${C.gold}66`, borderRadius: 10, padding: "12px 16px", fontFamily: sans, fontSize: 13, color: "#8A5D14", marginBottom: 20, fontWeight: 600 }}>
           Demo only — this screen simulates a contribution and does not process payments.
@@ -1674,7 +1674,7 @@ function SupportPage({ nav }) {
             <div style={{ textAlign: "center" }}>
               <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#E7F0DA", color: "#4A6B1D", fontSize: 26, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>✓</div>
               <H2 style={{ fontSize: 27 }}>Thank you, {f.name.split(" ")[0]}.</H2>
-              <Lead style={{ margin: "0 auto 24px", textAlign: "center" }}>Your demo contribution of ₹{amt} was recorded in this prototype. In the real system, an official receipt would be issued and reflected in the Transparency Centre.</Lead>
+              <Lead style={{ margin: "0 auto 24px", textAlign: "center" }}>आपका ₹{amt} का सहयोग दर्ज कर लिया गया है। वास्तविक प्रणाली में इसकी आधिकारिक रसीद जारी होगी और पारदर्शिता केंद्र में दर्ज होगी।</Lead>
               <Btn kind="ghost" onClick={() => nav("transparency")}>पारदर्शिता केंद्र देखें</Btn>
             </div>
           )}
@@ -1685,21 +1685,21 @@ function SupportPage({ nav }) {
 }
 
 function DocumentsPage({ nav, transparency }) {
-  const cats = transparency ? ["घोषणाएँ", "जन वक्तव्य", "रिपोर्ट", "Official Notices", "जन प्रतिनिधित्व"] : [...new Set(SEED_DOCS.map((d) => d.category))];
+  const cats = transparency ? ["घोषणाएँ", "जन वक्तव्य", "रिपोर्ट", "आधिकारिक सूचनाएँ", "जन प्रतिनिधित्व"] : [...new Set(SEED_DOCS.map((d) => d.category))];
   return (
     <>
-      <PageHead eyebrow={transparency ? "पारदर्शिता केंद्र" : "दस्तावेज़"} title={transparency ? "Open by design." : "आधिकारिक अभिलेख।"} sub={transparency ? "Disclosures, statements, reports and representations — published for the public record." : "Party documents, resolutions, minutes and press releases in one searchable archive."} crumbs={[["मुख्य पृष्ठ", "home"], [transparency ? "पारदर्शिता" : "दस्तावेज़"]]} nav={nav} />
+      <PageHead eyebrow={transparency ? "पारदर्शिता केंद्र" : "दस्तावेज़"} title={transparency ? "पारदर्शिता, शुरुआत से।" : "आधिकारिक अभिलेख।"} sub={transparency ? "घोषणाएँ, वक्तव्य, रिपोर्ट और प्रतिनिधित्व — सार्वजनिक अभिलेख हेतु प्रकाशित।" : "दल के दस्तावेज़, प्रस्ताव, कार्यवृत्त और प्रेस विज्ञप्ति — एक खोजने योग्य अभिलेख में।"} crumbs={[["मुख्य पृष्ठ", "home"], [transparency ? "पारदर्शिता" : "दस्तावेज़"]]} nav={nav} />
       <Section>
         <DataTable
           columns={[
-            { key: "title", label: "Document", strong: true },
+            { key: "title", label: "दस्तावेज़", strong: true },
             { key: "category", label: "श्रेणी", render: (r) => <Badge>{r.category}</Badge> },
             { key: "district", label: "ज़िला" },
             { key: "year", label: "Year" },
             { key: "size", label: "Size" },
             { key: "dl", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview ↓</span> },
           ]}
-          rows={SEED_DOCS.filter((d) => !transparency || ["घोषणाएँ", "Press Releases", "District Reports", "Official Notices", "जन प्रतिनिधित्व", "प्रस्ताव"].includes(d.category))}
+          rows={SEED_DOCS.filter((d) => !transparency || ["घोषणाएँ", "प्रेस विज्ञप्ति", "ज़िला रिपोर्ट", "आधिकारिक सूचनाएँ", "जन प्रतिनिधित्व", "प्रस्ताव"].includes(d.category))}
           searchKeys={["title", "category"]}
           filters={[{ key: "year", label: "Year", options: ["2026", "2025"] }, { key: "category", label: "श्रेणी", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "district", label: "ज़िला", options: [...new Set(SEED_DOCS.map((d) => d.district))] }]}
           onRow={() => {}}
@@ -1833,13 +1833,13 @@ const PORTAL_NAV = [
   ["members", "Members", "☰"],
   ["karyakartas", "Karyakartas", "✦"],
   ["units", "Local Units", "▤"],
-  ["tasks", "Tasks", "✓"],
+  ["tasks", "कार्य", "✓"],
   ["issues", "People's Issues", "◉"],
   ["pevents", "कार्यक्रम", "▣"],
   ["pdocs", "दस्तावेज़", "◫"],
-  ["notices", "Notices", "◈"],
+  ["notices", "सूचनाएँ", "◈"],
   ["reports", "रिपोर्ट", "≡"],
-  ["finance", "Finance", "₹"],
+  ["finance", "वित्त", "₹"],
   ["analytics", "Analytics", "∿"],
   ["ai", "AI Assistant", "✳"],
   ["settings", "सेटिंग्स", "⚙"],
@@ -2005,7 +2005,7 @@ function OrgModule({ nav }) {
           ]}
           rows={SEED_MEMBERS.filter((m) => m.role !== "Member").concat(SEED_KARYAKARTAS.slice(0, 4).map((k) => ({ ...k, role: k.role, status: "सक्रिय" })))}
           searchKeys={["name", "role", "district", "unit"]}
-          filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "role", label: "Designation", options: ["समिति सदस्य", "इकाई सचिव", "Field Karyakarta", "बूथ कार्यकर्ता", "प्रशिक्षण प्रभारी"] }]}
+          filters={[{ key: "district", label: "ज़िला", options: DISTRICTS }, { key: "role", label: "Designation", options: ["समिति सदस्य", "इकाई सचिव", "क्षेत्रीय कार्यकर्ता", "बूथ कार्यकर्ता", "प्रशिक्षण प्रभारी"] }]}
           onRow={(r) => nav(r.id.startsWith("KK") ? `karyakartas/${r.id}` : `members/${r.id}`)}
         />
       </div>
@@ -2114,7 +2114,7 @@ function MembersModule({ nav, id, user }) {
         <Field label="Role"><Select value={nf.role} onChange={(e) => setNf({ ...nf, role: e.target.value })} options={["Member", "समिति सदस्य", "इकाई सचिव"]} /></Field>
         <Btn style={{ width: "100%" }} onClick={() => {
           if (!nf.name.trim() || !nf.district) { toast("Name and district are required.", "error"); return; }
-          store.setMembers([{ id: `UKD-M-2026-${Math.floor(3000 + Math.random() * 5000)}`, name: nf.name, district: nf.district, unit: "सौंपा जाना शेष", block: "—", role: nf.role, joined: "Aug 2026", status: "लंबित", lastActivity: "Just now", phone: "+91 9XXXXXXXXX" }, ...store.members]);
+          store.setMembers([{ id: `UKD-M-2026-${Math.floor(3000 + Math.random() * 5000)}`, name: nf.name, district: nf.district, unit: "सौंपा जाना शेष", block: "—", role: nf.role, joined: "Aug 2026", status: "लंबित", lastActivity: "अभी", phone: "+91 9XXXXXXXXX" }, ...store.members]);
           setAddOpen(false); setNf({ name: "", district: user.district || "", role: "Member" }); toast("Member added to the list.");
         }}>Add member</Btn>
       </Modal>
@@ -2229,7 +2229,7 @@ function TasksModule({ nav, id, query, user }) {
       toast(`Task moved to “${next}”.`);
     };
     return (
-      <DetailShell back={() => nav("tasks")} backLabel="Tasks" title={{ text: t.name }} sub={`${t.id} · ${t.district} · ${t.unit} · deadline ${t.deadline}`} badge={<Badge tone={t.status}>{t.status}</Badge>}
+      <DetailShell back={() => nav("tasks")} backLabel="कार्य" title={{ text: t.name }} sub={`${t.id} · ${t.district} · ${t.unit} · deadline ${t.deadline}`} badge={<Badge tone={t.status}>{t.status}</Badge>}
         actions={<>{t.status !== "पूर्ण" && <Btn size="sm" onClick={advance}>{t.status === "विलंबित" ? "Resume task" : idx >= 3 ? "Mark completed" : "Advance status →"}</Btn>}<Btn size="sm" kind="ghost" onClick={() => toast("Demo — comment added (simulated).")}>Add comment</Btn></>}>
         <div style={{ display: "flex", gap: 4, marginBottom: 18, flexWrap: "wrap" }}>
           {["Create", "Assign", "Execute", "Report", "Verify", "Complete"].map((s, i) => {
@@ -2257,7 +2257,7 @@ function TasksModule({ nav, id, query, user }) {
   else if (tab === "Assigned by me") rows = store.tasks.slice(4, 9);
   return (
     <div className="ukd-fade">
-      <PageTitle title="Tasks" sub="Create → Assign → Execute → Report → Verify → Complete" right={<Btn size="sm" onClick={() => setCreateOpen(true)}>+ Create task</Btn>} />
+      <PageTitle title="कार्य" sub="Create → Assign → Execute → Report → Verify → Complete" right={<Btn size="sm" onClick={() => setCreateOpen(true)}>+ Create task</Btn>} />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {tabs.map((t) => <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "7px 15px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
       </div>
@@ -2375,13 +2375,13 @@ function PEventsModule({ nav, id }) {
       <DetailShell back={() => nav("pevents")} backLabel="कार्यक्रम" title={{ text: e.title }} sub={`${e.date} · ${e.time} · ${e.venue}`} badge={<Badge>{e.type}</Badge>}
         actions={<Btn size="sm" onClick={() => toast("Attendance sheet opened (demo).")}>Record attendance</Btn>}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          {["Overview", "Attendance", "Tasks", "दस्तावेज़", "Photos", "Follow-up"].map((t) => (
+          {["Overview", "Attendance", "कार्य", "दस्तावेज़", "Photos", "Follow-up"].map((t) => (
             <button key={t} onClick={() => setTab(t)} style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, padding: "7px 15px", borderRadius: 99, border: `1.5px solid ${C.forest}33`, background: tab === t ? C.forest : "#fff", color: tab === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>
           ))}
         </div>
         {tab === "Overview" && <><KV items={[["आयोजक", e.organiser], ["Expected participants", e.participants], ["ज़िला", e.district], ["Type", e.type]]} /><PCard style={{ marginTop: 14 }}><PTitle>Meeting agenda</PTitle>{["Opening & attendance", "Organisational review of the district", "Public issue follow-ups", "Task assignments & minutes", "Decisions and next meeting"].map((a, i) => <div key={i} style={{ fontFamily: sans, fontSize: 13.5, padding: "8px 0", borderBottom: `1px solid ${C.line}55`, color: C.ink }}><b style={{ color: C.gold, marginRight: 10 }}>{i + 1}.</b>{a}</div>)}</PCard></>}
         {tab === "Attendance" && <PCard><PTitle>Attendance ({Math.floor(e.participants * 0.8)} / {e.participants} confirmed)</PTitle>{SEED_MEMBERS.slice(0, 6).map((m) => <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${C.line}55`, fontFamily: sans, fontSize: 13.5 }}><Avatar name={m.name} size={28} /><span style={{ flex: 1, color: C.ink, fontWeight: 600 }}>{m.name}</span><Badge tone="सक्रिय">Present</Badge></div>)}</PCard>}
-        {tab === "Tasks" && <PCard><PTitle>Follow-up tasks</PTitle>{store.tasks.slice(0, 3).map((t) => <button key={t.id} onClick={() => nav(`tasks/${t.id}`)} className="rowhover" style={{ display: "flex", width: "100%", justifyContent: "space-between", padding: "10px", borderRadius: 8, background: "none", border: "none", fontFamily: sans, fontSize: 13.5, cursor: "pointer" }}><span style={{ fontWeight: 600, color: C.ink }}>{t.name}</span><Badge tone={t.status}>{t.status}</Badge></button>)}</PCard>}
+        {tab === "कार्य" && <PCard><PTitle>Follow-up tasks</PTitle>{store.tasks.slice(0, 3).map((t) => <button key={t.id} onClick={() => nav(`tasks/${t.id}`)} className="rowhover" style={{ display: "flex", width: "100%", justifyContent: "space-between", padding: "10px", borderRadius: 8, background: "none", border: "none", fontFamily: sans, fontSize: 13.5, cursor: "pointer" }}><span style={{ fontWeight: 600, color: C.ink }}>{t.name}</span><Badge tone={t.status}>{t.status}</Badge></button>)}</PCard>}
         {["दस्तावेज़", "Photos", "Follow-up"].includes(tab) && <EmptyState title={`No ${tab.toLowerCase()} yet`} sub={`${tab} recorded for this event will appear here.`} cta={`Add ${tab.toLowerCase()} (demo)`} onCta={() => toast("Demo — upload simulated.")} />}
       </DetailShell>
     );
@@ -2391,7 +2391,7 @@ function PEventsModule({ nav, id }) {
       <PageTitle title="Events & Meetings" sub="Programmes, meetings, minutes, decisions and follow-up." right={<Btn size="sm" onClick={() => setCreateOpen(true)}>+ Create event</Btn>} />
       <DataTable
         columns={[
-          { key: "title", label: "Event", strong: true }, { key: "type", label: "Type", render: (r) => <Badge>{r.type}</Badge> },
+          { key: "title", label: "कार्यक्रम", strong: true }, { key: "type", label: "Type", render: (r) => <Badge>{r.type}</Badge> },
           { key: "date", label: "दिनांक" }, { key: "time", label: "समय" }, { key: "district", label: "ज़िला" }, { key: "participants", label: "Participants" },
         ]}
         rows={SEED_EVENTS} searchKeys={["title", "district", "type"]} dense
@@ -2417,7 +2417,7 @@ function PDocsModule() {
       <PageTitle title="दस्तावेज़" sub="The organisation's digital archive — searchable, filterable, tagged." right={<Btn size="sm" onClick={() => toast("Demo — upload simulated.")}>⇪ Upload</Btn>} />
       <DataTable
         columns={[
-          { key: "title", label: "Document", strong: true },
+          { key: "title", label: "दस्तावेज़", strong: true },
           { key: "category", label: "श्रेणी", render: (r) => <Badge>{r.category}</Badge> },
           { key: "district", label: "ज़िला" }, { key: "date", label: "Added" }, { key: "size", label: "Size" },
           { key: "a", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview · ↓</span> },
@@ -2435,7 +2435,7 @@ function NoticesModule({ user }) {
   const store = useStore(); const toast = useToast();
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState(null);
-  const [nf, setNf] = useState({ title: "", type: "Official Notice", audience: "सभी इकाइयाँ", priority: "मध्यम", content: "" });
+  const [nf, setNf] = useState({ title: "", type: "आधिकारिक सूचना", audience: "सभी इकाइयाँ", priority: "मध्यम", content: "" });
   const canPublish = ["central-admin", "central-leadership"].includes(user.key);
   return (
     <div className="ukd-fade">
@@ -2474,15 +2474,15 @@ function NoticesModule({ user }) {
       <Modal open={open} onClose={() => setOpen(false)} title="Publish notice">
         <Field label="Title" required><TextInput value={nf.title} onChange={(e) => setNf({ ...nf, title: e.target.value })} /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Type"><Select value={nf.type} onChange={(e) => setNf({ ...nf, type: e.target.value })} options={["Official Notice", "परिपत्र", "Instruction", "Announcement", "Event Notice"]} /></Field>
+          <Field label="Type"><Select value={nf.type} onChange={(e) => setNf({ ...nf, type: e.target.value })} options={["आधिकारिक सूचना", "परिपत्र", "निर्देश", "Announcement", "कार्यक्रम सूचना"]} /></Field>
           <Field label="Priority"><Select value={nf.priority} onChange={(e) => setNf({ ...nf, priority: e.target.value })} options={["उच्च", "मध्यम", "निम्न"]} /></Field>
         </div>
-        <Field label="Audience"><Select value={nf.audience} onChange={(e) => setNf({ ...nf, audience: e.target.value })} options={["सभी इकाइयाँ", "District Presidents", "District Admins", "ब्लॉक संयोजक", "Karyakartas"]} /></Field>
+        <Field label="Audience"><Select value={nf.audience} onChange={(e) => setNf({ ...nf, audience: e.target.value })} options={["सभी इकाइयाँ", "ज़िला अध्यक्ष", "ज़िला प्रशासक", "ब्लॉक संयोजक", "Karyakartas"]} /></Field>
         <Field label="Content" required><TextArea value={nf.content} onChange={(e) => setNf({ ...nf, content: e.target.value })} /></Field>
         <Btn style={{ width: "100%" }} onClick={() => {
           if (!nf.title.trim() || !nf.content.trim()) { toast("Title and content are required.", "error"); return; }
           store.setNotices([{ id: `NT-${Date.now()}`, title: nf.title, type: nf.type, audience: nf.audience, priority: nf.priority, date: "12 Aug 2026", read: [0, 47], ack: [0, 47], content: nf.content }, ...store.notices]);
-          setOpen(false); setNf({ title: "", type: "Official Notice", audience: "सभी इकाइयाँ", priority: "मध्यम", content: "" }); toast("Notice published to the organisation.");
+          setOpen(false); setNf({ title: "", type: "आधिकारिक सूचना", audience: "सभी इकाइयाँ", priority: "मध्यम", content: "" }); toast("Notice published to the organisation.");
         }}>Publish notice</Btn>
       </Modal>
     </div>
@@ -2535,9 +2535,9 @@ function FinanceModule() {
   const toast = useToast();
   return (
     <div className="ukd-fade">
-      <PageTitle title="Finance" sub="Demo financial dashboard — all figures are fictional and no payments are processed." />
+      <PageTitle title="वित्त" sub="Demo financial dashboard — all figures are fictional and no payments are processed." />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
-        {[["Total Contributions", "₹4.6 L", C.forest], ["This Month", "₹58,300", C.slate], ["District Allocation", "₹1.9 L", C.slateSoft], ["Expenses", "₹1.2 L", C.gold], ["Pending Approvals", "3", C.red]].map(([l, v, c]) => (
+        {[["Total Contributions", "₹4.6 L", C.forest], ["This Month", "₹58,300", C.slate], ["ज़िला आवंटन", "₹1.9 L", C.slateSoft], ["Expenses", "₹1.2 L", C.gold], ["Pending Approvals", "3", C.red]].map(([l, v, c]) => (
           <PCard key={l} pad={16}><div style={{ fontFamily: serif, fontSize: 28, color: c }}>{v}</div><div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute, marginTop: 4 }}>{l}</div></PCard>
         ))}
       </div>
@@ -2555,7 +2555,7 @@ function FinanceModule() {
           { key: "receipt", label: "Receipt", render: (r) => <span style={{ color: C.forest, fontWeight: 700 }}>{r.receipt} ↓</span> },
         ]}
         rows={SEED_TXNS} searchKeys={["type", "district", "receipt"]} dense
-        filters={[{ key: "type", label: "Type", options: ["सहयोग राशि", "District Allocation", "Expense"] }, { key: "status", label: "Status", options: ["दर्ज", "Pending Approval"] }]}
+        filters={[{ key: "type", label: "Type", options: ["सहयोग राशि", "ज़िला आवंटन", "व्यय"] }, { key: "status", label: "Status", options: ["दर्ज", "स्वीकृति लंबित"] }]}
         onRow={() => toast("Receipt preview (demo).")}
       />
     </div>
@@ -2689,7 +2689,7 @@ function SettingsModule({ user }) {
             <table style={{ borderCollapse: "collapse", fontFamily: sans, fontSize: 13, width: "100%" }}>
               <thead><tr><th style={{ textAlign: "left", padding: 10, color: C.mute, fontSize: 11.5 }}>Module</th>{["केंद्रीय प्रशासक", "ज़िला प्रशासक", "Block Coord.", "कार्यकर्ता"].map((r) => <th key={r} style={{ padding: 10, color: C.mute, fontSize: 11.5 }}>{r}</th>)}</tr></thead>
               <tbody>
-                {[["Members", 1, 1, 1, 0], ["Finance", 1, 1, 0, 0], ["Notices — publish", 1, 0, 0, 0], ["Tasks — assign", 1, 1, 1, 0], ["Issues — close", 1, 1, 0, 0], ["Settings — roles", 1, 0, 0, 0]].map(([m, ...cols]) => (
+                {[["Members", 1, 1, 1, 0], ["वित्त", 1, 1, 0, 0], ["Notices — publish", 1, 0, 0, 0], ["Tasks — assign", 1, 1, 1, 0], ["Issues — close", 1, 1, 0, 0], ["Settings — roles", 1, 0, 0, 0]].map(([m, ...cols]) => (
                   <tr key={m} style={{ borderTop: `1px solid ${C.line}66` }}>
                     <td style={{ padding: 10, fontWeight: 600, color: C.ink }}>{m}</td>
                     {cols.map((c, i) => <td key={i} style={{ padding: 10, textAlign: "center", color: c ? "#4A6B1D" : C.red, fontWeight: 700 }}>{c ? "✓" : "—"}</td>)}
@@ -2734,8 +2734,8 @@ function CommandPalette({ open, onClose, nav }) {
     ...SEED_KARYAKARTAS.filter((k) => k.name.toLowerCase().includes(ql)).slice(0, 2).map((k) => ({ t: "कार्यकर्ता", label: k.name, r: `karyakartas/${k.id}` })),
     ...store.tasks.filter((t) => t.name.toLowerCase().includes(ql)).slice(0, 3).map((t) => ({ t: "Task", label: t.name, r: `tasks/${t.id}` })),
     ...store.issues.filter((i) => (i.id + i.category + i.title).toLowerCase().includes(ql)).slice(0, 3).map((i) => ({ t: "Issue", label: `${i.id} — ${i.category}`, r: `issues/${i.id}` })),
-    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).slice(0, 2).map((e) => ({ t: "Event", label: e.title, r: `pevents/${e.id}` })),
-    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).slice(0, 2).map((d) => ({ t: "Document", label: d.title, r: "pdocs" })),
+    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).slice(0, 2).map((e) => ({ t: "कार्यक्रम", label: e.title, r: `pevents/${e.id}` })),
+    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).slice(0, 2).map((d) => ({ t: "दस्तावेज़", label: d.title, r: "pdocs" })),
     ...store.notices.filter((n) => n.title.toLowerCase().includes(ql)).slice(0, 2).map((n) => ({ t: "Notice", label: n.title, r: "notices" })),
   ].slice(0, 10);
   return (
