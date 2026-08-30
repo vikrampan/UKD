@@ -122,6 +122,22 @@ export function scope(actor: Actor, opts: { department?: Department } = {}): Sco
   return { where };
 }
 
+/**
+ * Geography-only scope, for models that carry an org unit but no
+ * classification of their own — public grievances, for instance, which are
+ * citizen-submitted and have no sensitivity column to filter on.
+ */
+export function scopeGeo(actor: Actor, opts: { department?: Department } = {}): Scope {
+  const paths = visiblePaths(actor, opts.department);
+
+  if (paths !== null && paths.length === 0) {
+    return { where: { id: "__no_access__" } };
+  }
+  if (paths === null) return { where: {} };
+
+  return { where: { orgUnit: { OR: paths.map((p) => ({ path: { startsWith: p } })) } } };
+}
+
 /** Can the actor act on (not merely read) this org unit? */
 export function canActOn(actor: Actor, unitPath: string, department?: Department): boolean {
   const paths = visiblePaths(actor, department);
