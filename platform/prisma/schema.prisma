@@ -146,6 +146,8 @@ model User {
   sessions    Session[]
   karyakarta  Karyakarta?
   tasksOwned  Task[]      @relation("TaskOwner")
+  noticesIssued  Notice[]        @relation("NoticeIssuer")
+  noticeReceipts NoticeReceipt[]
   tasksMade   Task[]      @relation("TaskCreator")
   taskEvents  TaskEvent[]
   auditEvents AuditLog[]
@@ -216,6 +218,7 @@ model OrgUnit {
   karyakartas Karyakarta[]
   tasks       Task[]
   issues      Issue[]
+  notices     Notice[]
 
   @@index([path])
   @@index([parentId])
@@ -293,6 +296,54 @@ model TaskEvent {
   at     DateTime    @default(now())
 
   @@index([taskId, at])
+  @@schema("work")
+}
+
+/// A circular issued down the organisation. The point is not the sending —
+/// it is knowing exactly who has read it and who has not.
+model Notice {
+  id      String @id @default(cuid())
+  code    String @unique
+  title   String
+  body    String
+
+  issuedById String
+  issuedBy   User   @relation("NoticeIssuer", fields: [issuedById], references: [id])
+
+  /// Issued to this unit and everything beneath it.
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  department  Department  @default(ORGANISATION)
+  sensitivity Sensitivity @default(INTERNAL)
+
+  /// When set, recipients must actively acknowledge, not merely open it.
+  requiresAck Boolean   @default(true)
+  dueAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  receipts NoticeReceipt[]
+
+  @@index([orgUnitId])
+  @@index([createdAt])
+  @@schema("work")
+}
+
+/// One row per intended recipient, created when the notice is issued. Absence
+/// of a readAt is the signal — an unread circular is the finding.
+model NoticeReceipt {
+  id       String @id @default(cuid())
+  noticeId String
+  notice   Notice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  readAt         DateTime?
+  acknowledgedAt DateTime?
+
+  @@unique([noticeId, userId])
+  @@index([userId, readAt])
   @@schema("work")
 }
 
