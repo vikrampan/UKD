@@ -8,7 +8,7 @@
 import { EventStatus, Sensitivity } from "@prisma/client";
 import { db } from "@/lib/db";
 import { recordIn } from "@/lib/audit";
-import { canActOn, scope, type Actor } from "@/lib/rbac";
+import { canActOn, scope, scopeGeo, type Actor } from "@/lib/rbac";
 import { Forbidden } from "@/server/tasks";
 
 /** Shared transaction budget. Prisma's 2s default maxWait is too tight when
@@ -144,7 +144,9 @@ export async function addDocument(
 /* ─────────────────── announcements ─────────────────── */
 
 export function listAnnouncements(actor: Actor) {
-  const { where } = scope(actor);
+  // Geography only: an announcement is gated by whether it is published, not
+  // by a classification, so it carries no sensitivity column to filter on.
+  const { where } = scopeGeo(actor);
   return db.announcement.findMany({
     where,
     include: { orgUnit: true, author: true },
@@ -197,7 +199,7 @@ export async function writeAnnouncement(
 }
 
 export async function setPublished(actor: Actor, id: string, publish: boolean) {
-  const { where } = scope(actor);
+  const { where } = scopeGeo(actor);
   const post = await db.announcement.findFirst({ where: { ...where, id } });
   if (!post) throw new Forbidden();
 
