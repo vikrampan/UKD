@@ -134,6 +134,10 @@ model User {
   mfaEnabled    Boolean   @default(false)
   mfaVerifiedAt DateTime?
 
+  /// Set when an admin creates the account with a temporary password. The
+  /// portal refuses to render anything else until it is cleared.
+  mustChangePassword Boolean @default(false)
+
   lastLoginAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

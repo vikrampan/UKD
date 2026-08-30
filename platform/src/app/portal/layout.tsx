@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getActor } from "@/lib/session";
+import { db } from "@/lib/db";
 import { visibleModules } from "@/lib/nav";
 import { clearanceOf, isUnscoped } from "@/lib/rbac";
 
@@ -10,6 +11,18 @@ export const dynamic = "force-dynamic";
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const actor = await getActor();
   if (!actor) redirect("/sign-in");
+
+  // An account still on its admin-issued temporary password can reach exactly
+  // one page until it is rotated.
+  const { mustChangePassword } = await db.user.findUniqueOrThrow({
+    where: { id: actor.userId },
+    select: { mustChangePassword: true },
+  });
+  if (mustChangePassword) {
+    const { headers } = await import("next/headers");
+    const path = (await headers()).get("x-pathname") ?? "";
+    if (!path.startsWith("/portal/password")) redirect("/portal/password");
+  }
 
   const modules = visibleModules(actor);
   const scopeLabel = isUnscoped(actor)
