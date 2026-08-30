@@ -149,6 +149,9 @@ model User {
   noticesIssued  Notice[]        @relation("NoticeIssuer")
   periodsOpened  ReportPeriod[]  @relation("PeriodCreator")
   ledgerCreated  LedgerEntry[]   @relation("LedgerCreator")
+  eventsCreated  Event[]         @relation("EventCreator")
+  docsUploaded   Document[]      @relation("DocumentUploader")
+  announcements  Announcement[]  @relation("AnnouncementAuthor")
   ledgerApproved LedgerEntry[]   @relation("LedgerApprover")
   reportsFiled   UnitReport[]    @relation("ReportSubmitter")
   noticeReceipts NoticeReceipt[]
@@ -224,7 +227,10 @@ model OrgUnit {
   issues      Issue[]
   notices     Notice[]
   unitReports UnitReport[]
-  ledger      LedgerEntry[]
+  ledger        LedgerEntry[]
+  events        Event[]
+  documents     Document[]
+  announcements Announcement[]
 
   @@index([path])
   @@index([parentId])
@@ -302,6 +308,96 @@ model TaskEvent {
   at     DateTime    @default(now())
 
   @@index([taskId, at])
+  @@schema("work")
+}
+
+enum EventStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+
+  @@schema("work")
+}
+
+/// A meeting, camp, training or public programme.
+model Event {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  title       String
+  description String
+  kind        String
+  venue       String
+  startsAt    DateTime
+  endsAt      DateTime?
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  status      EventStatus @default(PLANNED)
+  sensitivity Sensitivity @default(INTERNAL)
+  /// Listed on the public site when true.
+  isPublic    Boolean     @default(false)
+
+  /// Filed after the event happens — doc §18's post-event report.
+  attendance  Int?
+  outcome     String?
+
+  createdById String
+  createdBy   User   @relation("EventCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orgUnitId, startsAt])
+  @@index([isPublic, startsAt])
+  @@schema("work")
+}
+
+/// A document record. The file itself lives wherever `url` points — object
+/// storage is not wired up yet, so this is metadata plus a link for now.
+model Document {
+  id       String @id @default(cuid())
+  code     String @unique
+  title    String
+  category String
+  url      String?
+  notes    String?
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  sensitivity Sensitivity @default(INTERNAL)
+  isPublic    Boolean     @default(false)
+
+  uploadedById String
+  uploadedBy   User   @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([orgUnitId])
+  @@index([isPublic, createdAt])
+  @@schema("work")
+}
+
+/// Public announcement or press note.
+model Announcement {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  excerpt     String
+  body        String
+  tag         String
+  isPublished Boolean @default(false)
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  authorId String
+  author   User   @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
   @@schema("work")
 }
 

@@ -88,7 +88,34 @@ const GlobalStyle = () => (
   `}</style>
 );
 
-/* ============================== MOCK DATA ============================== */
+
+/* Public content comes from the platform API. There is deliberately no
+   fallback to invented data: if the service is unreachable the page says so
+   rather than showing figures nobody can stand behind. */
+function usePublic(path, key) {
+  const [state, setState] = useState({ loading: true, data: null, error: null });
+  useEffect(() => {
+    if (!API_BASE) { setState({ loading: false, data: null, error: "unavailable" }); return; }
+    let alive = true;
+    fetch(`${API_BASE}${path}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => alive && setState({ loading: false, data: j[key] ?? null, error: null }))
+      .catch(() => alive && setState({ loading: false, data: null, error: "network" }));
+    return () => { alive = false; };
+  }, [path, key]);
+  return state;
+}
+
+const PublicEmpty = ({ what }) => (
+  <div style={{ background: "#fff", border: `1px dashed ${C.line}`, borderRadius: 14, padding: 40, textAlign: "center" }}>
+    <p style={{ fontFamily: sans, fontWeight: 700, color: C.ink, margin: 0 }}>अभी कोई {what} उपलब्ध नहीं है।</p>
+    <p style={{ fontFamily: sans, fontSize: 13.5, color: C.mute, marginTop: 6 }}>
+      नई सामग्री जुड़ते ही यहाँ दिखाई देगी।
+    </p>
+  </div>
+);
+
+/* ============================== DEMO DATA (portal prototype only) ============================== */
 const REGIONS = {
   गढ़वाल: ["देहरादून", "पौड़ी गढ़वाल", "टिहरी गढ़वाल", "उत्तरकाशी", "चमोली", "रुद्रप्रयाग"],
   कुमाऊँ: ["अल्मोड़ा", "नैनीताल", "पिथौरागढ़", "बागेश्वर", "चम्पावत"],
@@ -641,25 +668,25 @@ function SiteFooter({ nav }) {
 }
 
 function SearchOverlay({ open, onClose, nav }) {
-  const store = useStore();
   const [q, setQ] = useState("");
   const ref = useRef(null);
+  const news = usePublic("/api/public/news", "news").data ?? [];
+  const events = usePublic("/api/public/events", "events").data ?? [];
   useEffect(() => { if (open) { setQ(""); setTimeout(() => ref.current && ref.current.focus(), 50); } }, [open]);
   if (!open) return null;
   const ql = q.toLowerCase();
   const hits = q.length < 2 ? [] : [
-    ...SEED_NEWS.filter((n) => n.title.toLowerCase().includes(ql)).map((n) => ({ t: "समाचार", label: n.title, r: `news/${n.id}` })),
-    ...SEED_DOCS.filter((d) => d.title.toLowerCase().includes(ql)).map((d) => ({ t: "दस्तावेज़", label: d.title, r: "documents" })),
-    ...SEED_EVENTS.filter((e) => e.title.toLowerCase().includes(ql)).map((e) => ({ t: "कार्यक्रम", label: e.title, r: `events/${e.id}` })),
+    ...news.filter((n) => n.title.toLowerCase().includes(ql)).map((n) => ({ t: "समाचार", label: n.title, r: `news/${n.slug}` })),
+    ...events.filter((e) => e.title.toLowerCase().includes(ql)).map((e) => ({ t: "कार्यक्रम", label: e.title, r: `events/${e.code}` })),
     ...DISTRICTS.filter((d) => d.toLowerCase().includes(ql)).map((d) => ({ t: "संगठन", label: `${d} district`, r: `organisation/district/${d}` })),
     ...TIMELINE_HISTORY.filter((h) => h[0].toLowerCase().includes(ql)).map((h) => ({ t: "इतिहास", label: h[0], r: "history" })),
   ].slice(0, 9);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(20,30,22,.6)", backdropFilter: "blur(6px)", display: "flex", justifyContent: "center", paddingTop: "12vh" }}>
       <div className="ukd-pop" onClick={(e) => e.stopPropagation()} style={{ width: "min(640px, 92vw)", alignSelf: "flex-start", background: C.paper, borderRadius: 16, overflow: "hidden", boxShadow: "0 30px 90px -20px rgba(0,0,0,.6)" }}>
-        <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="समाचार, दस्तावेज़, कार्यक्रम, ज़िले, इतिहास खोजें…" style={{ width: "100%", border: "none", padding: "20px 24px", fontFamily: sans, fontSize: 17, background: "transparent", color: C.ink }} />
+        <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="समाचार, कार्यक्रम, ज़िले, इतिहास खोजें…" style={{ width: "100%", border: "none", padding: "20px 24px", fontFamily: sans, fontSize: 17, background: "transparent", color: C.ink }} />
         <div style={{ borderTop: `1px solid ${C.line}`, maxHeight: 380, overflowY: "auto" }}>
-          {q.length >= 2 && hits.length === 0 && <div style={{ padding: 28, fontFamily: sans, color: C.mute, fontSize: 14 }}>No results for “{q}”. Try a district name, an event or a document title.</div>}
+          {q.length >= 2 && hits.length === 0 && <div style={{ padding: 28, fontFamily: sans, color: C.mute, fontSize: 14 }}>“{q}” के लिए कुछ नहीं मिला। ज़िले, कार्यक्रम या समाचार का नाम आज़माएँ।</div>}
           {hits.map((h, i) => (
             <button key={i} onClick={() => { onClose(); nav(h.r); }} className="rowhover" style={{ display: "flex", width: "100%", gap: 14, alignItems: "center", padding: "13px 24px", background: "none", border: "none", cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${C.line}66` }}>
               <span style={{ fontFamily: sans, fontSize: 10.5, fontWeight: 700, color: C.gold, width: 92, flexShrink: 0 }}>{h.t.toUpperCase()}</span>
@@ -774,18 +801,25 @@ function LeadershipBand({ nav }) {
 }
 
 function StatStrip() {
-  const stats = [["13", "ज़िलों में उपस्थिति"], ["24×7", "डिजिटल पहुँच"], ["1979", "स्थापना वर्ष"], ["एक", "आधिकारिक डिजिटल मंच"]];
+  const { data } = usePublic("/api/public/stats", "stats");
+  // Only the founding year is a constant; everything else is a live count,
+  // and nothing renders until the real numbers arrive.
+  const stats = [
+    ["1979", "स्थापना वर्ष"],
+    [data ? String(data.districts) : "—", "ज़िलों में संगठन"],
+    [data ? String(data.karyakartas) : "—", "सक्रिय कार्यकर्ता"],
+    [data ? String(data.issuesResolved) : "—", "समस्याएँ हल"],
+  ];
   return (
-    <div style={{ maxWidth: 1280, margin: "40px auto 0", padding: "0 20px", position: "relative", zIndex: 5 }}>
+    <div style={{ maxWidth: 1280, margin: "-40px auto 0", padding: "0 20px", position: "relative", zIndex: 5 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         {stats.map(([n, l], i) => (
-          <div key={i} className="hoverlift ukd-fade" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "26px 24px", boxShadow: "0 12px 32px -18px rgba(24,43,28,.25)", animationDelay: `${i * 90}ms` }}>
-            <div style={{ fontFamily: serif, fontSize: 42, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{n}</div>
+          <div key={i} className="hoverlift ukd-fade" style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "26px 24px", boxShadow: "0 12px 32px -18px rgba(4,45,24,.25)", animationDelay: `${i * 90}ms` }}>
+            <div style={{ fontFamily: serif, fontSize: 42, fontWeight: 700, color: C.forest, lineHeight: 1 }}>{n}</div>
             <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 600, color: C.mute, marginTop: 8 }}>{l}</div>
           </div>
         ))}
       </div>
-      <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 8, textAlign: "right" }}>प्रदर्शन हेतु प्रस्तुत — आधिकारिक संगठनात्मक आँकड़े नहीं।</div>
     </div>
   );
 }
@@ -852,15 +886,13 @@ function RegionMap({ nav, compact }) {
       </div>
       <div className="ukd-fade" key={open}>
         <div style={{ fontFamily: serif, fontSize: 27, fontWeight: 500, color: C.ink, marginBottom: 4 }}>{open}</div>
-        <div style={{ fontFamily: sans, fontSize: 13.5, color: C.mute, marginBottom: 18 }}>{REGIONS[open].length} districts · organisational presence · public activity (demo data)</div>
+        <div style={{ fontFamily: sans, fontSize: 14, color: C.mute, marginBottom: 18 }}>{REGIONS[open].length} ज़िले · संगठनात्मक उपस्थिति</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
           {REGIONS[open].map((d) => {
-            const issues = store.issues.filter((i) => i.district === d).length;
-            const units = SEED_UNITS.filter((u) => u.district === d).length;
             return (
               <button key={d} className="hoverlift" onClick={() => nav(`organisation/district/${d}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, cursor: "pointer" }}>
                 <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{d}</div>
-                <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 6, lineHeight: 1.6 }}>{units || 1} active unit{units === 1 ? "" : "s"} · {issues} public issue{issues === 1 ? "" : "s"}<br />Latest update: local outreach drive</div>
+                <div style={{ fontFamily: sans, fontSize: 13, color: C.mute, marginTop: 6 }}>ज़िला संगठन देखें →</div>
                 <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.gold, marginTop: 8 }}>ज़िला देखें →</div>
               </button>
             );
@@ -873,13 +905,15 @@ function RegionMap({ nav, compact }) {
 
 function NewsCard({ n, nav, big }) {
   return (
-    <article className="hoverlift" onClick={() => nav(`news/${n.id}`)} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+    <article className="hoverlift" onClick={() => nav(`news/${n.slug}`)} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
       <div style={{ height: big ? 150 : 110, background: `linear-gradient(135deg, ${C.forest}, ${C.slate})`, position: "relative" }}>
         <Ridges h={big ? 60 : 44} tones={[`${C.ivory}30`, `${C.ivory}18`, `${C.ivory}0c`]} style={{ position: "absolute", bottom: 0 }} />
-        <span style={{ position: "absolute", top: 14, left: 14, background: C.gold, color: "#fff", fontFamily: sans, fontSize: 10.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>{n.tag.toUpperCase()}</span>
+        <span style={{ position: "absolute", top: 14, left: 14, background: C.red, color: "#fff", fontFamily: sans, fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>{n.tag}</span>
       </div>
       <div style={{ padding: 20, display: "flex", flexDirection: "column", flex: 1 }}>
-        <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginBottom: 8 }}>{n.date}</div>
+        <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginBottom: 8 }}>
+          {n.publishedAt ? new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium" }).format(new Date(n.publishedAt)) : ""}
+        </div>
         <div style={{ fontFamily: serif, fontSize: big ? 22 : 18.5, fontWeight: 600, color: C.ink, lineHeight: 1.28, marginBottom: 10 }}>{n.title}</div>
         <p style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C", margin: 0, flex: 1 }}>{n.excerpt}</p>
         <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 14 }}>और पढ़ें →</div>
@@ -933,6 +967,58 @@ function LeadershipSection({ nav }) {
   );
 }
 
+
+function HomeNews({ nav }) {
+  const { loading, data } = usePublic("/api/public/news", "news");
+  const posts = (data ?? []).slice(0, 3);
+  if (loading) return <Skeleton rows={3} />;
+  if (posts.length === 0) return <PublicEmpty what="समाचार" />;
+  return <>{posts.map((n) => <NewsCard key={n.slug} n={n} nav={nav} />)}</>;
+}
+
+function HomeEvents({ nav }) {
+  const { loading, data } = usePublic("/api/public/events", "events");
+  const events = (data ?? []).slice(0, 4);
+  if (loading) return <Skeleton rows={3} />;
+  if (events.length === 0) return <PublicEmpty what="कार्यक्रम" />;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
+      {events.map((e) => (
+        <button key={e.code} className="hoverlift" onClick={() => nav(`events/${e.code}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 20, cursor: "pointer" }}>
+          <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.red, marginBottom: 8 }}>{e.kind}</div>
+          <div style={{ fontFamily: serif, fontSize: 18.5, fontWeight: 700, color: C.ink, lineHeight: 1.3, marginBottom: 8 }}>{e.title}</div>
+          <div style={{ fontFamily: sans, fontSize: 13, color: C.mute }}>
+            {new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium" }).format(new Date(e.startsAt))} · {e.venue}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* Aggregate resolution figures. Individual grievances are never listed
+   publicly — people write to the party in confidence, and their name, phone
+   and complaint are not ours to publish. */
+function PortalCounters() {
+  const { loading, data } = usePublic("/api/public/stats", "stats");
+  if (loading || !data) return null;
+  const tiles = [
+    ["दर्ज समस्याएँ", data.issuesTotal],
+    ["समाधान हुए", data.issuesResolved],
+    ["सक्रिय कार्यकर्ता", data.karyakartas],
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {tiles.map(([label, value]) => (
+        <div key={label} style={{ background: `${C.ivory}0F`, border: `1px solid ${C.ivory}26`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ivory }}>{label}</span>
+          <span style={{ fontFamily: serif, fontWeight: 700, fontSize: 26, color: "#FF8A85" }}>{value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HomePage({ nav }) {
   const store = useStore();
   return (
@@ -970,23 +1056,13 @@ function HomePage({ nav }) {
             <div>
               <Eyebrow light>जन पोर्टल</Eyebrow>
               <H2 light>आपकी समस्या का जवाब मिलना चाहिए।</H2>
-              <Lead light>Any citizen of Uttarakhand can submit a public issue — a road, a water line, a school, a clinic — and track it to resolution through the organisation's network.</Lead>
+              <Lead light>उत्तराखंड का कोई भी नागरिक अपनी समस्या दर्ज कर सकता है — सड़क, पानी, स्कूल, अस्पताल — और उसका क्रमांक लेकर समाधान तक स्थिति देख सकता है।</Lead>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Btn kind="gold" onClick={() => nav("people/report")}>जन समस्या दर्ज करें</Btn>
                 <Btn kind="ghostLight" onClick={() => nav("people/track")}>समस्या की स्थिति देखें</Btn>
               </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {store.issues.slice(0, 3).map((iss) => (
-                <div key={iss.id} className="hoverlift" style={{ background: `${C.ivory}0F`, border: `1px solid ${C.ivory}26`, borderRadius: 12, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                  <div>
-                    <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ivory }}>{iss.category}</div>
-                    <div style={{ fontFamily: sans, fontSize: 12.5, color: "#B9C4B3", marginTop: 3 }}>{iss.district} · {iss.id}</div>
-                  </div>
-                  <Badge tone={iss.status}>{iss.status}</Badge>
-                </div>
-              ))}
-            </div>
+            <PortalCounters />
           </div>
         </Section>
       </div>
@@ -996,7 +1072,7 @@ function HomePage({ nav }) {
           <Btn kind="ghost" size="sm" onClick={() => nav("news")}>सभी समाचार →</Btn>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 18 }}>
-          {SEED_NEWS.slice(0, 3).map((n) => <NewsCard key={n.id} n={n} nav={nav} />)}
+          <HomeNews nav={nav} />
         </div>
       </Section>
       <div style={{ background: "#EFEBDD" }}>
@@ -1021,23 +1097,7 @@ function HomePage({ nav }) {
           <div><Eyebrow>कार्यक्रम</Eyebrow><H2 style={{ marginBottom: 0 }}>ज़मीन पर, और कैलेंडर पर।</H2></div>
           <Btn kind="ghost" size="sm" onClick={() => nav("events")}>सभी कार्यक्रम →</Btn>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
-          {SEED_EVENTS.slice(0, 4).map((e) => (
-            <button key={e.id} className="hoverlift" onClick={() => nav(`events/${e.id}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 20, cursor: "pointer" }}>
-              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div style={{ background: C.forest, color: C.ivory, borderRadius: 10, padding: "8px 12px", textAlign: "center", fontFamily: sans, flexShrink: 0 }}>
-                  <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}>{e.date.split(" ")[0]}</div>
-                  <div style={{ fontSize: 10.5 }}>{e.date.split(" ")[1].toUpperCase()}</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink, lineHeight: 1.35 }}>{e.title}</div>
-                  <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 6 }}>{e.district} · {e.type}</div>
-                  <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.gold, marginTop: 8 }}>विवरण देखें →</div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+        <HomeEvents nav={nav} />
       </Section>
       <Section style={{ inner: { paddingTop: 20 } }}>
         <Eyebrow>चित्र दीर्घा</Eyebrow>
@@ -1158,53 +1218,44 @@ function AboutPage({ nav }) {
 }
 
 function OrganisationPage({ nav, sub }) {
-  // sub: undefined | ["district", name] | ["region", name]
-  const store = useStore();
+  const events = usePublic("/api/public/events", "events").data ?? [];
+
   if (sub && sub[0] === "district") {
     const d = sub[1];
-    const units = SEED_UNITS.filter((u) => u.district === d);
-    const issues = store.issues.filter((i) => i.district === d);
-    const evts = SEED_EVENTS.filter((e) => e.district === d);
+    const districtEvents = events.filter((e) => e.orgUnit?.name === d);
     return (
       <>
-        <PageHead eyebrow={`${regionOf(d)} क्षेत्र`} title={`${d} ज़िला`} sub="ज़िला संगठन, सक्रिय इकाइयाँ, स्थानीय गतिविधि और जन समस्याएँ।" crumbs={[["मुख्य पृष्ठ", "home"], ["संगठन", "organisation"], [d]]} nav={nav} />
+        <PageHead eyebrow={`${regionOf(d)} क्षेत्र`} title={`${d} ज़िला`} sub="ज़िला संगठन और स्थानीय गतिविधि।" crumbs={[["मुख्य पृष्ठ", "home"], ["संगठन", "organisation"], [d]]} nav={nav} />
         <Section>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 44 }}>
-            {[["सक्रिय इकाइयाँ", units.length || 1], ["जन समस्याएँ", issues.length], ["आगामी कार्यक्रम", evts.length], ["ज़िला टीम", "—"]].map(([l, v]) => (
-              <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 20 }}>
-                <div style={{ fontFamily: serif, fontSize: 32, color: C.forest }}>{v}</div>
-                <div style={{ fontFamily: sans, fontSize: 12.5, fontWeight: 700, color: C.mute, marginTop: 4 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-          <H2 style={{ fontSize: 28 }}>स्थानीय इकाइयाँ</H2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14, marginBottom: 44 }}>
-            {(units.length ? units : SEED_UNITS.slice(0, 2)).map((u) => (
-              <div key={u.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
-                <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{u.name}</div>
-                <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, margin: "6px 0 10px" }}>संयोजक: {u.leader} · {u.members} सदस्य</div>
-                <Badge tone="सक्रिय">सक्रिय</Badge>
-              </div>
-            ))}
-          </div>
-          <H2 style={{ fontSize: 28 }}>{d} की जन समस्याएँ</H2>
-          {issues.length === 0 ? <EmptyState title="कोई जन समस्या दर्ज नहीं" sub="इस ज़िले के लिए जन पोर्टल पर दर्ज समस्याएँ यहाँ दिखेंगी।" cta="समस्या दर्ज करें" onCta={() => nav("people/report")} /> : (
-            <div style={{ display: "grid", gap: 10 }}>
-              {issues.map((i) => (
-                <div key={i.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px 18px", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 14.5, color: C.ink }}>{i.title}</div>
-                    <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 3 }}>{i.category} · {i.id} · {i.date}</div>
+          <H2 style={{ fontSize: 28 }}>{d} में कार्यक्रम</H2>
+          {districtEvents.length === 0 ? (
+            <PublicEmpty what="कार्यक्रम" />
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+              {districtEvents.map((e) => (
+                <button key={e.code} className="hoverlift" onClick={() => nav(`events/${e.code}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18, cursor: "pointer" }}>
+                  <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.red, marginBottom: 6 }}>{e.kind}</div>
+                  <div style={{ fontFamily: serif, fontSize: 18, fontWeight: 700, color: C.ink, lineHeight: 1.3 }}>{e.title}</div>
+                  <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 6 }}>
+                    {new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium" }).format(new Date(e.startsAt))} · {e.venue}
                   </div>
-                  <Badge tone={i.status}>{i.status}</Badge>
-                </div>
+                </button>
               ))}
             </div>
           )}
+
+          <div style={{ marginTop: 40, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 26 }}>
+            <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 700, color: C.ink }}>{d} में कोई समस्या है?</div>
+            <p style={{ fontFamily: sans, fontSize: 14.5, color: "#4A554C", margin: "8px 0 16px" }}>
+              जन पोर्टल पर दर्ज करें — आपको क्रमांक मिलेगा और आप समाधान तक स्थिति देख सकेंगे।
+            </p>
+            <Btn onClick={() => nav("people/report")}>समस्या दर्ज करें</Btn>
+          </div>
         </Section>
       </>
     );
   }
+
   return (
     <>
       <PageHead eyebrow="संगठन" title="केंद्र से गाँव तक, एक ही नेटवर्क।" sub="गढ़वाल, कुमाऊँ और तराई — हर ज़िले तक फैला दल का ढाँचा देखें।" crumbs={[["मुख्य पृष्ठ", "home"], ["संगठन"]]} nav={nav} />
@@ -1249,32 +1300,51 @@ function HistoryPage({ nav }) {
 
 function NewsPage({ nav, id }) {
   const [tag, setTag] = useState("सभी");
+  // Hooks run unconditionally; the id decides which endpoint, not whether.
+  const list = usePublic("/api/public/news", "news");
+  const single = usePublic(id ? `/api/public/news/${encodeURIComponent(id)}` : "/api/public/news", "post");
+
   if (id) {
-    const n = SEED_NEWS.find((x) => x.id === id) || SEED_NEWS[0];
+    if (single.loading) return <Section><Skeleton rows={5} /></Section>;
+    const n = single.data;
+    if (!n) return (
+      <Section style={{ inner: { maxWidth: 640, paddingTop: 70 } }}>
+        <PublicEmpty what="लेख" />
+        <div style={{ marginTop: 20, textAlign: "center" }}><Btn kind="ghost" onClick={() => nav("news")}>← सभी समाचार</Btn></div>
+      </Section>
+    );
     return (
       <>
-        <PageHead eyebrow={n.tag} title={n.title} sub={`${n.date} · Official communication`} crumbs={[["मुख्य पृष्ठ", "home"], ["समाचार", "news"], ["लेख"]]} nav={nav} />
+        <PageHead eyebrow={n.tag} title={n.title} sub={n.publishedAt ? new Intl.DateTimeFormat("hi-IN", { dateStyle: "long" }).format(new Date(n.publishedAt)) : ""} crumbs={[["मुख्य पृष्ठ", "home"], ["समाचार", "news"], ["लेख"]]} nav={nav} />
         <Section style={{ inner: { maxWidth: 780, paddingTop: 56 } }}>
-          <p style={{ fontFamily: serif, fontSize: 21, lineHeight: 1.6, color: C.ink }}>{n.excerpt}</p>
-          {n.body.split("\n\n").map((p, i) => <p key={i} style={{ fontFamily: sans, fontSize: 16, lineHeight: 1.8, color: "#3C463E" }}>{p}</p>)}
-          <div style={{ marginTop: 34, display: "flex", gap: 12 }}><Btn kind="ghost" onClick={() => nav("news")}>← All news</Btn></div>
+          <p style={{ fontFamily: serif, fontSize: 21, lineHeight: 1.7, color: C.ink }}>{n.excerpt}</p>
+          {String(n.body).split("\n\n").map((para, i) => (
+            <p key={i} style={{ fontFamily: sans, fontSize: 16, lineHeight: 1.9, color: "#3C463E" }}>{para}</p>
+          ))}
+          <div style={{ marginTop: 34 }}><Btn kind="ghost" onClick={() => nav("news")}>← सभी समाचार</Btn></div>
         </Section>
       </>
     );
   }
-  const tags = ["सभी", "आधिकारिक सूचना", "जन कार्य", "प्रेस", "संगठन"];
-  const shown = SEED_NEWS.filter((n) => tag === "सभी" || n.tag === tag);
+
+  const posts = list.data ?? [];
+  const tags = ["सभी", ...Array.from(new Set(posts.map((n) => n.tag)))];
+  const shown = posts.filter((n) => tag === "सभी" || n.tag === tag);
   return (
     <>
       <PageHead eyebrow="समाचार" title="आधिकारिक सूचनाएँ और प्रेस।" sub="संगठन का हर प्रामाणिक वक्तव्य, सूचना और प्रेस नोट — एक ही जगह।" crumbs={[["मुख्य पृष्ठ", "home"], ["समाचार"]]} nav={nav} />
       <Section>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 26 }}>
-          {tags.map((t) => <button key={t} onClick={() => setTag(t)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: tag === t ? C.forest : "transparent", color: tag === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>)}
-        </div>
-        {shown.length === 0 ? <EmptyState title="इस श्रेणी में कोई लेख नहीं" sub="कोई दूसरी श्रेणी देखें।" /> : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 18 }}>
-            {shown.map((n) => <NewsCard key={n.id} n={n} nav={nav} big />)}
-          </div>
+        {list.loading ? <Skeleton rows={4} /> : posts.length === 0 ? <PublicEmpty what="समाचार" /> : (
+          <>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 26 }}>
+              {tags.map((t) => (
+                <button key={t} onClick={() => setTag(t)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: tag === t ? C.forest : "transparent", color: tag === t ? "#fff" : C.forest, cursor: "pointer" }}>{t}</button>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 18 }}>
+              {shown.map((n) => <NewsCard key={n.slug} n={n} nav={nav} big />)}
+            </div>
+          </>
         )}
       </Section>
     </>
@@ -1282,43 +1352,57 @@ function NewsPage({ nav, id }) {
 }
 
 function EventsPage({ nav, id }) {
+  const { loading, data } = usePublic("/api/public/events", "events");
+  const events = data ?? [];
+  const dt = new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium", timeStyle: "short" });
+
   if (id) {
-    const e = SEED_EVENTS.find((x) => x.id === id) || SEED_EVENTS[0];
+    const e = events.find((x) => x.code === id);
+    if (loading) return <Section><Skeleton rows={4} /></Section>;
+    if (!e) return (
+      <Section style={{ inner: { maxWidth: 640, paddingTop: 70 } }}>
+        <PublicEmpty what="कार्यक्रम" />
+        <div style={{ marginTop: 20, textAlign: "center" }}><Btn kind="ghost" onClick={() => nav("events")}>← सभी कार्यक्रम</Btn></div>
+      </Section>
+    );
     return (
       <>
-        <PageHead eyebrow={e.type} title={e.title} sub={`${e.date} · ${e.time} · ${e.venue}`} crumbs={[["मुख्य पृष्ठ", "home"], ["कार्यक्रम", "events"], ["विवरण"]]} nav={nav} />
+        <PageHead eyebrow={e.kind} title={e.title} sub={`${dt.format(new Date(e.startsAt))} · ${e.venue}`} crumbs={[["मुख्य पृष्ठ", "home"], ["कार्यक्रम", "events"], ["विवरण"]]} nav={nav} />
         <Section style={{ inner: { maxWidth: 820, paddingTop: 56 } }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 30 }}>
-            {[["दिनांक", e.date], ["समय", e.time], ["ज़िला", e.district], ["आयोजक", e.organiser]].map(([l, v]) => (
+            {[["दिनांक", dt.format(new Date(e.startsAt))], ["स्थान", e.venue], ["ज़िला", e.orgUnit?.name ?? "—"]].map(([l, v]) => (
               <div key={l} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 16 }}>
-                <div style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.mute }}>{l}</div>
+                <div style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.mute }}>{l}</div>
                 <div style={{ fontFamily: sans, fontSize: 15, fontWeight: 700, color: C.ink, marginTop: 6 }}>{v}</div>
               </div>
             ))}
           </div>
-          <Lead>{e.desc}</Lead>
-          <Btn kind="ghost" onClick={() => nav("events")}>← All events</Btn>
+          <Lead>{e.description}</Lead>
+          <Btn kind="ghost" onClick={() => nav("events")}>← सभी कार्यक्रम</Btn>
         </Section>
       </>
     );
   }
+
   return (
     <>
       <PageHead eyebrow="कार्यक्रम" title="संगठन का कार्यक्रम विवरण।" sub="पूरे उत्तराखंड में बैठकें, शिविर, प्रशिक्षण और जन कार्यक्रम।" crumbs={[["मुख्य पृष्ठ", "home"], ["कार्यक्रम"]]} nav={nav} />
       <Section>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-          {SEED_EVENTS.map((e) => (
-            <button key={e.id} className="hoverlift" onClick={() => nav(`events/${e.id}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22, cursor: "pointer" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.gold }}>{e.type.toUpperCase()}</span>
-                <span style={{ fontFamily: sans, fontSize: 12.5, color: C.mute }}>{e.date}</span>
-              </div>
-              <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, lineHeight: 1.3, marginBottom: 8 }}>{e.title}</div>
-              <div style={{ fontFamily: sans, fontSize: 13, color: C.mute }}>{e.venue}</div>
-              <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, color: C.forest, marginTop: 12 }}>विवरण देखें →</div>
-            </button>
-          ))}
-        </div>
+        {loading ? <Skeleton rows={4} /> : events.length === 0 ? <PublicEmpty what="कार्यक्रम" /> : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            {events.map((e) => (
+              <button key={e.code} className="hoverlift" onClick={() => nav(`events/${e.code}`)} style={{ textAlign: "left", background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: 22, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
+                  <span style={{ fontFamily: sans, fontSize: 11.5, fontWeight: 700, color: C.red }}>{e.kind}</span>
+                  <span style={{ fontFamily: sans, fontSize: 12.5, color: C.mute }}>{new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium" }).format(new Date(e.startsAt))}</span>
+                </div>
+                <div style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, color: C.ink, lineHeight: 1.3, marginBottom: 8 }}>{e.title}</div>
+                <div style={{ fontFamily: sans, fontSize: 13.5, color: C.mute }}>{e.venue}</div>
+                <div style={{ fontFamily: sans, fontSize: 13.5, fontWeight: 700, color: C.forest, marginTop: 12 }}>विवरण देखें →</div>
+              </button>
+            ))}
+          </div>
+        )}
       </Section>
     </>
   );
@@ -1353,19 +1437,6 @@ function PeopleLanding({ nav }) {
               <div style={{ width: 34, height: 34, borderRadius: 99, background: C.forest, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, fontWeight: 700, marginBottom: 14 }}>{i + 1}</div>
               <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 16, color: C.ink, marginBottom: 6 }}>{t}</div>
               <div style={{ fontFamily: sans, fontSize: 13.5, lineHeight: 1.65, color: "#4A554C" }}>{d}</div>
-            </div>
-          ))}
-        </div>
-        <H2 style={{ fontSize: 28 }}>नागरिकों द्वारा हाल में दर्ज</H2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
-          {store.issues.slice(0, 6).map((i) => (
-            <div key={i.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 18 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontFamily: sans, fontSize: 12, fontWeight: 700, color: C.slate }}>{i.category}</span>
-                <Badge tone={i.status}>{i.status}</Badge>
-              </div>
-              <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 600, color: C.ink, lineHeight: 1.4 }}>{i.title}</div>
-              <div style={{ fontFamily: sans, fontSize: 12, color: C.mute, marginTop: 8 }}>{i.district} · {i.date}</div>
             </div>
           ))}
         </div>
@@ -1739,27 +1810,51 @@ function SupportPage({ nav }) {
 }
 
 function DocumentsPage({ nav, transparency }) {
-  const cats = transparency ? ["घोषणाएँ", "जन वक्तव्य", "रिपोर्ट", "आधिकारिक सूचनाएँ", "जन प्रतिनिधित्व"] : [...new Set(SEED_DOCS.map((d) => d.category))];
+  const { loading, data } = usePublic("/api/public/documents", "documents");
+  const docs = data ?? [];
+  const [cat, setCat] = useState("सभी");
+  const cats = ["सभी", ...Array.from(new Set(docs.map((d) => d.category)))];
+  const shown = docs.filter((d) => cat === "सभी" || d.category === cat);
+  const fmt = new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium" });
+
   return (
     <>
-      <PageHead eyebrow={transparency ? "पारदर्शिता केंद्र" : "दस्तावेज़"} title={transparency ? "पारदर्शिता, शुरुआत से।" : "आधिकारिक अभिलेख।"} sub={transparency ? "घोषणाएँ, वक्तव्य, रिपोर्ट और प्रतिनिधित्व — सार्वजनिक अभिलेख हेतु प्रकाशित।" : "दल के दस्तावेज़, प्रस्ताव, कार्यवृत्त और प्रेस विज्ञप्ति — एक खोजने योग्य अभिलेख में।"} crumbs={[["मुख्य पृष्ठ", "home"], [transparency ? "पारदर्शिता" : "दस्तावेज़"]]} nav={nav} />
+      <PageHead
+        eyebrow={transparency ? "पारदर्शिता केंद्र" : "दस्तावेज़"}
+        title={transparency ? "पारदर्शिता, शुरुआत से।" : "आधिकारिक अभिलेख।"}
+        sub={transparency
+          ? "घोषणाएँ, वक्तव्य, रिपोर्ट और प्रतिनिधित्व — सार्वजनिक अभिलेख हेतु प्रकाशित।"
+          : "दल के दस्तावेज़, प्रस्ताव, कार्यवृत्त और प्रेस विज्ञप्ति — एक खोजने योग्य अभिलेख में।"}
+        crumbs={[["मुख्य पृष्ठ", "home"], [transparency ? "पारदर्शिता" : "दस्तावेज़"]]}
+        nav={nav}
+      />
       <Section>
-        <DataTable
-          columns={[
-            { key: "title", label: "दस्तावेज़", strong: true },
-            { key: "category", label: "श्रेणी", render: (r) => <Badge>{r.category}</Badge> },
-            { key: "district", label: "ज़िला" },
-            { key: "year", label: "Year" },
-            { key: "size", label: "Size" },
-            { key: "dl", label: "", render: () => <span style={{ color: C.forest, fontWeight: 700 }}>Preview ↓</span> },
-          ]}
-          rows={SEED_DOCS.filter((d) => !transparency || ["घोषणाएँ", "प्रेस विज्ञप्ति", "ज़िला रिपोर्ट", "आधिकारिक सूचनाएँ", "जन प्रतिनिधित्व", "प्रस्ताव"].includes(d.category))}
-          searchKeys={["title", "category"]}
-          filters={[{ key: "year", label: "Year", options: ["2026", "2025"] }, { key: "category", label: "श्रेणी", options: [...new Set(SEED_DOCS.map((d) => d.category))] }, { key: "district", label: "ज़िला", options: [...new Set(SEED_DOCS.map((d) => d.district))] }]}
-          onRow={() => {}}
-          empty={<EmptyState title="कोई दस्तावेज़ नहीं मिला" sub="अभिलेख देखने के लिए फ़िल्टर या खोज बदलें।" />}
-        />
-        <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 12 }}>यहाँ दिखाए गए दस्तावेज़ प्रदर्शन हेतु हैं।</div>
+        {loading ? <Skeleton rows={5} /> : docs.length === 0 ? <PublicEmpty what="दस्तावेज़" /> : (
+          <>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 26 }}>
+              {cats.map((c) => (
+                <button key={c} onClick={() => setCat(c)} style={{ fontFamily: sans, fontSize: 13, fontWeight: 700, padding: "7px 16px", borderRadius: 99, border: `1.5px solid ${C.forest}44`, background: cat === c ? C.forest : "transparent", color: cat === c ? "#fff" : C.forest, cursor: "pointer" }}>{c}</button>
+              ))}
+            </div>
+            <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden" }}>
+              {shown.map((d) => (
+                <div key={d.code} style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${C.line}` }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 15, color: C.ink }}>{d.title}</div>
+                    <div style={{ fontFamily: sans, fontSize: 12.5, color: C.mute, marginTop: 3 }}>
+                      {d.category} · {d.orgUnit?.name} · {fmt.format(new Date(d.createdAt))}
+                    </div>
+                  </div>
+                  {d.url && (
+                    <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ marginInlineStart: "auto", fontFamily: sans, fontSize: 13.5, fontWeight: 700, color: C.forest }}>
+                      खोलें →
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </Section>
     </>
   );

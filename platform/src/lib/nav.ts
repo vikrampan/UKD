@@ -28,6 +28,7 @@ export const MODULES: Module[] = [
   { href: "/portal/tasks", label: "कार्य" },
   { href: "/portal/organisation", label: "संगठन" },
   { href: "/portal/karyakartas", label: "कार्यकर्ता", roles: ALL_ADMIN },
+  { href: "/portal/content", label: "सामग्री", roles: ALL_ADMIN },
   { href: "/portal/notices", label: "सूचनाएँ" },
   { href: "/portal/issues", label: "जन समस्याएँ", roles: ALL_ADMIN },
   { href: "/portal/reports", label: "रिपोर्ट" },
