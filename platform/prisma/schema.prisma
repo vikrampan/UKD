@@ -148,6 +148,8 @@ model User {
   tasksOwned  Task[]      @relation("TaskOwner")
   noticesIssued  Notice[]        @relation("NoticeIssuer")
   periodsOpened  ReportPeriod[]  @relation("PeriodCreator")
+  ledgerCreated  LedgerEntry[]   @relation("LedgerCreator")
+  ledgerApproved LedgerEntry[]   @relation("LedgerApprover")
   reportsFiled   UnitReport[]    @relation("ReportSubmitter")
   noticeReceipts NoticeReceipt[]
   tasksMade   Task[]      @relation("TaskCreator")
@@ -222,6 +224,7 @@ model OrgUnit {
   issues      Issue[]
   notices     Notice[]
   unitReports UnitReport[]
+  ledger      LedgerEntry[]
 
   @@index([path])
   @@index([parentId])
@@ -299,6 +302,63 @@ model TaskEvent {
   at     DateTime    @default(now())
 
   @@index([taskId, at])
+  @@schema("work")
+}
+
+enum LedgerKind {
+  CONTRIBUTION
+  EXPENSE
+
+  @@schema("work")
+}
+
+enum LedgerStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+
+  @@schema("work")
+}
+
+/// A single money movement.
+///
+/// Amounts are integer paise. Rupees as a float would accumulate rounding
+/// error across a ledger and make totals disagree with the sum of their
+/// parts — unacceptable anywhere, disqualifying in party accounts.
+model LedgerEntry {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  kind        LedgerKind
+  amountPaise BigInt
+  description String
+  /// Donor for a contribution, vendor for an expense.
+  counterparty String?
+  /// Receipt or invoice number.
+  reference   String?
+  occurredOn  DateTime
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  department  Department  @default(FINANCE)
+  /// Finance defaults to CONFIDENTIAL — visible only to sufficient clearance.
+  sensitivity Sensitivity @default(CONFIDENTIAL)
+
+  status LedgerStatus @default(PENDING_APPROVAL)
+
+  createdById String
+  createdBy   User   @relation("LedgerCreator", fields: [createdById], references: [id])
+  approvedById String?
+  approvedBy   User?  @relation("LedgerApprover", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+  decisionNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgUnitId, status])
+  @@index([occurredOn])
   @@schema("work")
 }
 
