@@ -1,0 +1,339 @@
+// UKD Party Operations Platform — data model
+//
+// One PostgreSQL instance, separate schemas per domain. This gives the
+// isolation and auditability the architecture doc asks for while keeping
+// joins and transactions, which separate databases would cost us.
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["identity", "org", "work", "audit"]
+}
+
+/* ─────────────────────────── ENUMS ─────────────────────────── */
+
+/// Organisational levels, central → booth. Mirrors doc §5.
+enum OrgUnitType {
+  PARTY
+  STATE
+  REGION
+  DISTRICT
+  ASSEMBLY
+  BLOCK
+  LOCAL_UNIT
+  BOOTH
+
+  @@schema("org")
+}
+
+/// Doc §2 Layer 1. A grant pairs one of these with an org unit.
+enum RoleKey {
+  SUPER_ADMIN
+  TOP_LEADERSHIP
+  CENTRAL_ADMIN
+  STATE_ADMIN
+  DISTRICT_ADMIN
+  BLOCK_COORDINATOR
+  UNIT_COORDINATOR
+  KARYAKARTA
+  IT_CELL
+  ERP_CELL
+  COMMS_CELL
+
+  @@schema("identity")
+}
+
+/// Doc §3 — permission is Role × Department × Geography × Sensitivity.
+enum Department {
+  ORGANISATION
+  IT
+  ERP
+  COMMUNICATIONS
+  FINANCE
+  TRAINING
+  ADMIN
+
+  @@schema("identity")
+}
+
+/// Doc §34. Enforced server-side on every read.
+enum Sensitivity {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  HIGHLY_CONFIDENTIAL
+  SYSTEM
+
+  @@schema("identity")
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+
+  @@schema("identity")
+}
+
+/// Doc §9 — the full lifecycle including the rejection loop.
+enum TaskStatus {
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  CLOSED
+  REJECTED
+  CORRECTION_REQUIRED
+  RESUBMITTED
+
+  @@schema("work")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("work")
+}
+
+/// Public grievance pipeline, surfaced on the जन पोर्टल.
+enum IssueStatus {
+  RECEIVED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+
+  @@schema("work")
+}
+
+/* ─────────────────────────── IDENTITY ─────────────────────────── */
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  phone        String     @unique
+  email        String?    @unique
+  passwordHash String
+  status       UserStatus @default(INVITED)
+
+  /// TOTP. Secret is only readable server-side; never sent to the client.
+  mfaSecret     String?
+  mfaEnabled    Boolean   @default(false)
+  mfaVerifiedAt DateTime?
+
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  grants      Grant[]
+  sessions    Session[]
+  karyakarta  Karyakarta?
+  tasksOwned  Task[]      @relation("TaskOwner")
+  tasksMade   Task[]      @relation("TaskCreator")
+  taskEvents  TaskEvent[]
+  auditEvents AuditLog[]
+
+  @@index([status])
+  @@schema("identity")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  @@index([userId, revokedAt])
+  @@schema("identity")
+}
+
+/// One row = "this user holds this role, over this unit's subtree, for this
+/// department". A user may hold several. This is the whole of RBAC.
+model Grant {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       RoleKey
+  department Department  @default(ORGANISATION)
+  /// Null scope means unrestricted geography (central roles).
+  orgUnitId  String?
+  orgUnit    OrgUnit?    @relation(fields: [orgUnitId], references: [id])
+  /// Highest classification this grant may read.
+  maxSensitivity Sensitivity @default(INTERNAL)
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@unique([userId, role, department, orgUnitId])
+  @@index([userId])
+  @@schema("identity")
+}
+
+/* ─────────────────────────── ORGANISATION ─────────────────────────── */
+
+model OrgUnit {
+  id       String      @id @default(cuid())
+  type     OrgUnitType
+  name     String
+  nameHi   String?
+  parentId String?
+  parent   OrgUnit?    @relation("OrgTree", fields: [parentId], references: [id])
+  children OrgUnit[]   @relation("OrgTree")
+
+  /// Materialised path ("<root>.<child>.<leaf>."). A prefix LIKE on this
+  /// answers "everything at or below unit X" in one indexed scan, which is
+  /// the query every RBAC check runs.
+  path  String
+  depth Int    @default(0)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  grants      Grant[]
+  karyakartas Karyakarta[]
+  tasks       Task[]
+  issues      Issue[]
+
+  @@index([path])
+  @@index([parentId])
+  @@index([type])
+  @@schema("org")
+}
+
+model Karyakarta {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgUnitId String
+  orgUnit   OrgUnit  @relation(fields: [orgUnitId], references: [id])
+
+  code            String    @unique
+  responsibilities String?
+  joinedAt        DateTime  @default(now())
+  isActive        Boolean   @default(true)
+
+  @@index([orgUnitId])
+  @@schema("org")
+}
+
+/* ─────────────────────────── WORK ─────────────────────────── */
+
+model Task {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  title       String
+  description String?
+
+  createdById String
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+  ownerId     String?
+  owner       User?  @relation("TaskOwner", fields: [ownerId], references: [id])
+
+  orgUnitId  String
+  orgUnit    OrgUnit    @relation(fields: [orgUnitId], references: [id])
+  department Department @default(ORGANISATION)
+
+  /// Doc §8 — a central task fans out into one child per unit below. The
+  /// parent stays open until its children close.
+  parentId String?
+  parent   Task?   @relation("TaskCascade", fields: [parentId], references: [id])
+  children Task[]  @relation("TaskCascade")
+
+  status      TaskStatus  @default(ASSIGNED)
+  priority    Priority    @default(MEDIUM)
+  sensitivity Sensitivity @default(INTERNAL)
+
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  events TaskEvent[]
+
+  @@index([orgUnitId, status])
+  @@index([ownerId, status])
+  @@index([parentId])
+  @@index([dueAt])
+  @@schema("work")
+}
+
+/// Every status transition, with who and why. Drives the task audit trail.
+model TaskEvent {
+  id     String      @id @default(cuid())
+  taskId String
+  task   Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId String
+  actor  User        @relation(fields: [actorId], references: [id])
+  from   TaskStatus?
+  to     TaskStatus
+  note   String?
+  at     DateTime    @default(now())
+
+  @@index([taskId, at])
+  @@schema("work")
+}
+
+/// Public grievance from the जन पोर्टल. Citizen-facing, so it deliberately
+/// holds the minimum needed to route and resolve — doc §6 data minimisation.
+model Issue {
+  id       String @id @default(cuid())
+  code     String @unique
+  category String
+  title    String
+  details  String
+
+  citizenName  String
+  citizenPhone String
+  locality     String?
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  status     IssueStatus @default(RECEIVED)
+  resolvedAt DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([orgUnitId, status])
+  @@index([code])
+  @@schema("work")
+}
+
+/* ─────────────────────────── AUDIT ─────────────────────────── */
+
+/// Append-only. No update or delete path exists in application code, and the
+/// DB role the app connects as is granted INSERT and SELECT only (see the
+/// migration). Doc §35.
+model AuditLog {
+  id       String   @id @default(cuid())
+  actorId  String?
+  actor    User?    @relation(fields: [actorId], references: [id])
+  action   String
+  entity   String
+  entityId String?
+  before   Json?
+  after    Json?
+  ip       String?
+  at       DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId, at])
+  @@index([at])
+  @@schema("audit")
+}
