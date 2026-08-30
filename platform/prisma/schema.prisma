@@ -11,7 +11,10 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "org", "work", "audit"]
+  // Neon (and most poolers) hand you a pooled connection string. Migrations
+  // need a direct one — pooled connections can't hold advisory locks.
+  directUrl = env("DIRECT_URL")
+  schemas   = ["identity", "org", "work", "audit"]
 }
 
 /* ─────────────────────────── ENUMS ─────────────────────────── */
