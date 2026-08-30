@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { submitIssue } from "@/server/issues";
 import { rateLimit } from "@/lib/ratelimit";
+import { corsHeaders, preflight } from "@/lib/cors";
 
 const CATEGORIES = [
   "सड़क व संपर्क", "पानी", "बिजली", "स्वास्थ्य", "शिक्षा", "रोज़गार",
@@ -24,14 +25,19 @@ const Body = z.object({
   district: z.string().trim().min(1, "अपना ज़िला चुनें।"),
 });
 
+export function OPTIONS(req: Request) {
+  return preflight(req);
+}
+
 export async function POST(req: Request) {
+  const cors = corsHeaders(req.headers.get("origin"));
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
   const limited = rateLimit(`issue:${ip ?? "unknown"}`, { limit: 5, windowMs: 60 * 60_000 });
   if (!limited.ok) {
     return NextResponse.json(
       { error: "बहुत अधिक अनुरोध। कुछ देर बाद पुनः प्रयास करें।" },
-      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+      { status: 429, headers: { ...cors, "Retry-After": String(limited.retryAfterSec) } },
     );
   }
 
@@ -39,7 +45,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "अमान्य जानकारी।" },
-      { status: 400 },
+      { status: 400, headers: cors },
     );
   }
 
@@ -48,24 +54,25 @@ export async function POST(req: Request) {
     where: { name: district, type: "DISTRICT", isActive: true },
   });
   if (!unit) {
-    return NextResponse.json({ error: "यह ज़िला मान्य नहीं है।" }, { status: 400 });
+    return NextResponse.json({ error: "यह ज़िला मान्य नहीं है।" }, { status: 400, headers: cors });
   }
 
   const issue = await submitIssue({ ...rest, orgUnitId: unit.id, ip });
 
   // The code is the citizen's only handle on this — return it prominently.
-  return NextResponse.json({ code: issue.code }, { status: 201 });
+  return NextResponse.json({ code: issue.code }, { status: 201, headers: cors });
 }
 
 /** Districts for the form's dropdown. */
-export async function GET() {
+export async function GET(req: Request) {
+  const cors = corsHeaders(req.headers.get("origin"));
   const districts = await db.orgUnit.findMany({
     where: { type: "DISTRICT", isActive: true },
     select: { name: true },
     orderBy: { name: "asc" },
   });
-  return NextResponse.json({
-    districts: districts.map((d) => d.name),
-    categories: CATEGORIES,
-  });
+  return NextResponse.json(
+    { districts: districts.map((d) => d.name), categories: CATEGORIES },
+    { headers: cors },
+  );
 }
