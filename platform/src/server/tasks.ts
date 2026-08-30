@@ -99,36 +99,37 @@ export async function createTask(
   const unit = await db.orgUnit.findUniqueOrThrow({ where: { id: input.orgUnitId } });
   if (!canActOn(actor, unit.path, input.department)) throw new Forbidden();
 
-  return db.$transaction(async (tx) => {
-    const task = await tx.task.create({
-      data: {
-        code: await nextCode(tx),
-        title: input.title,
-        description: input.description ?? null,
-        createdById: actor.userId,
-        ownerId: input.ownerId ?? null,
-        orgUnitId: unit.id,
-        department: input.department ?? "ORGANISATION",
-        priority: input.priority ?? "MEDIUM",
-        sensitivity: input.sensitivity ?? "INTERNAL",
-        dueAt: input.dueAt ?? null,
-      },
-    });
+  return db.$transaction(
+    async (tx) => {
+      const children = input.cascade
+        ? await tx.orgUnit.findMany({ where: { parentId: unit.id, isActive: true } })
+        : [];
 
-    await tx.taskEvent.create({
-      data: { taskId: task.id, actorId: actor.userId, to: TaskStatus.ASSIGNED },
-    });
+      const codes = await reserveCodes(tx, 1 + children.length);
 
-    if (input.cascade) {
-      const children = await tx.orgUnit.findMany({
-        where: { parentId: unit.id, isActive: true },
+      const task = await tx.task.create({
+        data: {
+          code: codes[0],
+          title: input.title,
+          description: input.description ?? null,
+          createdById: actor.userId,
+          ownerId: input.ownerId ?? null,
+          orgUnitId: unit.id,
+          department: input.department ?? "ORGANISATION",
+          priority: input.priority ?? "MEDIUM",
+          sensitivity: input.sensitivity ?? "INTERNAL",
+          dueAt: input.dueAt ?? null,
+        },
       });
-      for (const child of children) {
-        const sub = await tx.task.create({
-          data: {
-            code: await nextCode(tx),
-            title: input.title,
-            description: input.description ?? null,
+
+      // Doc §8 — one child task per unit directly below. Batched, so a
+      // 13-district cascade costs a couple of statements, not dozens.
+      if (children.length > 0) {
+        await tx.task.createMany({
+          data: children.map((child, i) => ({
+            code: codes[i + 1],
+            title: task.title,
+            description: task.description,
             createdById: actor.userId,
             orgUnitId: child.id,
             parentId: task.id,
@@ -136,24 +137,36 @@ export async function createTask(
             priority: task.priority,
             sensitivity: task.sensitivity,
             dueAt: task.dueAt,
-          },
-        });
-        await tx.taskEvent.create({
-          data: { taskId: sub.id, actorId: actor.userId, to: TaskStatus.ASSIGNED },
+          })),
         });
       }
-    }
 
-    await recordIn(tx, {
-      actorId: actor.userId,
-      action: "task.create",
-      entity: "Task",
-      entityId: task.id,
-      after: { title: task.title, orgUnitId: task.orgUnitId, cascade: !!input.cascade },
-    });
+      const created = await tx.task.findMany({
+        where: { OR: [{ id: task.id }, { parentId: task.id }] },
+        select: { id: true },
+      });
+      await tx.taskEvent.createMany({
+        data: created.map((t) => ({
+          taskId: t.id,
+          actorId: actor.userId,
+          to: TaskStatus.ASSIGNED,
+        })),
+      });
 
-    return task;
-  });
+      await recordIn(tx, {
+        actorId: actor.userId,
+        action: "task.create",
+        entity: "Task",
+        entityId: task.id,
+        after: { title: task.title, orgUnitId: task.orgUnitId, cascade: children.length },
+      });
+
+      return task;
+    },
+    // Generous because the database may be a long way from the app server; a
+    // wide cascade still has to fit inside one transaction.
+    { timeout: 20_000, maxWait: 10_000 },
+  );
 }
 
 /** Move a task along the lifecycle. The only way task status ever changes. */
@@ -197,6 +210,48 @@ export async function transition(
   });
 }
 
+/**
+ * Transitions this actor may actually perform on this task right now — the
+ * lifecycle table intersected with their authority. The UI renders buttons
+ * from this, so it can never offer an action the service would refuse.
+ */
+export function allowedTransitions(
+  actor: Actor,
+  task: { status: TaskStatus; department: Department; orgUnit: { path: string } },
+): TaskStatus[] {
+  if (!canActOn(actor, task.orgUnit.path, task.department)) return [];
+  const reviewer = canApprove(actor, task.department);
+  return TRANSITIONS[task.status].filter((to) => !REVIEWER_ONLY.has(to) || reviewer);
+}
+
+/** Hindi labels for the action a transition represents. */
+export const TRANSITION_LABEL: Record<TaskStatus, string> = {
+  ASSIGNED: "सौंपें",
+  ACCEPTED: "स्वीकार करें",
+  IN_PROGRESS: "कार्य शुरू करें",
+  SUBMITTED: "पूर्ण होने पर जमा करें",
+  UNDER_REVIEW: "समीक्षा शुरू करें",
+  APPROVED: "स्वीकृत करें",
+  CORRECTION_REQUIRED: "सुधार हेतु लौटाएँ",
+  RESUBMITTED: "पुनः जमा करें",
+  REJECTED: "अस्वीकार करें",
+  CLOSED: "बंद करें",
+};
+
+/** Hindi labels for the state a task is in. */
+export const STATUS_LABEL: Record<TaskStatus, string> = {
+  ASSIGNED: "सौंपा गया",
+  ACCEPTED: "स्वीकृत",
+  IN_PROGRESS: "प्रगति पर",
+  SUBMITTED: "जमा",
+  UNDER_REVIEW: "समीक्षाधीन",
+  APPROVED: "अनुमोदित",
+  CORRECTION_REQUIRED: "सुधार आवश्यक",
+  RESUBMITTED: "पुनः जमा",
+  REJECTED: "अस्वीकृत",
+  CLOSED: "बंद",
+};
+
 /** A parent may close only once every cascaded child has closed. */
 export async function parentIsClearable(taskId: string): Promise<boolean> {
   const open = await db.task.count({
@@ -205,8 +260,16 @@ export async function parentIsClearable(taskId: string): Promise<boolean> {
   return open === 0;
 }
 
-async function nextCode(tx: Prisma.TransactionClient): Promise<string> {
+/**
+ * Reserve `n` task codes in one round trip.
+ *
+ * Uses a Postgres sequence rather than COUNT(*): atomic under concurrency,
+ * and one query regardless of how many codes the cascade needs.
+ */
+async function reserveCodes(tx: Prisma.TransactionClient, n: number): Promise<string[]> {
+  const rows = await tx.$queryRaw<{ nextval: bigint }[]>`
+    SELECT nextval('work.task_code_seq') FROM generate_series(1, ${n})
+  `;
   const year = new Date().getFullYear();
-  const count = await tx.task.count();
-  return `UKD-T-${year}-${String(count + 1).padStart(5, "0")}`;
+  return rows.map((r) => `UKD-T-${year}-${String(r.nextval).padStart(5, "0")}`);
 }

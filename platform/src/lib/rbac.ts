@@ -129,9 +129,17 @@ export function canActOn(actor: Actor, unitPath: string, department?: Department
   return paths.some((p) => unitPath.startsWith(p));
 }
 
-/** Guard for approval-type actions. Karyakartas can never approve — doc §3. */
+/**
+ * Guard for approval-type actions.
+ *
+ * Department scoping applies to ordinary role holders, but a global role
+ * (super admin, top leadership, central admin) approves across departments —
+ * otherwise an admin granted in ADMIN could never sign off an ORGANISATION
+ * task, which is not what "central admin" means.
+ *
+ * Karyakartas never approve, whatever else they hold — doc §3.
+ */
 export function canApprove(actor: Actor, department?: Department): boolean {
-  return activeGrants(actor, department).some(
-    (g) => g.role !== RoleKey.KARYAKARTA,
-  );
+  if (isUnscoped(actor)) return true;
+  return activeGrants(actor, department).some((g) => g.role !== RoleKey.KARYAKARTA);
 }
