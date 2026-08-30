@@ -11,6 +11,10 @@ import { recordIn } from "@/lib/audit";
 import { canActOn, scope, type Actor } from "@/lib/rbac";
 import { Forbidden } from "@/server/tasks";
 
+/** Shared transaction budget. Prisma's 2s default maxWait is too tight when
+ *  the database round trip is long. */
+const TX = { timeout: 20_000, maxWait: 10_000 };
+
 export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
   PLANNED: "निर्धारित",
   COMPLETED: "सम्पन्न",
@@ -63,7 +67,7 @@ export async function createEvent(
       after: { code: event.code, isPublic: event.isPublic, orgUnitId: unit.id },
     });
     return event;
-  });
+  }, TX);
 }
 
 /** Close an event out with what actually happened. */
@@ -88,7 +92,7 @@ export async function completeEvent(
       after: { attendance: input.attendance },
     });
     return updated;
-  });
+  }, TX);
 }
 
 /* ─────────────────── documents ─────────────────── */
@@ -134,7 +138,7 @@ export async function addDocument(
       after: { code: doc.code, isPublic: doc.isPublic },
     });
     return doc;
-  });
+  }, TX);
 }
 
 /* ─────────────────── announcements ─────────────────── */
@@ -189,7 +193,7 @@ export async function writeAnnouncement(
       after: { slug, published: input.publish },
     });
     return post;
-  });
+  }, TX);
 }
 
 export async function setPublished(actor: Actor, id: string, publish: boolean) {
@@ -208,7 +212,7 @@ export async function setPublished(actor: Actor, id: string, publish: boolean) {
       entity: "Announcement", entityId: id,
     });
     return updated;
-  });
+  }, TX);
 }
 
 /* ─────────────────── public reads (no actor) ─────────────────── */

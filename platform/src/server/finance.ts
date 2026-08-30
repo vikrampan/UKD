@@ -17,6 +17,10 @@ import { recordIn } from "@/lib/audit";
 import { canActOn, canApprove, clearanceOf, scope, type Actor } from "@/lib/rbac";
 import { Forbidden } from "@/server/tasks";
 
+/** Shared transaction budget. Prisma's 2s default maxWait is too tight when
+ *  the database round trip is long. */
+const TX = { timeout: 20_000, maxWait: 10_000 };
+
 export const KIND_LABEL: Record<LedgerKind, string> = {
   CONTRIBUTION: "सहयोग राशि",
   EXPENSE: "व्यय",
@@ -137,7 +141,7 @@ export async function recordEntry(
     });
 
     return entry;
-  });
+  }, TX);
 }
 
 /**
@@ -190,5 +194,5 @@ export async function decide(
     });
 
     return updated;
-  });
+  }, TX);
 }

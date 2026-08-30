@@ -152,6 +152,10 @@ model User {
   eventsCreated  Event[]         @relation("EventCreator")
   docsUploaded   Document[]      @relation("DocumentUploader")
   announcements  Announcement[]  @relation("AnnouncementAuthor")
+  ticketsRaised   Ticket[]   @relation("TicketRaiser")
+  ticketsAssigned Ticket[]   @relation("TicketAssignee")
+  meetingsCreated Meeting[]  @relation("MeetingCreator")
+  decisionsOwned  Decision[] @relation("DecisionOwner")
   ledgerApproved LedgerEntry[]   @relation("LedgerApprover")
   reportsFiled   UnitReport[]    @relation("ReportSubmitter")
   noticeReceipts NoticeReceipt[]
@@ -231,6 +235,8 @@ model OrgUnit {
   events        Event[]
   documents     Document[]
   announcements Announcement[]
+  tickets       Ticket[]
+  meetings      Meeting[]
 
   @@index([path])
   @@index([parentId])
@@ -308,6 +314,107 @@ model TaskEvent {
   at     DateTime    @default(now())
 
   @@index([taskId, at])
+  @@schema("work")
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+
+  @@schema("work")
+}
+
+/// Internal helpdesk request — doc §21/§22. A karyakarta needing portal
+/// access, a document, equipment or a correction files one of these.
+model Ticket {
+  id      String @id @default(cuid())
+  code    String @unique
+  title   String
+  details String
+
+  department Department @default(IT)
+  priority   Priority   @default(MEDIUM)
+  status     TicketStatus @default(OPEN)
+
+  raisedById String
+  raisedBy   User   @relation("TicketRaiser", fields: [raisedById], references: [id])
+  assignedToId String?
+  assignedTo   User?  @relation("TicketAssignee", fields: [assignedToId], references: [id])
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  sensitivity Sensitivity @default(INTERNAL)
+  resolution  String?
+  resolvedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgUnitId, status])
+  @@index([raisedById])
+  @@schema("work")
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  HELD
+  CANCELLED
+
+  @@schema("work")
+}
+
+/// A meeting, with its agenda before and its minutes after.
+model Meeting {
+  id       String @id @default(cuid())
+  code     String @unique
+  title    String
+  agenda   String
+  venue    String
+  heldAt   DateTime
+
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  status      MeetingStatus @default(SCHEDULED)
+  sensitivity Sensitivity   @default(INTERNAL)
+
+  minutes    String?
+  attendance Int?
+
+  createdById String
+  createdBy   User   @relation("MeetingCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  decisions Decision[]
+
+  @@index([orgUnitId, heldAt])
+  @@schema("work")
+}
+
+/// A decision taken in a meeting. Doc §19's whole point is that this does not
+/// stop at minutes: a decision with an owner becomes a real task, and the
+/// link back to that task is kept so follow-up is verifiable.
+model Decision {
+  id        String  @id @default(cuid())
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  text    String
+  ownerId String?
+  owner   User?   @relation("DecisionOwner", fields: [ownerId], references: [id])
+  dueAt   DateTime?
+
+  /// Set once this decision has been turned into a task.
+  taskId String? @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([meetingId])
   @@schema("work")
 }
 
