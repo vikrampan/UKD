@@ -30,6 +30,7 @@ export const MODULES: Module[] = [
   { href: "/portal/karyakartas", label: "कार्यकर्ता", roles: ALL_ADMIN },
   { href: "/portal/notices", label: "सूचनाएँ" },
   { href: "/portal/issues", label: "जन समस्याएँ", roles: ALL_ADMIN },
+  { href: "/portal/reports", label: "रिपोर्ट" },
   { href: "/portal/audit", label: "अंकेक्षण", roles: [RoleKey.SUPER_ADMIN, RoleKey.CENTRAL_ADMIN] },
   { href: "/portal/settings", label: "सेटिंग्स" },
 ];

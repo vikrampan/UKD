@@ -147,6 +147,8 @@ model User {
   karyakarta  Karyakarta?
   tasksOwned  Task[]      @relation("TaskOwner")
   noticesIssued  Notice[]        @relation("NoticeIssuer")
+  periodsOpened  ReportPeriod[]  @relation("PeriodCreator")
+  reportsFiled   UnitReport[]    @relation("ReportSubmitter")
   noticeReceipts NoticeReceipt[]
   tasksMade   Task[]      @relation("TaskCreator")
   taskEvents  TaskEvent[]
@@ -219,6 +221,7 @@ model OrgUnit {
   tasks       Task[]
   issues      Issue[]
   notices     Notice[]
+  unitReports UnitReport[]
 
   @@index([path])
   @@index([parentId])
@@ -296,6 +299,56 @@ model TaskEvent {
   at     DateTime    @default(now())
 
   @@index([taskId, at])
+  @@schema("work")
+}
+
+/// A reporting window — typically a week. Opening one creates the obligation
+/// for every unit in scope, so a missing report is a row, not an absence.
+model ReportPeriod {
+  id       String   @id @default(cuid())
+  code     String   @unique
+  startsOn DateTime
+  endsOn   DateTime
+  /// The deadline the organisation is held to — "रविवार 6 बजे".
+  dueAt    DateTime
+
+  createdById String
+  createdBy   User   @relation("PeriodCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  reports UnitReport[]
+
+  @@index([dueAt])
+  @@schema("work")
+}
+
+enum ReportStatus {
+  PENDING
+  SUBMITTED
+
+  @@schema("work")
+}
+
+/// One unit's return for one period. Created PENDING when the period opens.
+model UnitReport {
+  id       String       @id @default(cuid())
+  periodId String
+  period   ReportPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  orgUnitId String
+  orgUnit   OrgUnit     @relation(fields: [orgUnitId], references: [id])
+
+  status        ReportStatus @default(PENDING)
+  submittedById String?
+  submittedBy   User?        @relation("ReportSubmitter", fields: [submittedById], references: [id])
+  submittedAt   DateTime?
+
+  meetings   Int?
+  activities Int?
+  newMembers Int?
+  notes      String?
+
+  @@unique([periodId, orgUnitId])
+  @@index([orgUnitId, status])
   @@schema("work")
 }
 
